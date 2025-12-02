@@ -1,0 +1,47 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /ENT-clinic-online/ent-app/public/
+
+  # Allow access to actual files and directories
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Route /api/* requests to api.php (REST API)
+  RewriteRule ^api/(.*)$ api.php [QSA,L]
+
+  # Route everything else to index.php (PHP Frontend)
+  RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Set DirectoryIndex to index.php
+DirectoryIndex index.php
+
+# Prevent direct access to sensitive files
+<FilesMatch "\.env.*$|config\.php$|Database\.php$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+# Enable GZIP compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Set correct MIME types
+<IfModule mod_mime.c>
+  AddType application/json .json
+  AddType text/javascript .js
+  AddType text/css .css
+</IfModule>
+
+# Set proper cache headers
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+  ExpiresByType text/html "access plus 1 day"
+  ExpiresByType application/json "access plus 0 seconds"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/* "access plus 1 year"
+</IfModule>

@@ -1,0 +1,37 @@
+ENT Recording System - MVP Definition
+🎯 Core Purpose
+A desktop application for doctors to record and track ENT (Ear, Nose, Throat) patient cases with analytics.
+
+✅ MVP Features (Must Have)
+1. Patient Management
+✅ Add new patients (name, contact, demographics)
+✅ View patient list with search
+✅ Edit/delete patient information
+✅ View patient profiles
+
+2. Medical Timeline
+✅ Add timeline entries (visits)
+✅ Record: Chief complaint, findings, diagnosis, treatment plan
+✅ Classify by ENT type (Ear/Nose/Throat)
+
+3. Basic Analytics
+✅ Count total patients and visits
+✅ ENT case distribution (Ear/Nose/Throat)
+✅ Weekly visits chart
+✅ Date filtering (Today/Week/Month/All/Custom)
+
+4. Data Management
+✅ Export & Import data to/from JSON
+✅ Basic print/PDF functionality
+
+🚫 Non-MVP (Future Features)
+❌ Multi-user/login system (RBAA - doctor & secretary)
+❌ Cloud sync/backup
+❌ Advanced AI/predictive analytics
+❌ Prescription printing with templates
+❌ Appointment scheduling
+❌ Billing/invoicing
+❌ Mobile app version
+❌ Image/document attachments
+
+
