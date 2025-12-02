@@ -212,7 +212,7 @@ $error = $loginError ?? null;
                 <i class="fas fa-sign-in-alt"></i> Sign In
             </button>
             
-            <div class="demo-hint">
+            <div class="demo-hint" style="display:none;">
                 <strong>📋 Demo Accounts:</strong>
                 <div style="margin-top: 0.5rem; font-size: 0.85rem; line-height: 1.6;">
                     <div><strong>👑 Admin:</strong> admin / admin123</div>

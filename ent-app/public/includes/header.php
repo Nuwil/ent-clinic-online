@@ -96,7 +96,7 @@ $currentUser = $_SESSION['user'] ?? null;
             <!-- Top Bar -->
             <header class="topbar">
                 <div class="topbar-left">
-                    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu" style="display:none;">
                         <i class="fas fa-bars"></i>
                     </button>
                     <h2 class="page-title"><?php 
@@ -110,7 +110,7 @@ $currentUser = $_SESSION['user'] ?? null;
                 </div>
                 <div class="topbar-right">
                     <div class="topbar-actions">
-                        <button class="action-btn" title="Search">
+                        <button class="action-btn" title="Search" style="display:none;">
                             <i class="fas fa-search"></i>
                         </button>
                         <form method="POST" style="display:inline;">
@@ -124,6 +124,6 @@ $currentUser = $_SESSION['user'] ?? null;
             </header>
 
             <!-- Page Content -->
-            <main class="content-area">
+            <main class="content-area" style="padding: 20px; margin: 0 10rem 0 10rem;">
 
 
