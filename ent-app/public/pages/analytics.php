@@ -90,6 +90,84 @@ $weeklyLabels = [
 ];
 $maxWeekly = max($weeklyCounts) ?: 1;
 
+// --- Additional aggregates for different views ---
+// Monthly counts for current year (Jan..Dec)
+$currentYear = date('Y');
+$monthlyCounts = array_fill(1, 12, 0);
+foreach ($visits as $v) {
+    $d = isset($v['visit_day']) ? $v['visit_day'] : date('Y-m-d', strtotime($v['visit_date'] ?? 'now'));
+    $y = (int)date('Y', strtotime($d));
+    $m = (int)date('n', strtotime($d));
+    if ($y === (int)$currentYear) {
+        $monthlyCounts[$m]++;
+    }
+}
+$monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Weekly-series across the selected data (ISO year-week grouping)
+$weekBuckets = [];
+foreach ($visits as $v) {
+    $d = isset($v['visit_day']) ? $v['visit_day'] : date('Y-m-d', strtotime($v['visit_date'] ?? 'now'));
+    $isoYear = date('o', strtotime($d));
+    $isoWeek = date('W', strtotime($d));
+    $key = $isoYear . '-W' . $isoWeek;
+    if (!isset($weekBuckets[$key])) $weekBuckets[$key] = 0;
+    $weekBuckets[$key]++;
+}
+ksort($weekBuckets);
+$allWeeksLabels = array_keys($weekBuckets);
+$allWeeksCounts = array_values($weekBuckets);
+
+// If the selected range is a month, build day-level series and week-level grouping for that month
+$monthDayLabels = [];
+$monthDayCounts = [];
+if ($filterStart && $filterEnd) {
+    $startDT = new DateTime($filterStart);
+    $endDT = new DateTime($filterEnd);
+    $period = new DatePeriod($startDT, new DateInterval('P1D'), $endDT->modify('+1 day'));
+    foreach ($period as $dt) {
+        $dstr = $dt->format('Y-m-d');
+        $monthDayLabels[] = $dt->format('j'); // day number
+        $monthDayCounts[$dstr] = 0;
+    }
+    // count visits into days
+    foreach ($visits as $v) {
+        $d = isset($v['visit_day']) ? $v['visit_day'] : date('Y-m-d', strtotime($v['visit_date'] ?? 'now'));
+        if (isset($monthDayCounts[$d])) $monthDayCounts[$d]++;
+    }
+    // convert day counts into ordered array
+    $monthDayCounts = array_values($monthDayCounts);
+    // week grouping within month: week index starting from 1
+    $monthWeekBuckets = [];
+    $idx = 0; $weekIdxMap = [];
+    $dtCursor = new DateTime($filterStart);
+    while ($dtCursor->format('Y-m-d') <= $endDT->format('Y-m-d')) {
+        $weekKey = 'W' . $dtCursor->format('W');
+        if (!isset($weekIdxMap[$weekKey])) { $weekIdxMap[$weekKey] = count($weekIdxMap); $monthWeekBuckets[$weekIdxMap[$weekKey]] = 0; }
+        $dtCursor->modify('+1 day');
+    }
+    // populate
+    $dtCursor = new DateTime($filterStart);
+    while ($dtCursor->format('Y-m-d') <= $endDT->format('Y-m-d')) {
+        $wk = 'W' . $dtCursor->format('W');
+        $i = $weekIdxMap[$wk];
+        $dstr = $dtCursor->format('Y-m-d');
+        // find visits on this date
+        foreach ($visits as $v) {
+            $vd = isset($v['visit_day']) ? $v['visit_day'] : date('Y-m-d', strtotime($v['visit_date'] ?? 'now'));
+            if ($vd === $dstr) $monthWeekBuckets[$i]++;
+        }
+        $dtCursor->modify('+1 day');
+    }
+    $monthWeekCounts = array_values($monthWeekBuckets);
+    $monthWeekLabels = [];
+    for ($i = 0; $i < count($monthWeekCounts); $i++) { $monthWeekLabels[] = 'Week ' . ($i + 1); }
+} else {
+    $monthDayLabels = [];
+    $monthDayCounts = [];
+    $monthWeekLabels = [];
+    $monthWeekCounts = [];
+}
 $patientsData = apiCall('GET', '/patients?limit=1');
 $summaryStats = [
     'patients' => isset($patientsData['total']) ? (int)$patientsData['total'] : 0,
@@ -100,8 +178,7 @@ $summaryStats = [
 // Decide forecast horizon based on selected range
 $showForecast = true;
 $horizon = 7;
-// smoothing option from UI: none | ma | exp
-$smoothing = isset($_GET['smoothing']) ? $_GET['smoothing'] : 'none';
+// smoothing option removed (UI simplified)
 switch ($range) {
     case 'all':
         $horizon = 14;
@@ -138,7 +215,7 @@ switch ($range) {
 }
 
 if ($showForecast) {
-    $apiForecast = apiCall('GET', '/analytics?trend_days=90&min_regression_days=14&horizon=' . intval($horizon) . '&smoothing=' . urlencode($smoothing));
+    $apiForecast = apiCall('GET', '/analytics?trend_days=90&min_regression_days=14&horizon=' . intval($horizon));
     if ($apiForecast && is_array($apiForecast)) {
     $entDistribution = $apiForecast['ent_distribution'] ?? $entDistribution;
     // daily_counts is used for sparklines
@@ -217,13 +294,7 @@ if ($forecastMinValue === PHP_INT_MAX) { $forecastMinValue = 0; $forecastMinLabe
             </div>
 
             <div style="grid-column:1/-1;text-align:right;margin-top:1rem;">
-                <label style="margin-right:8px;">Smoothing:</label>
-                <select name="smoothing" id="smoothingSelect" class="form-control" style="width:140px;display:inline-block;margin-right:12px;">
-                    <option value="none" <?php echo $smoothing === 'none' ? 'selected' : ''; ?>>None</option>
-                    <option value="ma" <?php echo $smoothing === 'ma' ? 'selected' : ''; ?>>MA (3d)</option>
-                    <option value="exp" <?php echo $smoothing === 'exp' ? 'selected' : ''; ?>>EWMA</option>
-                </select>
-                <button type="submit" id="applyFilterBtn" class="btn btn-primary">
+                <button type="submit" id="applyFilterBtn" class="btn btn-primary" style="display:<?php echo $showCustom ? 'inline-block' : 'none'; ?>;">
                     <i class="fas fa-filter"></i>
                     Apply Filter
                 </button>
@@ -276,10 +347,13 @@ if ($forecastMinValue === PHP_INT_MAX) { $forecastMinValue = 0; $forecastMinLabe
         </div>
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-chart-bar"></i> Weekly Visits</h3>
-            </div>
+                    <h3 class="card-title"><i class="fas fa-chart-bar"></i> <span id="visitsHeader">Weekly Visits</span></h3>
+                </div>
             <div style="padding: 12px;">
-                <canvas id="weeklyChart" aria-label="Weekly visits chart" role="img" style="max-height:320px;"></canvas>
+                    <canvas id="weeklyChart" aria-label="Weekly visits chart" role="img" style="max-height:320px;"></canvas>
+                    <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+                        <button id="toggleMonthWeekBtn" type="button" class="btn btn-ghost" style="display:none;"></button>
+                    </div>
             </div>
         </div>
     </div>
@@ -365,6 +439,7 @@ function selectRange(range, btn) {
     const container = document.getElementById('customRangeFields');
     const start = document.getElementById('startDate');
     const end = document.getElementById('endDate');
+    const applyBtn = document.getElementById('applyFilterBtn');
 
     // update hidden input
     if (hidden) hidden.value = range;
@@ -377,12 +452,14 @@ function selectRange(range, btn) {
         if (container) container.style.display = 'block';
         if (start) start.disabled = false;
         if (end) end.disabled = false;
+        if (applyBtn) applyBtn.style.display = 'inline-block';
         // do not auto-submit: user must pick dates and click Apply
     } else {
         // hide custom fields and submit form for presets
         if (container) container.style.display = 'none';
         if (start) start.disabled = true;
         if (end) end.disabled = true;
+        if (applyBtn) applyBtn.style.display = 'none';
         if (form) form.submit();
     }
 }
@@ -400,6 +477,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if (container) container.style.display = 'block';
         if (start) start.disabled = false;
         if (end) end.disabled = false;
+            const applyBtn = document.getElementById('applyFilterBtn');
+            if (applyBtn) applyBtn.style.display = 'inline-block';
     }
     // attach click handlers
     document.querySelectorAll('.filter-btn').forEach(b => {
@@ -414,6 +493,16 @@ const weeklyLabelsOrdered = <?php echo json_encode(array_values(array_map(functi
 const forecastRows = <?php echo json_encode($forecastRows); ?>;
 const dailyTrend = <?php echo json_encode($dailyCounts); ?>;
 const forecastStats = <?php echo json_encode($forecastStats); ?>;
+// Additional aggregates
+const monthlyLabels = <?php echo json_encode($monthNames); ?>;
+const monthlyCounts = <?php echo json_encode(array_values($monthlyCounts)); ?>;
+const allWeeksLabels = <?php echo json_encode($allWeeksLabels); ?>;
+const allWeeksCounts = <?php echo json_encode(array_values($allWeeksCounts)); ?>;
+const monthDayLabels = <?php echo json_encode($monthDayLabels); ?>; // day numbers
+const monthDayCounts = <?php echo json_encode($monthDayCounts); ?>;
+const monthWeekLabels = <?php echo json_encode($monthWeekLabels); ?>;
+const monthWeekCounts = <?php echo json_encode($monthWeekCounts); ?>;
+const currentRange = '<?php echo e($range); ?>';
 
 function createEntChart() {
     const ctx = document.getElementById('entChart').getContext('2d');
@@ -464,6 +553,22 @@ function createWeeklyChart() {
     });
 }
 
+// Generic renderer for visits chart (re-usable)
+function renderVisitsPlot(labels, data) {
+    const canvas = document.getElementById('weeklyChart');
+    if (!canvas) return null;
+    // destroy previous
+    if (canvas._visitsChart) { try { canvas._visitsChart.destroy(); } catch(e){} }
+    const ctx = canvas.getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: 'Visits', data: data, backgroundColor: data.map(v => v > 0 ? 'rgba(47,107,237,0.9)' : 'rgba(99,102,241,0.2)'), borderRadius: 6, barThickness: 28 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+    canvas._visitsChart = chart;
+    return chart;
+}
+
 function createSparkline(id, data, color) {
     const ctx = document.getElementById(id);
     if (!ctx) return null;
@@ -493,7 +598,24 @@ function createSparkline(id, data, color) {
 // Render charts on DOM ready
 document.addEventListener('DOMContentLoaded', function(){
     try { createEntChart(); } catch(e) { console.warn('Ent chart failed', e); }
-    try { createWeeklyChart(); } catch(e) { console.warn('Weekly chart failed', e); }
+    try {
+        const toggleBtn = document.getElementById('toggleMonthWeekBtn');
+        const headerSpan = document.getElementById('visitsHeader');
+        const showMonthlyDefault = (currentRange === 'all' || currentRange === 'month' || currentRange === 'custom');
+
+        if (showMonthlyDefault) {
+            // show months by default
+            renderVisitsPlot(monthlyLabels, monthlyCounts);
+            if (headerSpan) headerSpan.innerText = 'Monthly Visits';
+            if (toggleBtn) { toggleBtn.style.display = 'inline-block'; toggleBtn.innerText = 'View Weekly Visits'; toggleBtn.dataset.state = 'monthly'; }
+        } else {
+            // for 'today' and 'week' show Monday-Sunday (weeklyLabelsOrdered)
+            renderVisitsPlot(weeklyLabelsOrdered, weeklyCounts);
+            if (headerSpan) headerSpan.innerText = 'Weekly Visits';
+            if (toggleBtn) toggleBtn.style.display = 'none';
+        }
+        
+    } catch(e) { console.warn('Visits chart failed', e); }
     try { createSparkline('sparkPatients', dailyTrend.slice(-14), 'rgba(47,107,237,0.9)'); } catch(e){/*ignore*/}
     try { createSparkline('sparkVisits', dailyTrend.slice(-14), 'rgba(16,185,129,0.9)'); } catch(e){/*ignore*/}
 
@@ -684,6 +806,27 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     } catch (e) {
         console.warn('Forecast chart failed', e);
+    }
+    // attach single toggle handler for month/week views
+    const toggleBtn = document.getElementById('toggleMonthWeekBtn');
+    const headerSpan = document.getElementById('visitsHeader');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            const state = this.dataset.state || 'monthly';
+            if (state === 'monthly') {
+                // switch to weekly view (always Monday->Sunday for the selected range)
+                renderVisitsPlot(weeklyLabelsOrdered, weeklyCounts);
+                this.dataset.state = 'weekly';
+                this.innerText = 'Back to Monthly Visits';
+                if (headerSpan) headerSpan.innerText = 'Weekly Visits';
+            } else {
+                // back to monthly
+                renderVisitsPlot(monthlyLabels, monthlyCounts);
+                this.dataset.state = 'monthly';
+                this.innerText = 'View Weekly Visits';
+                if (headerSpan) headerSpan.innerText = 'Monthly Visits';
+            }
+        });
     }
 });
 </script>
