@@ -183,19 +183,23 @@ $isEditing = $editId ? true : false;
                     </thead>
                     <tbody>
                         <?php foreach ($patients as $patient): ?>
-                            <tr style="cursor: pointer;" onclick="window.location.href='<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patient['id']; ?>'">
-                                <td>
+                            <tr>
+                                <td onclick="window.location.href='<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patient['id']; ?>'" style="cursor: pointer;">
                                     <strong><?php echo e(isset($patient['first_name']) ? $patient['first_name'] . ' ' . (isset($patient['last_name']) ? $patient['last_name'] : '') : ''); ?></strong>
                                 </td>
-                                <td><?php echo e(isset($patient['phone']) ? $patient['phone'] : 'N/A'); ?></td>
-                                <td>
+                                <td onclick="window.location.href='<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patient['id']; ?>'" style="cursor: pointer;">
+                                    <?php echo e(isset($patient['phone']) ? $patient['phone'] : 'N/A'); ?>
+                                </td>
+                                <td onclick="window.location.href='<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patient['id']; ?>'" style="cursor: pointer;">
                                     <span class="badge-status">
                                         <?php echo e(isset($patient['gender']) ? ucfirst($patient['gender']) : 'N/A'); ?>
                                     </span>
                                 </td>
-                                <td><?php echo formatDate(isset($patient['created_at']) ? $patient['created_at'] : ''); ?></td>
+                                <td onclick="window.location.href='<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patient['id']; ?>'" style="cursor: pointer;">
+                                    <?php echo formatDate(isset($patient['created_at']) ? $patient['created_at'] : ''); ?>
+                                </td>
                                 <td>
-                                    <div class="flex gap-1">
+                                    <div class="flex gap-1" onclick="event.stopPropagation();">
                                         <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patient['id']; ?>" 
                                            class="btn btn-sm btn-primary btn-icon" title="View Profile">
                                             <i class="fas fa-user"></i>
