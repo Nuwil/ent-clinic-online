@@ -13,7 +13,7 @@ if ($search) {
     $queryParams .= "&search=" . urlencode($search);
 }
 
-$patientsData = apiCall('GET', '/patients?' . $queryParams);
+$patientsData = apiCall('GET', '/api/patients?' . $queryParams);
 $patients = isset($patientsData['patients']) ? $patientsData['patients'] : [];
 $totalPages = isset($patientsData['pages']) ? $patientsData['pages'] : 1;
 
@@ -21,7 +21,7 @@ $totalPages = isset($patientsData['pages']) ? $patientsData['pages'] : 1;
 $editId = isset($_GET['edit']) ? $_GET['edit'] : null;
 $editPatient = null;
 if ($editId) {
-    $editPatient = apiCall('GET', '/patients/' . $editId);
+    $editPatient = apiCall('GET', '/api/patients/' . $editId);
 }
 
 $showForm = $editId ? true : false;

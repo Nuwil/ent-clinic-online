@@ -43,17 +43,11 @@ switch ($range) {
 
 $where = '';
 $params = [];
-// Only include data from December 1, 2025 onwards
-$cutoffDate = '2025-12-01';
+// Use full data by default; when a range is selected, apply it directly without
+// an artificial cutoff so historical visits are always included.
 if ($filterStart && $filterEnd) {
-    // If custom range is selected, ensure it's not before cutoff
-    $effectiveStart = max($filterStart, $cutoffDate);
     $where = "WHERE visit_date BETWEEN ? AND ?";
-    $params = [$effectiveStart . ' 00:00:00', $filterEnd . ' 23:59:59'];
-} else {
-    // For 'all' range, only show data from December 1 onwards
-    $where = "WHERE DATE(visit_date) >= ?";
-    $params = [$cutoffDate];
+    $params = [$filterStart . ' 00:00:00', $filterEnd . ' 23:59:59'];
 }
 
 $visits = [];
@@ -172,7 +166,7 @@ if ($filterStart && $filterEnd) {
     $monthWeekLabels = [];
     $monthWeekCounts = [];
 }
-$patientsData = apiCall('GET', '/patients?limit=1');
+$patientsData = apiCall('GET', '/api/patients?limit=1');
 $summaryStats = [
     'patients' => isset($patientsData['total']) ? (int)$patientsData['total'] : 0,
     'visits' => $totalVisitsFilter,
@@ -218,12 +212,32 @@ switch ($range) {
         $horizon = 7;
 }
 
+// Ensure forecast-related variables are always defined to avoid PHP warnings
+$forecastRows = $forecastRows ?? [];
+$dailyCounts = $dailyCounts ?? [];
+$dailySeries = $dailySeries ?? [];
+$forecastStats = $forecastStats ?? ['baseLevel' => 0, 'trendPerDay' => 0];
+$backendTotalVisits = $backendTotalVisits ?? 0;
+
 if ($showForecast) {
-    $apiForecast = apiCall('GET', '/analytics?trend_days=90&min_regression_days=14&horizon=' . intval($horizon));
-    if ($apiForecast && is_array($apiForecast)) {
-    $entDistribution = $apiForecast['ent_distribution'] ?? $entDistribution;
-    // daily_counts is used for sparklines
+    $apiForecast = apiCall('GET', '/api/analytics?trend_days=90&min_regression_days=14&horizon=' . intval($horizon));
+    // Debug: Check if API returned data
+    if (!$apiForecast) {
+        error_log('Analytics API call failed - apiCall returned false');
+        if (isset($_SESSION['api_last_error'])) {
+            error_log('API Error Details: ' . json_encode($_SESSION['api_last_error']));
+        }
+        $showForecast = false;
+    } elseif (!is_array($apiForecast)) {
+        error_log('Analytics API call failed - apiCall did not return array: ' . gettype($apiForecast) . ', Value: ' . var_export($apiForecast, true));
+        $showForecast = false;
+    } else {
+        // API returned successfully
+        $entDistribution = $apiForecast['ent_distribution'] ?? $entDistribution;
+        // daily_counts is used for sparklines; daily_series includes the actual dates
         $dailyCounts = $apiForecast['daily_counts'] ?? [];
+        $dailySeries = $apiForecast['daily_series'] ?? [];
+        $backendTotalVisits = isset($apiForecast['total_visits_all']) ? (int)$apiForecast['total_visits_all'] : 0;
         $forecastStats = $apiForecast['forecast_stats'] ?? ['baseLevel' => 0, 'trendPerDay' => 0];
         $forecastRows = [];
         if (!empty($apiForecast['forecast_rows']) && is_array($apiForecast['forecast_rows'])) {
@@ -236,14 +250,17 @@ if ($showForecast) {
                 ];
             }
         }
-    } else {
-        // API call failed; fall back
-        $dailyCounts = [];
-        $forecastStats = ['baseLevel' => 0, 'trendPerDay' => 0];
-        $forecastRows = [];
+        
+        // If no forecast rows generated, disable forecast display
+        if (empty($forecastRows)) {
+            error_log('Analytics: API returned empty forecast_rows');
+            $showForecast = false;
+        }
     }
 } else {
     $dailyCounts = [];
+    $dailySeries = [];
+    $backendTotalVisits = 0;
     $forecastStats = ['baseLevel' => 0, 'trendPerDay' => 0];
     $forecastRows = [];
 }
@@ -269,8 +286,18 @@ if ($forecastMinValue === PHP_INT_MAX) { $forecastMinValue = 0; $forecastMinLabe
         <p class="text-muted" style="margin-top:0.5rem;">Monitor visit loads, filter by time, and plan ahead.</p>
     </div>
 
+    <!-- Debug section for development -->
+    <?php if (isset($_SESSION['api_last_error'])): ?>
+    <div style="background:#fee;border:1px solid #fcc;border-radius:4px;padding:1rem;margin-bottom:1rem;display:none;" id="apiErrorDebug">
+        <strong style="color:#c33;">API Error (Developer View):</strong>
+        <pre style="margin-top:0.5rem;font-size:0.85rem;overflow:auto;max-height:200px;">
+<?php echo htmlspecialchars(json_encode($_SESSION['api_last_error'], JSON_PRETTY_PRINT)); ?>
+        </pre>
+    </div>
+    <?php endif; ?>
+
     <div class="card mb-3">
-        <form method="get" class="grid grid-3" style="align-items:end;">
+        <form id="analyticsFilterForm" method="get" class="grid grid-3" style="align-items:end;">
             <input type="hidden" name="page" value="analytics">
             <input type="hidden" id="rangeInput" name="range" value="<?php echo e($range); ?>">
 
@@ -438,7 +465,9 @@ if ($forecastMinValue === PHP_INT_MAX) { $forecastMinValue = 0; $forecastMinLabe
 <script>
 // Handle filter button clicks and custom range visibility
 function selectRange(range, btn) {
-    const form = document.querySelector('form');
+    // Use the analytics filter form explicitly so we don't accidentally submit
+    // other forms on the page (like the logout form in the header).
+    const form = document.getElementById('analyticsFilterForm');
     const hidden = document.getElementById('rangeInput');
     const container = document.getElementById('customRangeFields');
     const start = document.getElementById('startDate');
@@ -495,6 +524,7 @@ const entDistribution = <?php echo json_encode($entDistribution); ?>;
 const weeklyCounts = <?php echo json_encode(array_values(array_map(function($d){return (int)$d;}, [$weeklyCounts[2],$weeklyCounts[3],$weeklyCounts[4],$weeklyCounts[5],$weeklyCounts[6],$weeklyCounts[7],$weeklyCounts[1]]))); ?>;
 const weeklyLabelsOrdered = <?php echo json_encode(array_values(array_map(function($d){return $d;}, [$weeklyLabels[2],$weeklyLabels[3],$weeklyLabels[4],$weeklyLabels[5],$weeklyLabels[6],$weeklyLabels[7],$weeklyLabels[1]]))); ?>;
 const forecastRows = <?php echo json_encode($forecastRows); ?>;
+const dailySeries = <?php echo json_encode($dailySeries ?? []); ?>;
 const dailyTrend = <?php echo json_encode($dailyCounts); ?>;
 const forecastStats = <?php echo json_encode($forecastStats); ?>;
 // Additional aggregates
@@ -633,43 +663,15 @@ document.addEventListener('DOMContentLoaded', function(){
             return d.toLocaleString(undefined, { month: 'short', day: 'numeric' });
         }
 
-        // Get actual data from December 1 onwards (only show data we have)
-        const cutoffDate = new Date('2025-12-01');
-        const todayDate = new Date();
+        // Get actual data directly from dailySeries returned by the API
         const actualDates = [];
         const actualData = [];
-
-        // Determine format of `dailyTrend` returned by server:
-        // - older API returned an array of counts (numbers) corresponding to dates from cutoffDate onward
-        // - newer API may provide array of {date, count}
-        const dailyIsNumbers = Array.isArray(dailyTrend) && dailyTrend.length > 0 && (typeof dailyTrend[0] === 'number');
-        const dailyIsObjects = Array.isArray(dailyTrend) && dailyTrend.length > 0 && dailyTrend[0] && typeof dailyTrend[0] === 'object' && ('date' in dailyTrend[0] || 'count' in dailyTrend[0]);
-
-        // Build dates from Dec 1 to today and map counts accordingly
-        for (let d = new Date(cutoffDate); d <= todayDate; d.setDate(d.getDate() + 1)) {
-            const dateStr = d.toISOString().split('T')[0];
-            actualDates.push(formatShortDate(dateStr));
-
-            if (dailyIsNumbers) {
-                // dailyTrend[0] corresponds to cutoffDate; compute index
-                const idx = Math.floor((new Date(dateStr) - new Date('2025-12-01')) / 86400000);
-                const val = (idx >= 0 && idx < dailyTrend.length) ? Number(dailyTrend[idx]) : 0;
-                actualData.push(isFinite(val) ? val : 0);
-            } else if (dailyIsObjects) {
-                let found = false;
-                for (let item of dailyTrend) {
-                    if (!item) continue;
-                    // item may be {date,count} or {d,count} or similar
-                    if ((item.date && item.date === dateStr) || (item.d && item.d === dateStr)) {
-                        actualData.push(Number(item.count || item.c || 0));
-                        found = true; break;
-                    }
-                }
-                if (!found) actualData.push(0);
-            } else {
-                // unknown shape: push 0
-                actualData.push(0);
-            }
+        if (Array.isArray(dailySeries) && dailySeries.length > 0) {
+            dailySeries.forEach(row => {
+                if (!row || !row.date) return;
+                actualDates.push(formatShortDate(row.date));
+                actualData.push(Number(row.count || 0));
+            });
         }
 
         // Forecast data
@@ -681,7 +683,13 @@ document.addEventListener('DOMContentLoaded', function(){
         const actualChartData = [...actualData, ...Array(forecastVals.length).fill(null)];
         const forecastChartData = [...Array(actualData.length).fill(null), ...forecastVals];
 
-        const ctxF = document.getElementById('forecastChart').getContext('2d');
+        const forecastCanvas = document.getElementById('forecastChart');
+        if (!forecastCanvas) {
+            console.warn('Forecast chart canvas not found - forecast section not displayed');
+            return;
+        }
+        
+        const ctxF = forecastCanvas.getContext('2d');
 
         new Chart(ctxF, {
             type: 'line',

@@ -18,7 +18,7 @@ $currentUser = getCurrentUser();
                     <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Patients</div>
                     <div style="font-size: 2.5rem; font-weight: 700;">
                         <?php
-                        $patientsData = apiCall('GET', '/patients?limit=1');
+                        $patientsData = apiCall('GET', '/api/patients?limit=1');
                         echo e($patientsData['total'] ?? 0);
                         ?>
                     </div>

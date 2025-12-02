@@ -1,343 +1,364 @@
 <?php
 /**
- * Analytics API Controller
+ * Analytics API Controller with Hybrid Forecasting
+ * 
+ * Implements a hybrid forecasting approach combining:
+ * 1. Weekly Seasonality Factor (SF): Average visits per day of week (normalized)
+ * 2. Trailing Trend: Simple Moving Average (SMA) or Simple Linear Regression (SLR)
+ * 3. Final Forecast: Forecast = (Trailing Trend Base) × (Day-of-Week SF)
  */
 
 require_once __DIR__ . '/Controller.php';
 
 class AnalyticsController extends Controller
 {
-    // Returns ENT distribution and weekly visits
+    /**
+     * Calculate Simple Moving Average
+     */
+    private function calculateSMA($data, $period = 7)
+    {
+        if (count($data) < $period) {
+            return array_sum($data) / max(1, count($data));
+        }
+        $recentData = array_slice($data, -$period);
+        return array_sum($recentData) / count($recentData);
+    }
+
+    /**
+     * Calculate Simple Linear Regression (SLR)
+     * Returns [intercept, slope]
+     */
+    private function calculateSLR($data)
+    {
+        $n = count($data);
+        if ($n <= 1) {
+            return [array_sum($data) / max(1, $n), 0.0];
+        }
+
+        $sumX = $sumY = $sumXY = $sumX2 = 0.0;
+        for ($i = 0; $i < $n; $i++) {
+            $x = (float)$i;
+            $y = (float)$data[$i];
+            $sumX  += $x;
+            $sumY  += $y;
+            $sumXY += $x * $y;
+            $sumX2 += $x * $x;
+        }
+
+        $denominator = $n * $sumX2 - $sumX * $sumX;
+        $slope = 0.0;
+        $intercept = $sumY / max(1, $n);
+
+        if (abs($denominator) > 0.0001) {
+            $slope = ($n * $sumXY - $sumX * $sumY) / $denominator;
+            $intercept = ($sumY - $slope * $sumX) / $n;
+        }
+
+        return [$intercept, $slope];
+    }
+
+    /**
+     * Main analytics endpoint with hybrid forecasting
+     */
     public function index()
     {
         try {
+            // Ensure session is started for auth check
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+
             // Only doctors and admins should access analytics
-            $this->requireRole(['admin', 'doctor']);
+            $user = $this->getApiUser();
+            if (!$user || empty($user['role'])) {
+                $this->error('Unauthorized: Admin or Doctor role required', 403);
+            }
+            if (!in_array($user['role'], ['admin', 'doctor'])) {
+                $this->error('Forbidden: Only admins and doctors can access analytics', 403);
+            }
 
-            // Parameters (optional)
-            $trendDays = isset($_GET['trend_days']) ? (int)$_GET['trend_days'] : 90; // trailing window for SMA / regression
-            $minRegression = isset($_GET['min_regression_days']) ? (int)$_GET['min_regression_days'] : 14;
-            $horizon = isset($_GET['horizon']) ? (int)$_GET['horizon'] : 7;
-            $smoothing = isset($_GET['smoothing']) ? strtolower(trim($_GET['smoothing'])) : 'none'; // none | ma | exp
+            // Parameters
+            $trendDays = isset($_GET['trend_days']) ? max(7, (int)$_GET['trend_days']) : 90;
+            $minRegressionDays = isset($_GET['min_regression_days']) ? max(7, (int)$_GET['min_regression_days']) : 14;
+            $horizon = isset($_GET['horizon']) ? max(1, (int)$_GET['horizon']) : 7;
 
-            // helper: simple winsorize (clip extremes) to reduce outlier impact
-            $winsorize = function(array $arr, $p = 0.05) {
-                $n = count($arr);
-                if ($n === 0) return $arr;
-                $sorted = $arr;
-                sort($sorted);
-                $loIdx = (int)floor($p * $n);
-                $hiIdx = (int)ceil((1 - $p) * $n) - 1;
-                $lo = $sorted[max(0, min($loIdx, $n-1))];
-                $hi = $sorted[max(0, min($hiIdx, $n-1))];
-                return array_map(function($v) use ($lo, $hi) {
-                    if ($v < $lo) return $lo;
-                    if ($v > $hi) return $hi;
-                    return $v;
-                }, $arr);
-            };
+            // ===== STEP 1: ENT Distribution (all-time) =====
+            $distribution = $this->getENTDistribution();
 
-            // helper: simple EWMA smoothing
-            $ewma = function(array $arr, $alpha = 0.25) {
-                $out = [];
-                $s = null;
-                foreach ($arr as $v) {
-                    if ($s === null) $s = $v;
-                    else $s = $alpha * $v + (1 - $alpha) * $s;
-                    $out[] = $s;
-                }
-                return $out;
-            };
+            // ===== STEP 2: Weekly visits (last 7 days) =====
+            $weekly = $this->getWeeklyVisits();
 
-            // helper: moving average (trailing window)
-            $movingAverage = function(array $arr, $w = 3) {
-                $n = count($arr);
-                if ($n === 0) return $arr;
-                $out = [];
-                for ($i = 0; $i < $n; $i++) {
-                    $start = max(0, $i - $w + 1);
-                    $slice = array_slice($arr, $start, $i - $start + 1);
-                    $out[] = array_sum($slice) / max(1, count($slice));
-                }
-                return $out;
-            };
+            // ===== STEP 3: Weekly Seasonality Factors (all history) =====
+            $seasonality = $this->calculateWeeklySeasonality();
 
-            // 1) ENT distribution (ear/nose/throat)
-            $stmt = $this->db->query("SELECT ent_type, COUNT(*) as count FROM patient_visits GROUP BY ent_type");
+            // ===== STEP 4: Trailing Trend Data =====
+            $dailySeries = $this->getDailyTrendData($trendDays);
+            $dailyCounts = array_map(function ($item) {
+                return (int)$item['count'];
+            }, $dailySeries);
+
+            // ===== STEP 5: Calculate Base Level and Trend =====
+            $forecastStats = $this->calculateForecastStats($dailyCounts, $minRegressionDays);
+
+            // ===== STEP 6: Generate Forecast (Hybrid Approach) =====
+            $forecastRows = $this->generateHybridForecast(
+                $seasonality,
+                $forecastStats,
+                $horizon
+            );
+
+            // ===== STEP 7: Get Total Visits =====
+            $totalVisitsAll = $this->getTotalVisitsCount();
+
+            // Return success response
+            $this->success([
+                'ent_distribution' => $distribution,
+                'weekly_visits'    => $weekly,
+                'seasonality'      => $seasonality,
+                'daily_counts'     => $dailyCounts,
+                'daily_series'     => $dailySeries,
+                'forecast_rows'    => $forecastRows,
+                'forecast_stats'   => $forecastStats,
+                'total_visits_all' => $totalVisitsAll
+            ]);
+        } catch (Exception $e) {
+            $this->error('Analytics error: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Get ENT case distribution (all time)
+     */
+    private function getENTDistribution()
+    {
+        try {
+            $stmt = $this->db->query("SELECT ent_type, COUNT(*) AS count FROM patient_visits GROUP BY ent_type");
             $rows = $stmt->fetchAll();
             $distribution = ['ear' => 0, 'nose' => 0, 'throat' => 0];
             foreach ($rows as $r) {
                 $type = $r['ent_type'] ?? 'ear';
-                if (!isset($distribution[$type])) $distribution[$type] = 0;
-                $distribution[$type] = (int)$r['count'];
-            }
-
-            // 2) Weekly visits - last 7 days grouped by date
-                // 2) Weekly visits - last 7 days grouped by local Manila date
-                $manilaNow = new DateTime('now', new DateTimeZone('Asia/Manila'));
-                $manilaToday = $manilaNow->format('Y-m-d');
-                $startWeekly = date('Y-m-d', strtotime($manilaToday . ' -6 days'));
-
-                // Use CONVERT_TZ to convert stored UTC datetimes to Manila before grouping by date
-                $stmt2 = $this->db->prepare("SELECT DATE(CONVERT_TZ(visit_date, '+00:00', '+08:00')) as d, COUNT(*) as count FROM patient_visits WHERE DATE(CONVERT_TZ(visit_date, '+00:00', '+08:00')) BETWEEN ? AND ? GROUP BY DATE(CONVERT_TZ(visit_date, '+00:00', '+08:00')) ORDER BY d");
-                $stmt2->execute([$startWeekly, $manilaToday]);
-                $rows2 = $stmt2->fetchAll();
-
-                $weekly = [];
-                for ($i = 6; $i >= 0; $i--) {
-                    $day = date('Y-m-d', strtotime($manilaToday . " -{$i} days"));
-                    $weekly[$day] = 0;
+                if (isset($distribution[$type])) {
+                    $distribution[$type] = (int)$r['count'];
                 }
-                foreach ($rows2 as $r) {
-                    $d = $r['d'];
-                    if (isset($weekly[$d])) $weekly[$d] = (int)$r['count'];
             }
+            return $distribution;
+        } catch (Exception $e) {
+            return ['ear' => 0, 'nose' => 0, 'throat' => 0];
+        }
+    }
 
-            // 3) Seasonality factors (SF) using all historical data: avg visits per weekday
+    /**
+     * Get weekly visits (last 7 days)
+     */
+    private function getWeeklyVisits()
+    {
+        try {
+            $today = date('Y-m-d');
+            $startWeekly = date('Y-m-d', strtotime($today . ' -6 days'));
+            
+            $stmt = $this->db->prepare(
+                "SELECT DATE(visit_date) AS d, COUNT(*) AS count
+                 FROM patient_visits
+                 WHERE DATE(visit_date) BETWEEN ? AND ?
+                 GROUP BY DATE(visit_date)
+                 ORDER BY d"
+            );
+            $stmt->execute([$startWeekly, $today]);
+            
+            $weekly = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $day = date('Y-m-d', strtotime($today . " -{$i} days"));
+                $weekly[$day] = 0;
+            }
+            
+            foreach ($stmt->fetchAll() as $r) {
+                $d = $r['d'];
+                if (isset($weekly[$d])) {
+                    $weekly[$d] = (int)$r['count'];
+                }
+            }
+            return $weekly;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Calculate weekly seasonality factors from all history
+     * Returns normalized day-of-week factors (1=Monday, 7=Sunday per MySQL DAYOFWEEK)
+     */
+    private function calculateWeeklySeasonality()
+    {
+        try {
+            // Get visit counts by day of week (MySQL: 1=Sunday, 2=Monday, ..., 7=Saturday)
+            $stmt = $this->db->query(
+                "SELECT DAYOFWEEK(visit_date) AS dow, COUNT(*) AS count
+                 FROM patient_visits
+                 GROUP BY DAYOFWEEK(visit_date)"
+            );
+            
             $weeklyAll = array_fill(1, 7, 0);
             $totalWeeklyAll = 0;
-            try {
-                    // Compute weekday counts using Manila local weekday mapping
-                    $stmt3 = $this->db->query("SELECT DAYOFWEEK(CONVERT_TZ(visit_date, '+00:00', '+08:00')) as dow, COUNT(*) as count FROM patient_visits GROUP BY DAYOFWEEK(CONVERT_TZ(visit_date, '+00:00', '+08:00'))");
-                foreach ($stmt3->fetchAll() as $row) {
-                    $dow = (int)$row['dow'];
-                    $cnt = (int)$row['count'];
-                    if ($dow >= 1 && $dow <= 7) {
-                        $weeklyAll[$dow] = $cnt;
-                        $totalWeeklyAll += $cnt;
-                    }
+            
+            foreach ($stmt->fetchAll() as $row) {
+                $dow = (int)$row['dow'];
+                $cnt = (int)$row['count'];
+                if ($dow >= 1 && $dow <= 7) {
+                    $weeklyAll[$dow] = $cnt;
+                    $totalWeeklyAll += $cnt;
                 }
-            } catch (PDOException $e) {
-                // ignore
             }
-            $overallDaily = $totalWeeklyAll > 0 ? $totalWeeklyAll / 7.0 : 0;
+
+            // Calculate average visits per day
+            $overallDaily = $totalWeeklyAll > 0 ? $totalWeeklyAll / 7.0 : 1.0;
+
+            // Calculate seasonality factors
             $seasonality = array_fill(1, 7, 1.0);
             for ($dow = 1; $dow <= 7; $dow++) {
                 $seasonality[$dow] = $overallDaily > 0 ? ($weeklyAll[$dow] / $overallDaily) : 1.0;
             }
-            // normalize so mean(sf) == 1.0
-            $avgSf = array_sum($seasonality) / 7.0 ?: 1.0;
-            for ($dow = 1; $dow <= 7; $dow++) $seasonality[$dow] = $seasonality[$dow] / $avgSf;
 
-            // 4) Trailing trend: get daily counts for last $trendDays days (preserve dates)
-            // Filter to only include data from December 1, 2025 onwards
-                // 4) Trailing trend: get daily counts for last $trendDays days using Manila local dates
-                $dailySeries = []; // array of ['date'=>'YYYY-MM-DD','count'=>int]
-                $dailyCounts = [];
-                $trendStartManila = date('Y-m-d', strtotime($manilaToday . ' -' . max(1, $trendDays - 1) . ' days'));
-                $effectiveStart = $trendStartManila;
-                try {
-                    $stmt4 = $this->db->prepare("SELECT DATE(CONVERT_TZ(visit_date, '+00:00', '+08:00')) as d, COUNT(*) as count FROM patient_visits WHERE DATE(CONVERT_TZ(visit_date, '+00:00', '+08:00')) >= ? GROUP BY DATE(CONVERT_TZ(visit_date, '+00:00', '+08:00')) ORDER BY d ASC");
-                    $stmt4->execute([$effectiveStart]);
-                    foreach ($stmt4->fetchAll() as $row) {
-                        $dailySeries[] = ['date' => $row['d'], 'count' => (int)$row['count']];
-                        $dailyCounts[] = (int)$row['count'];
-                    }
-                } catch (PDOException $e) {
-                    $dailySeries = [];
-                    $dailyCounts = [];
-            }
-
-            $forecastStats = ['baseLevel' => 0.0, 'trendPerDay' => 0.0, 'n' => count($dailyCounts), 'smoothing' => $smoothing, 'mae' => null, 'rmse' => null, 'backtest_h' => 0, 'method' => 'holt_winters'];
-            $n = count($dailyCounts);
-            if ($n > 0) {
-                // optionally apply winsorization + smoothing before fitting (but keep original dailySeries for reporting)
-                $processedCounts = $dailyCounts;
-                // winsorize to reduce extreme outliers
-                $processedCounts = $winsorize($processedCounts, 0.03);
-                if ($smoothing === 'exp') {
-                    $processedCounts = $ewma($processedCounts, 0.25);
-                } elseif ($smoothing === 'ma') {
-                    $processedCounts = $movingAverage($processedCounts, 3);
-                }
-
-                // Use Holt-Winters additive seasonal model (weekly seasonality) for forecasts when we have enough data
-                $seasonLen = 7;
-                $hwForecast = null;
-                if ($n >= max(14, $seasonLen * 2)) {
-                    // perform Holt-Winters additive with improved trend parameters
-                    $alpha = 0.3; $beta = 0.1; $gamma = 0.3;
-                    $hw = $this->holtWintersAdditive($processedCounts, $seasonLen, $alpha, $beta, $gamma, 0);
-                    // baseLevel approximate = last level + last trend
-                    $forecastStats['baseLevel'] = max(0.0, $hw['level'] + $hw['trend']);
-                    $forecastStats['trendPerDay'] = $hw['trend'];
-                    $forecastStats['method'] = 'holt_winters_additive';
-                    $hwForecast = $hw;
-                } else {
-                    $sma = array_sum($processedCounts) / $n;
-                    $forecastStats['baseLevel'] = max(0.0, $sma);
-                    $forecastStats['method'] = 'sma_fallback';
-                }
-
-                // Backtesting: holdout last H days where H = min(14, floor(n*0.15)) but ensure training size >= minRegression
-                $H = min(14, max(1, (int)floor($n * 0.15)));
-                while ($n - $H < $minRegression && $H > 0) { $H--; }
-                if ($H > 0 && $n - $H >= 1) {
-                    $m = $n - $H; // training size
-                    // training series from processedCounts
-                    $train = array_slice($processedCounts, 0, $m);
-                    $trainN = count($train);
-                    $ma_train = array_sum($train) / max(1, $trainN);
-                    // fit regression on train
-                    $sumX = $sumY = $sumXY = $sumX2 = 0.0;
-                    for ($i = 0; $i < $trainN; $i++) {
-                        $x = (float)$i;
-                        $y = (float)$train[$i];
-                        $sumX += $x; $sumY += $y; $sumXY += $x * $y; $sumX2 += $x * $x;
-                    }
-                    $den = $trainN * $sumX2 - $sumX * $sumX;
-                    if (isset($hwForecast) && is_array($hwForecast)) {
-                        // If we used Holt-Winters on full series, backtest using Holt-Winters trained on train only
-                        $hwTrain = $this->holtWintersAdditive($train, $seasonLen, 0.3, 0.1, 0.3, $H);
-                        $preds = $hwTrain['forecasts'];
-                    } else {
-                        if ($den != 0.0) {
-                            $slope_t = ($trainN * $sumXY - $sumX * $sumY) / $den;
-                            $intercept_t = ($sumY - $slope_t * $sumX) / $trainN;
-                            $currentPred_t = $intercept_t + $slope_t * ($trainN - 1);
-                            $base_train = max(0.0, ($ma_train + $currentPred_t) / 2.0);
-                        } else {
-                            $base_train = max(0.0, $ma_train);
-                            $slope_t = 0.0;
-                            $intercept_t = $ma_train;
-                        }
-
-                        // compute predictions for H holdout days using weekday seasonality computed earlier
-                        $lastDate = $dailySeries[$n - 1]['date'];
-                        $preds = [];
-                        for ($t = 1; $t <= $H; $t++) {
-                            $d = date('Y-m-d', strtotime("+" . $t . " days", strtotime($lastDate)));
-                            $dow = (int)date('N', strtotime($d));
-                            $mysqlDow = $dow === 7 ? 1 : $dow + 1;
-                            $sf = $seasonality[$mysqlDow] ?? 1.0;
-                            $preds[] = $base_train * $sf;
-                        }
-                    }
-
-                    // actuals from the withheld tail
-                    $actuals = [];
-                    for ($t = 0; $t < $H; $t++) {
-                        $actuals[] = isset($dailySeries[$m + $t]['count']) ? (int)$dailySeries[$m + $t]['count'] : 0;
-                    }
-                    // compute MAE and RMSE
-                    $sumAbs = 0.0; $sumSq = 0.0; $cnt = count($preds);
-                    for ($i = 0; $i < $cnt; $i++) {
-                        $err = $preds[$i] - $actuals[$i];
-                        $sumAbs += abs($err);
-                        $sumSq += $err * $err;
-                    }
-                    $mae = $cnt ? ($sumAbs / $cnt) : null;
-                    $rmse = $cnt ? sqrt($sumSq / $cnt) : null;
-                    $forecastStats['mae'] = $mae !== null ? round($mae, 3) : null;
-                    $forecastStats['rmse'] = $rmse !== null ? round($rmse, 3) : null;
-                    $forecastStats['backtest_h'] = $cnt;
+            // Normalize to mean 1.0 for pure relative weights
+            $avgSf = array_sum($seasonality) / 7.0;
+            if ($avgSf > 0.0001) {
+                for ($dow = 1; $dow <= 7; $dow++) {
+                    $seasonality[$dow] = $seasonality[$dow] / $avgSf;
                 }
             }
 
-            // 5) Build forecast rows for next $horizon days using hybrid method:
-            // Forecast = (Trailing Trend Base) * (Day of Week SF)
-            $weekdayLabels = [2 => 'Monday',3=>'Tuesday',4=>'Wednesday',5=>'Thursday',6=>'Friday',7=>'Saturday',1=>'Sunday'];
-            $forecastRows = [];
-            // If Holt-Winters forecast available, use it; otherwise use baseLevel * seasonality
-            for ($i = 0; $i < $horizon; $i++) {
-                $date = date('Y-m-d', strtotime("+" . ($i+1) . " days"));
-                $dow = (int)date('N', strtotime($date)); // 1 (Mon) .. 7 (Sun)
-                $mysqlDow = $dow === 7 ? 1 : $dow + 1;
-                $sf = $seasonality[$mysqlDow] ?? 1.0;
-
-                if (isset($hwForecast) && is_array($hwForecast)) {
-                    // use Holt-Winters generated seasonals and levels for out-of-sample forecasts
-                    $hwVals = $this->holtWintersAdditive($processedCounts, 7, 0.3, 0.1, 0.3, $i+1);
-                    $value = $hwVals['forecasts'][$i];
-                    $method = 'holt_winters';
-                    $sfUsed = null;
-                } else {
-                    $value = $forecastStats['baseLevel'] * $sf;
-                    $method = 'base_sf';
-                    $sfUsed = $sf;
-                }
-
-                $forecastRows[] = [
-                    'label' => $weekdayLabels[$mysqlDow] ?? date('D', strtotime($date)),
-                    'date' => $date,
-                    'sf' => $sfUsed !== null ? round($sfUsed, 3) : null,
-                    'value' => round($value, 2),
-                    'method' => $method
-                ];
-            }
-
-            $this->success([
-                'ent_distribution' => $distribution,
-                'weekly_visits' => $weekly,
-                'seasonality' => $seasonality,
-                'daily_counts' => $dailyCounts,
-                'forecast_rows' => $forecastRows,
-                'forecast_stats' => $forecastStats
-            ]);
+            return $seasonality;
         } catch (Exception $e) {
-            $this->error($e->getMessage(), 500);
+            // Return neutral seasonality if query fails
+            return array_fill(1, 7, 1.0);
         }
     }
 
-    // Simple Holt-Winters additive implementation for weekly seasonality
-    private function holtWintersAdditive(array $series, int $seasonLen = 7, float $alpha = 0.3, float $beta = 0.1, float $gamma = 0.3, int $h = 7)
+    /**
+     * Get daily trend data for last N days
+     */
+    private function getDailyTrendData($trendDays)
     {
-        $n = count($series);
-        if ($n === 0) return ['level' => 0.0, 'trend' => 0.0, 'seasonals' => [], 'forecasts' => array_fill(0, $h, 0.0)];
+        try {
+            $today = date('Y-m-d');
+            $trendStart = date('Y-m-d', strtotime($today . ' -' . max(1, $trendDays - 1) . ' days'));
 
-        // Initialize seasonals using average of seasons
-        $seasonals = array_fill(0, $seasonLen, 0.0);
-        $seasonAverages = [];
-        $nSeasons = (int)floor($n / $seasonLen);
-        if ($nSeasons < 1) $nSeasons = 1;
+            $stmt = $this->db->prepare(
+                "SELECT DATE(visit_date) AS d, COUNT(*) AS count
+                 FROM patient_visits
+                 WHERE DATE(visit_date) >= ?
+                 GROUP BY DATE(visit_date)
+                 ORDER BY d ASC"
+            );
+            $stmt->execute([$trendStart]);
 
-        for ($i = 0; $i < $nSeasons; $i++) {
-            $start = $i * $seasonLen;
-            $seasonAverages[$i] = array_sum(array_slice($series, $start, $seasonLen)) / $seasonLen;
-        }
-        for ($i = 0; $i < $seasonLen; $i++) {
-            $sum = 0; $cnt = 0;
-            for ($j = 0; $j < $nSeasons; $j++) {
-                $idx = $j * $seasonLen + $i;
-                if ($idx < $n) { $sum += $series[$idx] / max(1e-9, $seasonAverages[$j]); $cnt++; }
+            $dailySeries = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $dailySeries[] = ['date' => $row['d'], 'count' => (int)$row['count']];
             }
-            $seasonals[$i] = $cnt ? ($sum / $cnt) : 1.0;
+
+            return $dailySeries;
+        } catch (Exception $e) {
+            return [];
+        }
+    }
+
+    /**
+     * Calculate forecast statistics (base level and trend)
+     */
+    private function calculateForecastStats($dailyCounts, $minRegressionDays)
+    {
+        $stats = [
+            'baseLevel'   => 1.0,  // Default to 1 visit minimum
+            'trendPerDay' => 0.0,
+            'n'           => count($dailyCounts),
+            'method'      => 'hybrid_sma_slr',
+            'description' => 'Base: SMA(7) + Trend: SLR, normalized by weekly seasonality'
+        ];
+
+        $n = count($dailyCounts);
+        if ($n === 0) {
+            // No data - return default minimum forecast
+            $stats['baseLevel'] = 1.0;
+            return $stats;
         }
 
-        // Initialize level and trend more robustly
-        $level = $series[0];
-        $trend = 0.0;
-        if ($n > $seasonLen) {
-            // Use the last half of series to compute trend (more recent data)
-            $halfStart = (int)floor($n / 2);
-            $recentSlice = array_slice($series, $halfStart);
-            $oldAvg = array_sum(array_slice($series, 0, $halfStart)) / max(1, $halfStart);
-            $newAvg = array_sum($recentSlice) / max(1, count($recentSlice));
-            $trend = ($newAvg - $oldAvg) / max(1, count($recentSlice));
-            $level = $newAvg;
+        // If we have enough data, use SLR; otherwise use simple average
+        if ($n >= $minRegressionDays) {
+            list($intercept, $slope) = $this->calculateSLR($dailyCounts);
+            $baseLevel = max(1.0, $intercept + $slope * ($n - 1));
+            $trendPerDay = $slope;
+        } else {
+            // Fall back to SMA if not enough data
+            $baseLevel = max(1.0, $this->calculateSMA($dailyCounts, min(7, $n)));
+            $trendPerDay = 0.0;
         }
 
-        $smooth = $level;
-        $b = $trend;
-        $s = $seasonals;
+        // Smooth the base level using 7-day SMA
+        $smoothedBase = max(1.0, $this->calculateSMA($dailyCounts, min(7, $n)));
+        $stats['baseLevel'] = max(1.0, ($baseLevel + $smoothedBase) / 2.0);
+        $stats['trendPerDay'] = $trendPerDay;
 
-        // Fit
-        for ($t = 0; $t < $n; $t++) {
-            $x = $series[$t];
-            $m = $t - $seasonLen >= 0 ? $s[$t % $seasonLen] : $s[$t % $seasonLen];
-            $last_level = $smooth;
-            $smooth = $alpha * ($x - $m) + (1 - $alpha) * ($smooth + $b);
-            $b = $beta * ($smooth - $last_level) + (1 - $beta) * $b;
-            $s[$t % $seasonLen] = $gamma * ($x - $smooth) + (1 - $gamma) * $s[$t % $seasonLen];
+        return $stats;
+    }
+
+    /**
+     * Generate hybrid forecast for the horizon
+     * Formula: Forecast = (Trailing Trend Base) × (Day-of-Week SF)
+     */
+    private function generateHybridForecast($seasonality, $forecastStats, $horizon)
+    {
+        $weekdayLabels = [
+            1 => 'Sunday',
+            2 => 'Monday',
+            3 => 'Tuesday',
+            4 => 'Wednesday',
+            5 => 'Thursday',
+            6 => 'Friday',
+            7 => 'Saturday'
+        ];
+
+        $forecastRows = [];
+        
+        for ($i = 0; $i < $horizon; $i++) {
+            $date = date('Y-m-d', strtotime("+" . ($i + 1) . " days"));
+            // MySQL DAYOFWEEK: 1=Sunday, 2=Monday, ..., 7=Saturday
+            $mysqlDow = (int)date('w', strtotime($date)) + 1;
+            if ($mysqlDow === 8) $mysqlDow = 1; // Handle Sunday edge case
+
+            // Get seasonality factor for this day
+            $sf = isset($seasonality[$mysqlDow]) ? $seasonality[$mysqlDow] : 1.0;
+
+            // Calculate base forecast with trend
+            $t = $i + 1;
+            $baseT = max(1.0, $forecastStats['baseLevel'] + $forecastStats['trendPerDay'] * $t);
+
+            // Apply seasonality factor
+            $forecastValue = round($baseT * $sf, 2);
+
+            $forecastRows[] = [
+                'label' => $weekdayLabels[$mysqlDow] ?? 'Day',
+                'date' => $date,
+                'dow' => $mysqlDow,
+                'sf' => round($sf, 3),
+                'base' => round($baseT, 2),
+                'value' => max(1.0, $forecastValue),
+                'method' => 'hybrid'
+            ];
         }
 
-        // Forecast h steps
-        $forecasts = [];
-        for ($i = 1; $i <= $h; $i++) {
-            $m = ($n + $i - 1) % $seasonLen;
-            $forecasts[] = ($smooth + $b * $i) + $s[$m];
-        }
+        return $forecastRows;
+    }
 
-        return ['level' => $smooth, 'trend' => $b, 'seasonals' => $s, 'forecasts' => $forecasts];
+    /**
+     * Get total visits count
+     */
+    private function getTotalVisitsCount()
+    {
+        try {
+            $row = $this->db->query("SELECT COUNT(*) AS c FROM patient_visits")->fetch();
+            return isset($row['c']) ? (int)$row['c'] : 0;
+        } catch (Exception $e) {
+            return 0;
+        }
     }
 }

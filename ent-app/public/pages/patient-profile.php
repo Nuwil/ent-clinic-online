@@ -10,7 +10,7 @@ if (!$patientId) {
 }
 
 // Load patient data
-$patient = apiCall('GET', '/patients/' . $patientId);
+$patient = apiCall('GET', '/api/patients/' . $patientId);
 
 if (!$patient) {
     $_SESSION['message'] = 'Patient not found';
@@ -18,7 +18,7 @@ if (!$patient) {
 }
 
 // Load patient visits (handle if table doesn't exist)
-$visits = apiCall('GET', '/visits?patient_id=' . $patientId);
+$visits = apiCall('GET', '/api/visits?patient_id=' . $patientId);
 $visitsList = isset($visits['visits']) ? $visits['visits'] : [];
 if (!$visitsList && $visits === null) {
     $visitsList = []; // Table might not exist yet

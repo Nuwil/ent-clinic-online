@@ -51,4 +51,5 @@ define('SESSION_CONFIG', $session_config);
 define('ENV', $env);
 // Security: disallow header-based auth by default in production/dev.
 // Set to true only for development/debugging purposes.
-define('ALLOW_HEADER_AUTH', false);
+// TEMPORARY: Enabled for fixing session forwarding issue
+define('ALLOW_HEADER_AUTH', true);

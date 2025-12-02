@@ -15,9 +15,30 @@ class Router
         $this->path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         // Remove the base path
         $this->path = str_replace('/ENT-clinic-online/ent-app/public', '', $this->path);
-        if ($this->path === '') {
+        
+        // Handle different URL formats:
+        // 1. Clean URLs (with mod_rewrite): /api/analytics
+        // 2. Direct access: /api.php/api/analytics
+        // 3. Fallback: /api.php with route parameter
+        
+        if (strpos($this->path, '/api.php/') === 0) {
+            // Format: /api.php/api/analytics -> /api/analytics
+            $this->path = substr($this->path, 8); // Remove '/api.php/'
+        } elseif ($this->path === '/api.php') {
+            // Format: /api.php -> check for route parameter
+            if (!empty($_GET['route'])) {
+                $this->path = $_GET['route'];
+            } else {
+                $this->path = '/api';
+            }
+        }
+        
+        if ($this->path === '' || $this->path === '/api.php') {
             $this->path = '/';
         }
+        
+        // Debug logging
+        error_log('Router: method=' . $this->method . ', uri=' . $_SERVER['REQUEST_URI'] . ', path=' . $this->path);
     }
 
     public function get($path, $callback)
@@ -81,7 +102,8 @@ class Router
 
         // 404 Not Found
         http_response_code(404);
-        echo json_encode(['error' => 'Not Found', 'path' => $this->path, 'method' => $this->method]);
+        error_log('Router 404: No matching route for ' . $this->method . ' ' . $this->path . '. Registered routes: ' . json_encode(array_column($this->routes, 'path')));
+        echo json_encode(['error' => 'Not Found', 'path' => $this->path, 'method' => $this->method, 'available_routes' => array_column($this->routes, 'path')]);
     }
 
     private function pathMatches($pattern, $path)

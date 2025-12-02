@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         
         if ($action === 'add_patient') {
-            $result = apiCall('POST', '/patients', $data);
+            $result = apiCall('POST', '/api/patients', $data);
                 if ($result) {
                     $_SESSION['message'] = 'Patient added successfully';
                 } else {
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
         } else {
             $id = $_POST['id'] ?? '';
-            $result = apiCall('PUT', '/patients/' . $id, $data);
+            $result = apiCall('PUT', '/api/patients/' . $id, $data);
             if ($result) {
                 $_SESSION['message'] = 'Patient updated successfully';
             } else {
@@ -137,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle delete patient
     if ($action === 'delete_patient') {
         $id = $_POST['id'] ?? '';
-        $result = apiCall('DELETE', '/patients/' . $id);
+        $result = apiCall('DELETE', '/api/patients/' . $id);
         if ($result) {
             $_SESSION['message'] = 'Patient deleted successfully';
         } else {
@@ -186,11 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         
         if ($action === 'add_visit') {
-            $result = apiCall('POST', '/visits', $data);
+            $result = apiCall('POST', '/api/visits', $data);
             $_SESSION['message'] = $result ? 'Visit added successfully' : 'Failed to add visit';
         } else {
             $id = isset($_POST['id']) ? $_POST['id'] : '';
-            $result = apiCall('PUT', '/visits/' . $id, $data);
+            $result = apiCall('PUT', '/api/visits/' . $id, $data);
             $_SESSION['message'] = $result ? 'Visit updated successfully' : 'Failed to update visit';
         }
         $patientId = isset($_POST['patient_id']) ? $_POST['patient_id'] : '';
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete_visit') {
         $id = isset($_POST['id']) ? $_POST['id'] : '';
         $patientId = isset($_POST['patient_id']) ? $_POST['patient_id'] : '';
-        $result = apiCall('DELETE', '/visits/' . $id);
+        $result = apiCall('DELETE', '/api/visits/' . $id);
         $_SESSION['message'] = $result ? 'Visit deleted successfully' : 'Failed to delete visit';
         redirect('/?page=patient-profile&id=' . $patientId);
     }
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         
         $id = isset($_POST['id']) ? $_POST['id'] : '';
-        $result = apiCall('PUT', '/patients/' . $id, $data);
+        $result = apiCall('PUT', '/api/patients/' . $id, $data);
         $_SESSION['message'] = $result ? 'Patient information updated successfully' : 'Failed to update patient information';
         redirect('/?page=patient-profile&id=' . $id);
     }

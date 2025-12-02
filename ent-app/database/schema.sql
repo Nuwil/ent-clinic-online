@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS patients (
     gender ENUM('male', 'female', 'other') NOT NULL,
     email VARCHAR(100),
     phone VARCHAR(20),
+    occupation VARCHAR(100),
     address VARCHAR(255),
     city VARCHAR(100),
     state VARCHAR(100),
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS patients (
     allergies TEXT,
     insurance_provider VARCHAR(100),
     insurance_id VARCHAR(100),
-    created_by INT,
+    created_by INT,    http://localhost/ENT-clinic-online/ent-app/public/test-forecast-data.php
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id),
@@ -125,5 +126,32 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 );
 
 -- Insert default admin user (password: admin123)
+-- Note: This password hash is for 'admin123'. If you need to regenerate, use: password_hash('admin123', PASSWORD_DEFAULT)
 INSERT IGNORE INTO users (username, email, password_hash, full_name, role, is_active)
-VALUES ('admin', 'admin@entclinic.com', '$2y$10$qSsHXqVxPv1IVfKe5a2rXuGLQZ3d5XZ5a2rXuGLQZ3d5XZ5a2rXuG', 'Administrator', 'admin', TRUE);
+VALUES ('admin', 'admin@entclinic.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin', TRUE);
+
+-- Patient Visits Table
+CREATE TABLE IF NOT EXISTS patient_visits (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    patient_id INT NOT NULL,
+    visit_date DATETIME NOT NULL,
+    visit_type VARCHAR(100),
+    ent_type ENUM('ear', 'nose', 'throat') DEFAULT 'ear',
+    chief_complaint TEXT,
+    diagnosis TEXT,
+    treatment_plan TEXT,
+    prescription TEXT,
+    notes TEXT,
+    doctor_id INT,
+    doctor_name VARCHAR(150),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    INDEX idx_patient_id (patient_id),
+    INDEX idx_visit_date (visit_date)
+);
+
+-- Note: If you need to add these columns to existing tables, use the migration files:
+-- - add_occupation_field.sql (for patients.occupation)
+-- - add_visit_ent_type.sql (for patient_visits.ent_type)
+-- These are already included in the CREATE TABLE statements above for new installations.

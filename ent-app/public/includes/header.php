@@ -64,26 +64,28 @@ $currentUser = $_SESSION['user'] ?? null;
             
             <div class="sidebar-footer">
                 <div class="user-info">
-                    <div class="user-avatar" id="sidebarUserAvatar" style="cursor:pointer;position:relative;">
-                        <i class="fas fa-user-md"></i>
-                        <div id="userDropdown" style="display:none;position:absolute;right:0;top:56px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);border-radius:8px;min-width:180px;z-index:50;">
-                            <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
-                                <strong class="user-name">Admin User</strong><br>
-                                <small class="text-muted user-role">Administrator</small>
+                    <div class="user-avatar" id="sidebarUserAvatar" style="cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:8px;color:white;font-size:1.25rem;">
+                        <i class="fas <?php echo getRoleIcon($currentUser['role'] ?? 'staff'); ?>"></i>
+                        <div id="userDropdown" style="display:none;position:absolute;right:0;top:56px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);border-radius:8px;min-width:200px;z-index:50;">
+                            <div style="padding:12px;border-bottom:1px solid var(--border);">
+                                <strong class="user-name" style="display:block;"><?php echo e($currentUser['full_name'] ?? 'User'); ?></strong>
+                                <small class="text-muted" style="display:block;margin-top:4px;">
+                                    <i class="fas <?php echo getRoleIcon($currentUser['role'] ?? 'staff'); ?>" style="margin-right:4px;"></i><?php echo getRoleDisplayName($currentUser['role'] ?? 'staff'); ?>
+                                </small>
                             </div>
                             <div style="padding:8px;">
                                 <form method="POST" action="<?php echo baseUrl(); ?>/">
                                     <input type="hidden" name="action" value="logout">
-                                    <button type="submit" class="btn btn-outline" style="width:100%;text-align:left;">
+                                    <button type="submit" class="btn btn-outline" style="width:100%;text-align:left;padding:8px 12px;border:1px solid #ddd;background:#f8f9fa;border-radius:6px;cursor:pointer;font-size:0.875rem;">
                                         <i class="fas fa-sign-out-alt" style="margin-right:8px;"></i> Logout
                                     </button>
                                 </form>
                             </div>
                         </div>
                     </div>
-                    <div class="user-details">
-                            <span class="user-name"><?php echo e($currentUser['full_name'] ?? 'Admin User'); ?></span>
-                            <span class="user-role"><?php echo ucfirst($currentUser['role'] ?? 'Administrator'); ?></span>
+                    <div class="user-details" style="flex:1;min-width:0;">
+                        <span class="user-name" style="display:block;font-weight:600;color:#333;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?php echo e($currentUser['full_name'] ?? 'User'); ?></span>
+                        <span class="user-role" style="display:block;font-size:0.75rem;color:#666;margin-top:2px;"><i class="fas <?php echo getRoleIcon($currentUser['role'] ?? 'staff'); ?>" style="margin-right:4px;"></i><?php echo getRoleDisplayName($currentUser['role'] ?? 'staff'); ?></span>
                     </div>
                 </div>
             </div>

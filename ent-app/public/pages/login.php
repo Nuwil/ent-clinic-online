@@ -213,10 +213,12 @@ $error = $loginError ?? null;
             </button>
             
             <div class="demo-hint">
-                <strong>Demo Accounts:</strong>
-                Admin: admin / admin123<br>
-                Doctor: doctor_demo / password<br>
-                Secretary: staff_demo / password
+                <strong>📋 Demo Accounts:</strong>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; line-height: 1.6;">
+                    <div><strong>👑 Admin:</strong> admin / admin123</div>
+                    <div><strong>🏥 Doctor:</strong> doctor_demo / password</div>
+                    <div><strong>📝 Secretary:</strong> staff_demo / password</div>
+                </div>
             </div>
         </form>
         
