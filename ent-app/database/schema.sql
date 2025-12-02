@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS patients (
     allergies TEXT,
     insurance_provider VARCHAR(100),
     insurance_id VARCHAR(100),
-    created_by INT,    http://localhost/ENT-clinic-online/ent-app/public/test-forecast-data.php
+    created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id),
@@ -150,8 +150,3 @@ CREATE TABLE IF NOT EXISTS patient_visits (
     INDEX idx_patient_id (patient_id),
     INDEX idx_visit_date (visit_date)
 );
-
--- Note: If you need to add these columns to existing tables, use the migration files:
--- - add_occupation_field.sql (for patients.occupation)
--- - add_visit_ent_type.sql (for patient_visits.ent_type)
--- These are already included in the CREATE TABLE statements above for new installations.
