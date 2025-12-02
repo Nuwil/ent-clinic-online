@@ -81,6 +81,8 @@ class PatientsController extends Controller
     public function store()
     {
         try {
+            // allow admin, doctor, and staff (secretary) to create patients
+            $this->requireRole(['admin', 'doctor', 'staff']);
             $input = $this->getInput();
 
             // Validation: require names and gender; make date_of_birth optional and validate email only if provided
@@ -142,6 +144,8 @@ class PatientsController extends Controller
     public function update($id)
     {
         try {
+            // allow admin, doctor, and staff to update patients
+            $this->requireRole(['admin', 'doctor', 'staff']);
             $input = $this->getInput();
 
             // Check if patient exists
@@ -188,6 +192,8 @@ class PatientsController extends Controller
     public function delete($id)
     {
         try {
+            // only admin can delete patients
+            $this->requireRole(['admin']);
             $stmt = $this->db->prepare("SELECT id FROM patients WHERE id = ?");
             $stmt->execute([$id]);
             if (!$stmt->fetch()) {

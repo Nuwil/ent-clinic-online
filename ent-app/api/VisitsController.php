@@ -61,6 +61,8 @@ class VisitsController extends Controller
     public function store()
     {
         try {
+            // only doctors or admins can create visits
+            $this->requireRole(['admin', 'doctor']);
             $input = $this->getInput();
 
             $rules = [
@@ -143,6 +145,8 @@ class VisitsController extends Controller
     public function update($id)
     {
         try {
+            // only doctors or admins can update visits
+            $this->requireRole(['admin', 'doctor']);
             $input = $this->getInput();
 
             // Check if visit exists

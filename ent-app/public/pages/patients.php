@@ -1,4 +1,7 @@
 <?php
+/**
+ * Patients Page - Accessible by all authenticated users
+ */
 // Get search query and pagination
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $pageNum = isset($_GET['p']) ? $_GET['p'] : 1;
@@ -70,9 +73,39 @@ $isEditing = $editId ? true : false;
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" 
-                               value="<?php echo e(isset($editPatient['email']) ? $editPatient['email'] : ''); ?>" />
+                        <label class="form-label">Occupation</label>
+                        <input type="text" name="occupation" class="form-control" 
+                               value="<?php echo e(isset($editPatient['occupation']) ? $editPatient['occupation'] : ''); ?>" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Address</label>
+                        <input type="text" name="address" class="form-control" 
+                               value="<?php echo e(isset($editPatient['address']) ? $editPatient['address'] : ''); ?>" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">City</label>
+                        <input type="text" name="city" class="form-control" 
+                               value="<?php echo e(isset($editPatient['city']) ? $editPatient['city'] : ''); ?>" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">State</label>
+                        <input type="text" name="state" class="form-control" 
+                               value="<?php echo e(isset($editPatient['state']) ? $editPatient['state'] : ''); ?>" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Postal Code</label>
+                        <input type="text" name="postal_code" class="form-control" 
+                               value="<?php echo e(isset($editPatient['postal_code']) ? $editPatient['postal_code'] : ''); ?>" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Country</label>
+                        <input type="text" name="country" class="form-control" 
+                               value="<?php echo e(isset($editPatient['country']) ? $editPatient['country'] : ''); ?>" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Allergies</label>
+                        <input type="text" name="allergies" class="form-control" 
+                               value="<?php echo e(isset($editPatient['allergies']) ? $editPatient['allergies'] : ''); ?>" />
                     </div>
                     <div class="form-group">
                         <label class="form-label">Phone</label>
@@ -94,10 +127,10 @@ $isEditing = $editId ? true : false;
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Medical History</label>
-                    <textarea name="medical_history" class="form-control" rows="3"><?php echo e(isset($editPatient['medical_history']) ? $editPatient['medical_history'] : ''); ?></textarea>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Medical History</label>
+                        <textarea name="medical_history" class="form-control" rows="3"><?php echo e(isset($editPatient['medical_history']) ? $editPatient['medical_history'] : ''); ?></textarea>
+                    </div>
                 <div class="flex gap-2">
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-save"></i>
@@ -127,9 +160,9 @@ $isEditing = $editId ? true : false;
             </h3>
             <form method="GET" action="<?php echo baseUrl(); ?>/" style="display: flex; gap: 0.5rem; align-items: center;">
                 <input type="hidden" name="page" value="patients">
-                <input type="text" name="search" class="form-control" style="width: 300px;"
-                       value="<?php echo e($search); ?>"
-                       placeholder="Search by name, email, or phone...">
+                  <input type="text" name="search" class="form-control" style="width: 300px;"
+                      value="<?php echo e($search); ?>"
+                      placeholder="Search by name or phone...">
                 <button type="submit" class="btn btn-secondary btn-icon">
                     <i class="fas fa-search"></i>
                 </button>
@@ -141,12 +174,11 @@ $isEditing = $editId ? true : false;
                 <table>
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Gender</th>
-                            <th>Date Added</th>
-                            <th>Actions</th>
+                                <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Gender</th>
+                                    <th>Date Added</th>
+                                    <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -155,7 +187,6 @@ $isEditing = $editId ? true : false;
                                 <td>
                                     <strong><?php echo e(isset($patient['first_name']) ? $patient['first_name'] . ' ' . (isset($patient['last_name']) ? $patient['last_name'] : '') : ''); ?></strong>
                                 </td>
-                                <td><?php echo e(isset($patient['email']) ? $patient['email'] : 'N/A'); ?></td>
                                 <td><?php echo e(isset($patient['phone']) ? $patient['phone'] : 'N/A'); ?></td>
                                 <td>
                                     <span class="badge-status">
@@ -173,6 +204,7 @@ $isEditing = $editId ? true : false;
                                            class="btn btn-sm btn-secondary btn-icon" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <?php if (hasRole('admin')): ?>
                                         <form method="POST" action="<?php echo baseUrl(); ?>/" style="display: inline;" 
                                               onsubmit="return confirm('Are you sure you want to delete this patient?');">
                                             <input type="hidden" name="action" value="delete_patient">
@@ -181,6 +213,7 @@ $isEditing = $editId ? true : false;
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

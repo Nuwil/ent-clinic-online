@@ -1,3 +1,8 @@
+<?php
+// Session is already started by index.php; user should be authenticated at this point
+if (session_status() === PHP_SESSION_NONE) session_start();
+$currentUser = $_SESSION['user'] ?? null;
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,28 +27,63 @@
             </div>
             
             <nav class="sidebar-nav">
-                <a href="<?php echo baseUrl(); ?>/?page=patients" class="nav-item <?php echo getCurrentPage() === 'patients' ? 'active' : ''; ?>">
+                <?php
+                $currentUser = getCurrentUser();
+                $userRole = getCurrentUserRole();
+                $currentPage = getCurrentPage();
+                
+                // Show role-specific dashboard link
+                $dashboardPage = getDashboardForRole($userRole);
+                $dashboardLabel = getRoleDisplayName($userRole) . ' Dashboard';
+                $dashboardIcon = $userRole === 'admin' ? 'fa-tachometer-alt' : ($userRole === 'doctor' ? 'fa-user-md' : 'fa-clipboard-list');
+                ?>
+                <a href="<?php echo baseUrl(); ?>/?page=<?php echo $dashboardPage; ?>" class="nav-item <?php echo $currentPage === $dashboardPage ? 'active' : ''; ?>">
+                    <i class="fas <?php echo $dashboardIcon; ?>"></i>
+                    <span><?php echo $dashboardLabel; ?></span>
+                </a>
+                
+                <a href="<?php echo baseUrl(); ?>/?page=patients" class="nav-item <?php echo $currentPage === 'patients' ? 'active' : ''; ?>">
                     <i class="fas fa-users"></i>
                     <span>Patients</span>
                 </a>
-                <a href="<?php echo baseUrl(); ?>/?page=analytics" class="nav-item <?php echo getCurrentPage() === 'analytics' ? 'active' : ''; ?>">
+                
+                <?php if (hasRole(['admin', 'doctor'])): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=analytics" class="nav-item <?php echo $currentPage === 'analytics' ? 'active' : ''; ?>">
                     <i class="fas fa-chart-line"></i>
                     <span>Analytics</span>
                 </a>
-                <a href="<?php echo baseUrl(); ?>/?page=settings" class="nav-item <?php echo getCurrentPage() === 'settings' ? 'active' : ''; ?>">
+                <?php endif; ?>
+                
+                <?php if (hasRole('admin')): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=settings" class="nav-item <?php echo $currentPage === 'settings' ? 'active' : ''; ?>">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
                 </a>
+                <?php endif; ?>
             </nav>
             
             <div class="sidebar-footer">
                 <div class="user-info">
-                    <div class="user-avatar">
+                    <div class="user-avatar" id="sidebarUserAvatar" style="cursor:pointer;position:relative;">
                         <i class="fas fa-user-md"></i>
+                        <div id="userDropdown" style="display:none;position:absolute;right:0;top:56px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);border-radius:8px;min-width:180px;z-index:50;">
+                            <div style="padding:8px 12px;border-bottom:1px solid var(--border);">
+                                <strong class="user-name">Admin User</strong><br>
+                                <small class="text-muted user-role">Administrator</small>
+                            </div>
+                            <div style="padding:8px;">
+                                <form method="POST" action="<?php echo baseUrl(); ?>/">
+                                    <input type="hidden" name="action" value="logout">
+                                    <button type="submit" class="btn btn-outline" style="width:100%;text-align:left;">
+                                        <i class="fas fa-sign-out-alt" style="margin-right:8px;"></i> Logout
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                     <div class="user-details">
-                        <span class="user-name">Admin User</span>
-                        <span class="user-role">Administrator</span>
+                            <span class="user-name"><?php echo e($currentUser['full_name'] ?? 'Admin User'); ?></span>
+                            <span class="user-role"><?php echo ucfirst($currentUser['role'] ?? 'Administrator'); ?></span>
                     </div>
                 </div>
             </div>
@@ -68,16 +108,20 @@
                 </div>
                 <div class="topbar-right">
                     <div class="topbar-actions">
-                        <button class="action-btn" title="Notifications">
-                            <i class="fas fa-bell"></i>
-                            <span class="badge">3</span>
-                        </button>
                         <button class="action-btn" title="Search">
                             <i class="fas fa-search"></i>
                         </button>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="logout">
+                            <button type="submit" class="action-btn" title="Logout" style="color:#dc3545;">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </header>
 
             <!-- Page Content -->
             <main class="content-area">
+
+

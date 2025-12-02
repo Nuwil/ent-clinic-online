@@ -41,6 +41,62 @@ class Controller
         return $input ?? $_REQUEST;
     }
 
+    // Extract API caller user from headers (X-User-Id, X-User-Role) if present
+    protected function getApiUser()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+
+        if (!empty($_SESSION['user']) && is_array($_SESSION['user'])) {
+            return ['id' => $_SESSION['user']['id'] ?? null, 'role' => $_SESSION['user']['role'] ?? null];
+        }
+
+        // If header-based auth is explicitly allowed (development only), fall back to X-User headers
+        if (defined('ALLOW_HEADER_AUTH') && ALLOW_HEADER_AUTH) {
+            // Try getallheaders, fallback to $_SERVER
+            $headers = function_exists('getallheaders') ? getallheaders() : [];
+            if (empty($headers)) {
+                foreach ($_SERVER as $k => $v) {
+                    if (strpos($k, 'HTTP_') === 0) {
+                        $name = str_replace('HTTP_', '', $k);
+                        $name = str_replace('_', '-', $name);
+                        $headers[$name] = $v;
+                    }
+                }
+            }
+
+            $user = ['id' => null, 'role' => null];
+            if (!empty($headers)) {
+                if (isset($headers['X-User-Id'])) $user['id'] = $headers['X-User-Id'];
+                if (isset($headers['X-User-Role'])) $user['role'] = $headers['X-User-Role'];
+                // Some servers normalize header names to lowercase
+                if (isset($headers['x-user-id'])) $user['id'] = $headers['x-user-id'];
+                if (isset($headers['x-user-role'])) $user['role'] = $headers['x-user-role'];
+            }
+
+            return $user;
+        }
+
+        return ['id' => null, 'role' => null];
+    }
+
+    // Check authorization: roles can be string or array of allowed roles
+    protected function isAuthorized($allowedRoles)
+    {
+        $user = $this->getApiUser();
+        if (!$user || empty($user['role'])) return false;
+        if (is_string($allowedRoles)) $allowedRoles = [$allowedRoles];
+        return in_array($user['role'], $allowedRoles);
+    }
+
+    protected function requireRole($allowedRoles)
+    {
+        if (!$this->isAuthorized($allowedRoles)) {
+            $this->error('Unauthorized', 403);
+        }
+    }
+
     protected function validate($data, $rules)
     {
         $errors = [];

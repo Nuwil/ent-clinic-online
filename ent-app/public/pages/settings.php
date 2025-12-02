@@ -1,5 +1,13 @@
 <?php
-// Settings page - only Data Management section
+/**
+ * Settings Page - Access restricted to Admin role only
+ */
+requireRole('admin');
+require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../../config/Database.php';
+
+$currentUser = getCurrentUser();
+
 ?>
 
 <div class="settings-page">
@@ -7,6 +15,90 @@
         <h2 style="margin: 0; font-size: 1.75rem; font-weight: 700;">Settings</h2>
         <p class="text-muted" style="margin-top: 0.5rem;">Manage data and application configuration</p>
     </div>
+
+    <?php if ($currentUser && $currentUser['role'] === 'admin'): ?>
+    <div class="card mb-3">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-users-cog"></i> Account Management</h3>
+        </div>
+        <div class="card-body">
+            <?php
+                $db = Database::getInstance();
+                $users = $db->fetchAll('SELECT id, username, email, full_name, role, is_active, created_at FROM users ORDER BY created_at DESC');
+            ?>
+            <div style="display:flex;gap:2rem;align-items:flex-start;">
+                <div style="flex:1;">
+                    <h4>Create User</h4>
+                    <form method="POST" action="<?php echo baseUrl(); ?>/">
+                        <input type="hidden" name="action" value="create_user">
+                        <div class="form-group">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="username" class="form-control" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="full_name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role</label>
+                            <select name="role" class="form-control">
+                                <option value="admin">Admin</option>
+                                <option value="doctor">Doctor</option>
+                                <option value="staff">Secretary</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Password (optional)</label>
+                            <input type="password" name="password" class="form-control" />
+                        </div>
+                        <button class="btn btn-primary" type="submit">Create User</button>
+                    </form>
+                </div>
+                <div style="flex:2;">
+                    <h4>Existing Accounts</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Active</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($users as $u): ?>
+                                <tr>
+                                    <td><?php echo e($u['username']); ?></td>
+                                    <td><?php echo e($u['full_name']); ?></td>
+                                    <td><?php echo e($u['email']); ?></td>
+                                    <td><?php echo e($u['role']); ?></td>
+                                    <td><?php echo $u['is_active'] ? 'Yes' : 'No'; ?></td>
+                                    <td><?php echo e($u['created_at']); ?></td>
+                                    <td>
+                                        <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline-block;">
+                                            <input type="hidden" name="action" value="delete_user">
+                                            <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                            <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this user?');">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <div class="grid grid-2">
         <div class="card">

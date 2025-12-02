@@ -10,6 +10,7 @@ require_once __DIR__ . '/../api/Router.php';
 require_once __DIR__ . '/../api/PatientsController.php';
 require_once __DIR__ . '/../api/VisitsController.php';
 require_once __DIR__ . '/../api/AnalyticsController.php';
+require_once __DIR__ . '/../api/AuthController.php';
 
 $router = new Router();
 
@@ -81,5 +82,27 @@ $router->get('/api/analytics', function () {
     (new AnalyticsController())->index();
 });
 
+// Auth endpoints
+$router->post('/api/auth/login', function () {
+    (new AuthController())->login();
+});
+
+$router->post('/api/auth/logout', function () {
+    (new AuthController())->logout();
+});
+
+$router->get('/api/auth/me', function () {
+    if (session_status() === PHP_SESSION_NONE) @session_start();
+    header('Content-Type: application/json');
+    if (!empty($_SESSION['user'])) {
+        echo json_encode(['success' => true, 'data' => $_SESSION['user']]);
+    } else {
+        http_response_code(401);
+        echo json_encode(['error' => 'Not authenticated']);
+    }
+    exit;
+});
+
 $router->dispatch();
+
 

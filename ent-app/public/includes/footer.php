@@ -35,6 +35,22 @@
             }
         });
 
+        // Sidebar user dropdown toggle
+        const sidebarUserAvatar = document.getElementById('sidebarUserAvatar');
+        const userDropdown = document.getElementById('userDropdown');
+        if (sidebarUserAvatar && userDropdown) {
+            sidebarUserAvatar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.style.display = userDropdown.style.display === 'none' ? 'block' : 'none';
+            });
+            // close when clicking outside
+            document.addEventListener('click', function(ev) {
+                if (!sidebarUserAvatar.contains(ev.target) && !userDropdown.contains(ev.target)) {
+                    userDropdown.style.display = 'none';
+                }
+            });
+        }
+
         // Handle window resize
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {

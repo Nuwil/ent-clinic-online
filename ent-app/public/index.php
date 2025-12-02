@@ -9,7 +9,76 @@ session_start();
 // Include helpers
 require_once __DIR__ . '/includes/helpers.php';
 
-// Handle form submissions
+// Handle POST request for login FIRST, before any authentication check
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username']) && isset($_POST['password'])) {
+    require_once __DIR__ . '/../config/config.php';
+    require_once __DIR__ . '/../config/Database.php';
+    
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $loginError = null;
+    
+    if (empty($username) || empty($password)) {
+        $loginError = 'Username and password required';
+    } else {
+        try {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare('SELECT id, username, email, password_hash, full_name, role, is_active FROM users WHERE (username = ? OR email = ?) LIMIT 1');
+            $stmt->execute([$username, $username]);
+            $user = $stmt->fetch();
+            
+            if (!$user) {
+                $loginError = 'Invalid username or password';
+            } elseif (!$user['is_active']) {
+                $loginError = 'Account is disabled';
+            } elseif (!password_verify($password, $user['password_hash'])) {
+                $loginError = 'Invalid username or password';
+            } else {
+                // ✓ LOGIN SUCCESSFUL
+                $_SESSION['user'] = [
+                    'id' => (int)$user['id'],
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'name' => $user['full_name'],
+                    'role' => $user['role'],
+                    'full_name' => $user['full_name']
+                ];
+                
+                // Determine landing page by role - redirect to role-specific dashboard
+                $redirectPage = getDashboardForRole($user['role']);
+                
+                // Send redirect header and STOP execution
+                header('Location: /ENT-clinic-online/ent-app/public/?page=' . $redirectPage);
+                exit;
+            }
+        } catch (Exception $e) {
+            $loginError = 'Login error: ' . $e->getMessage();
+        }
+    }
+    
+    // Login failed - fall through to show login page with error
+}
+
+// NOW check if user is authenticated
+if (!isset($_SESSION['user'])) {
+    // User not logged in - show login page
+    include __DIR__ . '/pages/login.php';
+    exit;
+}
+
+// Check page access control - ensure user can access the requested page
+$currentPage = getCurrentPage();
+if (!canAccessPage($currentPage)) {
+    // User doesn't have access to this page - redirect to their dashboard
+    $userRole = getCurrentUserRole();
+    $dashboard = getDashboardForRole($userRole);
+    $_SESSION['message'] = 'You do not have permission to access this page.';
+    header('Location: /ENT-clinic-online/ent-app/public/?page=' . $dashboard);
+    exit;
+}
+
+// User is authenticated - get current page
+$currentPage = getCurrentPage();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $page = $_POST['page'] ?? getCurrentPage();
@@ -23,7 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'phone' => $_POST['phone'] ?? '',
             'gender' => $_POST['gender'] ?? '',
             'date_of_birth' => $_POST['date_of_birth'] ?? '',
-            'medical_history' => $_POST['medical_history'] ?? ''
+            'medical_history' => $_POST['medical_history'] ?? '',
+            'occupation' => $_POST['occupation'] ?? '',
+            'address' => $_POST['address'] ?? '',
+            'city' => $_POST['city'] ?? '',
+            'state' => $_POST['state'] ?? '',
+            'postal_code' => $_POST['postal_code'] ?? '',
+            'country' => $_POST['country'] ?? '',
+            'allergies' => $_POST['allergies'] ?? ''
         ];
         
         if ($action === 'add_patient') {
@@ -73,9 +149,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Handle visit actions
     if ($action === 'add_visit' || $action === 'update_visit') {
+        $currentUser = $_SESSION['user'] ?? null;
+        // Only doctors and admins may create or update visits. Secretaries (staff) cannot.
+        $allowedRoles = ['admin', 'doctor'];
+        if (!($currentUser && in_array($currentUser['role'] ?? '', $allowedRoles))) {
+            $_SESSION['message'] = 'Unauthorized: only doctors and admins may add or edit visits.';
+            $patientId = isset($_POST['patient_id']) ? $_POST['patient_id'] : '';
+            redirect('/?page=patient-profile&id=' . $patientId);
+        }
+        // Normalize visit_date: interpret incoming datetime-local as Asia/Manila,
+        // convert to UTC before sending to the API so stored datetimes are consistent.
+        $rawVisitDate = isset($_POST['visit_date']) ? $_POST['visit_date'] : null;
+        if ($rawVisitDate) {
+            try {
+                $dt = new DateTime($rawVisitDate, new DateTimeZone('Asia/Manila'));
+                $dt->setTimezone(new DateTimeZone('UTC'));
+                // Use MySQL DATETIME friendly format (no timezone designator)
+                $visitDateForApi = $dt->format('Y-m-d H:i:s');
+            } catch (Exception $e) {
+                $visitDateForApi = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+            }
+        } else {
+            $visitDateForApi = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
+        }
+
         $data = [
             'patient_id' => isset($_POST['patient_id']) ? $_POST['patient_id'] : '',
-            'visit_date' => isset($_POST['visit_date']) ? $_POST['visit_date'] : date('Y-m-d\TH:i'),
+            'visit_date' => $visitDateForApi,
             'visit_type' => isset($_POST['visit_type']) ? $_POST['visit_type'] : '',
             'ent_type' => isset($_POST['ent_type']) ? $_POST['ent_type'] : 'ear',
             'chief_complaint' => isset($_POST['chief_complaint']) ? $_POST['chief_complaint'] : '',
@@ -129,10 +229,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['message'] = $result ? 'Patient information updated successfully' : 'Failed to update patient information';
         redirect('/?page=patient-profile&id=' . $id);
     }
+
+    // Handle logout
+    if ($action === 'logout') {
+        // Call API logout to clear session server-side
+        apiCall('POST', '/auth/logout');
+        session_unset();
+        session_destroy();
+        redirect('/pages/login.php');
+    }
+
+    // Admin user management actions
+    if (in_array($action, ['create_user', 'delete_user', 'update_user'])) {
+        require_once __DIR__ . '/../config/Database.php';
+        $db = Database::getInstance();
+        $currentUser = $_SESSION['user'] ?? null;
+        if (!($currentUser && $currentUser['role'] === 'admin')) {
+            $_SESSION['message'] = 'Unauthorized';
+            redirect('/?page=patients');
+        }
+
+        if ($action === 'create_user') {
+            $username = $_POST['username'] ?? '';
+            $email = $_POST['email'] ?? '';
+            $role = $_POST['role'] ?? 'staff';
+            $full_name = $_POST['full_name'] ?? '';
+            $password = $_POST['password'] ?? 'password';
+            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+            try {
+                $db->insert('users', [
+                    'username' => $username,
+                    'email' => $email,
+                    'password_hash' => $passwordHash,
+                    'full_name' => $full_name,
+                    'role' => $role,
+                    'is_active' => 1
+                ]);
+                $_SESSION['message'] = 'User created';
+            } catch (Exception $e) {
+                $_SESSION['message'] = 'Failed to create user: ' . $e->getMessage();
+            }
+            redirect('/?page=settings');
+        }
+
+        if ($action === 'delete_user') {
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                try {
+                    $db->delete('users', 'id = ?', [$id]);
+                    $_SESSION['message'] = 'User deleted';
+                } catch (Exception $e) {
+                    $_SESSION['message'] = 'Failed to delete user: ' . $e->getMessage();
+                }
+            }
+            redirect('/?page=settings');
+        }
+
+        if ($action === 'update_user') {
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $data = [];
+                if (isset($_POST['full_name'])) $data['full_name'] = $_POST['full_name'];
+                if (isset($_POST['role'])) $data['role'] = $_POST['role'];
+                if (isset($_POST['is_active'])) $data['is_active'] = $_POST['is_active'] ? 1 : 0;
+                if (!empty($data)) {
+                    try {
+                        $db->update('users', $data, 'id = ?', [$id]);
+                        $_SESSION['message'] = 'User updated';
+                    } catch (Exception $e) {
+                        $_SESSION['message'] = 'Failed to update user: ' . $e->getMessage();
+                    }
+                }
+            }
+            redirect('/?page=settings');
+        }
+    }
 }
 
-// Get current page
-$currentPage = getCurrentPage();
+// Get current page (already set above for access control check)
 
 // Include header
 include __DIR__ . '/includes/header.php';

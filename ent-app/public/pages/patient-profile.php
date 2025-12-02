@@ -1,4 +1,7 @@
 <?php
+/**
+ * Patient Profile Page - Accessible by all authenticated users
+ */
 // Get patient ID
 $patientId = isset($_GET['id']) ? $_GET['id'] : null;
 
@@ -95,11 +98,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                             <option value="other" <?php echo (isset($patient['gender']) && $patient['gender'] === 'other') ? 'selected' : ''; ?>>Other</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" 
-                               value="<?php echo e(isset($patient['email']) ? $patient['email'] : ''); ?>" />
-                    </div>
+                    <!-- Email removed from edit form per request -->
                     <div class="form-group">
                         <label class="form-label">Phone</label>
                         <input type="tel" name="phone" class="form-control" 
@@ -168,10 +167,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                         <span class="text-muted">Gender:</span>
                         <strong><?php echo e(isset($patient['gender']) ? ucfirst($patient['gender']) : 'N/A'); ?></strong>
                     </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Email:</span>
-                        <strong><?php echo e(isset($patient['email']) ? $patient['email'] : 'N/A'); ?></strong>
-                    </div>
+                    <!-- Email removed from profile view per request -->
                     <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
                         <span class="text-muted">Phone:</span>
                         <strong><?php echo e(isset($patient['phone']) ? $patient['phone'] : 'N/A'); ?></strong>
@@ -210,6 +206,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
         </div>
 
         <!-- Visit Timeline -->
+        <?php if (hasRole(['admin', 'doctor'])): ?>
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
@@ -233,8 +230,13 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                         
                         <div class="form-group">
                             <label class="form-label">Visit Date & Time *</label>
+                            <?php
+                                // Default the datetime-local input to current time in Manila
+                                $manilaNow = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                                $manilaValue = $manilaNow->format('Y-m-d\\TH:i');
+                            ?>
                             <input type="datetime-local" name="visit_date" class="form-control" 
-                                   value="<?php echo date('Y-m-d\TH:i'); ?>" required />
+                                   value="<?php echo e($manilaValue); ?>" required />
                         </div>
                         <div class="form-group">
                             <label class="form-label">Visit Type *</label>
@@ -272,7 +274,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                             <textarea name="prescription" class="form-control" rows="2"></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Notes</label>
+                            <label class="form-label">Plan</label>
                             <textarea name="notes" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="flex gap-2">
@@ -289,68 +291,58 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 </div>
 
             <?php if (!empty($visitsList)): ?>
-                <div class="timeline">
-                    <?php foreach ($visitsList as $visit): ?>
-                        <div class="timeline-item">
-                            <div class="timeline-marker">
-                                <i class="fas fa-calendar"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <div>
-                                        <h4 style="margin:0;"><?php echo e(isset($visit['visit_type']) ? $visit['visit_type'] : 'Visit'); ?></h4>
-                                        <small class="text-muted">
-                                            ENT Focus:
-                                            <span class="badge-status">
-                                                <?php echo ucfirst($visit['ent_type'] ?? 'ear'); ?>
-                                            </span>
-                                        </small>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Visit Type</th>
+                                <th>ENT</th>
+                                <th>Chief Complaint</th>
+                                <th>Diagnosis</th>
+                                <th>Treatment</th>
+                                <th>Prescription</th>
+                                <th>Plan</th>
+                                <th>Doctor</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($visitsList as $visit): ?>
+                            <tr>
+                                <td><?php echo formatDate(isset($visit['visit_date']) ? $visit['visit_date'] : '', true); ?></td>
+                                <td><?php echo e(isset($visit['visit_type']) ? $visit['visit_type'] : ''); ?></td>
+                                <td><?php echo e(isset($visit['ent_type']) ? ucfirst($visit['ent_type']) : ''); ?></td>
+                                <td><?php echo isset($visit['chief_complaint']) ? nl2br(e($visit['chief_complaint'])) : ''; ?></td>
+                                <td><?php echo isset($visit['diagnosis']) ? nl2br(e($visit['diagnosis'])) : ''; ?></td>
+                                <td><?php echo isset($visit['treatment_plan']) ? nl2br(e($visit['treatment_plan'])) : ''; ?></td>
+                                <td><?php echo isset($visit['prescription']) ? nl2br(e($visit['prescription'])) : ''; ?></td>
+                                <td><?php echo isset($visit['notes']) ? nl2br(e($visit['notes'])) : ''; ?></td>
+                                <td>
+                                    <?php
+                                        $doc = isset($visit['doctor_name']) ? trim(strtolower($visit['doctor_name'])) : '';
+                                        if ($doc && $doc !== 'admin' && $doc !== 'administrator') {
+                                            echo e($visit['doctor_name']);
+                                        } else {
+                                            echo '-';
+                                        }
+                                    ?>
+                                </td>
+                                <td>
+                                    <div class="flex gap-1">
+                                        <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=visit&visit_id=<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>" class="btn btn-sm btn-secondary btn-icon" title="Edit Visit"><i class="fas fa-edit"></i></a>
+                                        <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline;" onsubmit="return confirm('Delete this visit?');">
+                                            <input type="hidden" name="action" value="delete_visit">
+                                            <input type="hidden" name="id" value="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
+                                            <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
+                                            <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                        </form>
                                     </div>
-                                    <span class="timeline-date">
-                                        <?php echo formatDate(isset($visit['visit_date']) ? $visit['visit_date'] : '', true); ?>
-                                    </span>
-                                </div>
-                                <?php if (isset($visit['chief_complaint']) && $visit['chief_complaint']): ?>
-                                    <div class="timeline-section">
-                                        <strong>Chief Complaint:</strong>
-                                        <p><?php echo nl2br(e($visit['chief_complaint'])); ?></p>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (isset($visit['diagnosis']) && $visit['diagnosis']): ?>
-                                    <div class="timeline-section">
-                                        <strong>Diagnosis:</strong>
-                                        <p><?php echo nl2br(e($visit['diagnosis'])); ?></p>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (isset($visit['treatment_plan']) && $visit['treatment_plan']): ?>
-                                    <div class="timeline-section">
-                                        <strong>Treatment Plan:</strong>
-                                        <p><?php echo nl2br(e($visit['treatment_plan'])); ?></p>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (isset($visit['prescription']) && $visit['prescription']): ?>
-                                    <div class="timeline-section">
-                                        <strong>Prescription:</strong>
-                                        <p><?php echo nl2br(e($visit['prescription'])); ?></p>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (isset($visit['notes']) && $visit['notes']): ?>
-                                    <div class="timeline-section">
-                                        <strong>Notes:</strong>
-                                        <p><?php echo nl2br(e($visit['notes'])); ?></p>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if (isset($visit['doctor_name']) && $visit['doctor_name']): ?>
-                                    <div class="timeline-footer">
-                                        <small class="text-muted">
-                                            <i class="fas fa-user-md"></i>
-                                            Doctor: <?php echo e($visit['doctor_name']); ?>
-                                        </small>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             <?php else: ?>
                 <div class="text-center p-3 text-muted">
@@ -363,6 +355,16 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 </div>
             <?php endif; ?>
         </div>
+        <?php else: ?>
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-calendar-check"></i> Visit Timeline</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Visit timeline is not available for Secretary accounts.</p>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

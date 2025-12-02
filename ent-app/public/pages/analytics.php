@@ -1,4 +1,8 @@
 <?php
+/**
+ * Analytics Page - Access restricted to Admin and Doctor roles
+ */
+requireRole(['admin', 'doctor']);
 require_once __DIR__ . '/../../config/Database.php';
 
 $db = Database::getInstance()->getConnection();

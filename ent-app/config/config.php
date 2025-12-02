@@ -49,3 +49,6 @@ define('DB_CONFIG', $db_config);
 define('API_CONFIG', $api_config);
 define('SESSION_CONFIG', $session_config);
 define('ENV', $env);
+// Security: disallow header-based auth by default in production/dev.
+// Set to true only for development/debugging purposes.
+define('ALLOW_HEADER_AUTH', false);

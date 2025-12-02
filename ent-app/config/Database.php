@@ -14,7 +14,8 @@ class Database
     {
         try {
             $config = DB_CONFIG;
-            $dsn = "mysql:host={$config['host']}:{$config['port']};dbname={$config['name']};charset={$config['charset']}";
+            // Correct PDO DSN format: use semicolon to separate port, not colon
+            $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['name']};charset={$config['charset']}";
 
             $this->connection = new PDO(
                 $dsn,
@@ -24,11 +25,31 @@ class Database
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                     PDO::ATTR_EMULATE_PREPARES => false,
+                    PDO::ATTR_TIMEOUT => 5, // 5 second connection timeout
                 ]
             );
         } catch (PDOException $e) {
+            // Provide more helpful error messages
+            $errorMsg = $e->getMessage();
             if (ENV === 'development') {
-                die('Database Connection Failed: ' . $e->getMessage());
+                $helpText = '';
+                if (strpos($errorMsg, '2002') !== false || strpos($errorMsg, 'actively refused') !== false) {
+                    $helpText = "\n\nTroubleshooting:\n";
+                    $helpText .= "1. Make sure MySQL/MariaDB is running in XAMPP Control Panel\n";
+                    $helpText .= "2. Check if the MySQL service is started (should show 'Running' in XAMPP)\n";
+                    $helpText .= "3. Verify the database '{$config['name']}' exists\n";
+                    $helpText .= "4. Check if port {$config['port']} is available\n";
+                } elseif (strpos($errorMsg, '1049') !== false) {
+                    $helpText = "\n\nTroubleshooting:\n";
+                    $helpText .= "1. The database '{$config['name']}' does not exist\n";
+                    $helpText .= "2. Run the schema.sql file to create the database\n";
+                    $helpText .= "3. Or create the database manually in phpMyAdmin\n";
+                } elseif (strpos($errorMsg, '1045') !== false) {
+                    $helpText = "\n\nTroubleshooting:\n";
+                    $helpText .= "1. Check database username and password in config.php\n";
+                    $helpText .= "2. Default XAMPP credentials: user='root', password='' (empty)\n";
+                }
+                die('Database Connection Failed: ' . $errorMsg . $helpText);
             } else {
                 die('Database Connection Failed. Please try again later.');
             }
