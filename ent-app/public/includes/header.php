@@ -46,6 +46,11 @@ $currentUser = $_SESSION['user'] ?? null;
                     <i class="fas fa-users"></i>
                     <span>Patients</span>
                 </a>
+
+                <a href="<?php echo baseUrl(); ?>/?page=medical-certificate" class="nav-item <?php echo $currentPage === 'medical-certificate' ? 'active' : ''; ?>">
+                    <i class="fas fa-file-medical"></i>
+                    <span>Print Medical Certificate</span>
+                </a>
                 
                 <?php if (hasRole(['admin', 'doctor'])): ?>
                 <a href="<?php echo baseUrl(); ?>/?page=analytics" class="nav-item <?php echo $currentPage === 'analytics' ? 'active' : ''; ?>">

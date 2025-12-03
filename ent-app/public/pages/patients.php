@@ -40,13 +40,9 @@ $isEditing = $editId ? true : false;
             <h2 style="margin: 0; font-size: 1.75rem; font-weight: 700;">Patients Management</h2>
             <p class="text-muted" style="margin-top: 0.5rem;">Manage patient records and information</p>
         </div>
-        <button type="button" id="addPatientBtn" class="btn btn-primary" <?php echo $isEditing ? 'style="display:none;"' : ''; ?>>
-            <i class="fas fa-plus"></i>
-            Add New Patient
-        </button>
     </div>
 
-        <div class="card mb-3" id="patientFormCard" <?php echo $isEditing ? '' : 'style="display:none;"'; ?>>
+    <div class="card mb-3" id="patientFormCard" style="display:none;">
             <div class="card-header">
                 <h3 class="card-title">
                     <i class="fas fa-<?php echo $editId ? 'edit' : 'user-plus'; ?>"></i>
@@ -136,17 +132,10 @@ $isEditing = $editId ? true : false;
                         <i class="fas fa-save"></i>
                         Save Patient
                     </button>
-                    <?php if ($isEditing): ?>
-                        <a href="<?php echo baseUrl(); ?>/?page=patients" class="btn btn-secondary">
-                            <i class="fas fa-times"></i>
-                            Cancel
-                        </a>
-                    <?php else: ?>
-                        <button type="button" class="btn btn-secondary" id="cancelAddPatient">
-                            <i class="fas fa-times"></i>
-                            Cancel
-                        </button>
-                    <?php endif; ?>
+                    <a href="<?php echo baseUrl(); ?>/?page=patients" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </a>
                 </div>
             </form>
         </div>
@@ -247,29 +236,3 @@ $isEditing = $editId ? true : false;
         </div>
     <?php endif; ?>
 </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const addBtn = document.getElementById('addPatientBtn');
-        const formCard = document.getElementById('patientFormCard');
-        const form = document.getElementById('patientForm');
-        const cancelBtn = document.getElementById('cancelAddPatient');
-
-        if (addBtn && formCard && form) {
-            addBtn.addEventListener('click', () => {
-                formCard.style.display = '';
-                addBtn.style.display = 'none';
-                form.reset();
-            });
-        }
-
-        if (cancelBtn && formCard && form) {
-            cancelBtn.addEventListener('click', () => {
-                formCard.style.display = 'none';
-                if (addBtn) {
-                    addBtn.style.display = '';
-                }
-                form.reset();
-            });
-        }
-    });
-    </script>

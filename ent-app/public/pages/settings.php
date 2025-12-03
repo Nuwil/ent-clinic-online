@@ -28,35 +28,7 @@ $currentUser = getCurrentUser();
             ?>
             <div style="display:flex;gap:2rem;align-items:flex-start;">
                 <div style="flex:1;">
-                    <h4>Create User</h4>
-                    <form method="POST" action="<?php echo baseUrl(); ?>/">
-                        <input type="hidden" name="action" value="create_user">
-                        <div class="form-group">
-                            <label class="form-label">Username</label>
-                            <input type="text" name="username" class="form-control" required />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" required />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="full_name" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Role</label>
-                            <select name="role" class="form-control">
-                                <option value="admin">Admin</option>
-                                <option value="doctor">Doctor</option>
-                                <option value="staff">Secretary</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Password (optional)</label>
-                            <input type="password" name="password" class="form-control" />
-                        </div>
-                        <button class="btn btn-primary" type="submit">Create User</button>
-                    </form>
+                    <button class="btn btn-primary btn-lg" id="openUserModal"><i class="fas fa-user-plus"></i> Create New User</button>
                 </div>
                 <div style="flex:2;">
                     <h4>Existing Accounts</h4>
@@ -100,6 +72,52 @@ $currentUser = getCurrentUser();
     </div>
     <?php endif; ?>
 
+    <!-- User Management Modal -->
+    <div class="modal" id="userModal" hidden>
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog form-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Create New User</h2>
+                <button type="button" class="modal-close" id="closeUserModal" aria-label="Close modal">&times;</button>
+            </div>
+            <form id="userForm" method="POST" action="<?php echo baseUrl(); ?>/">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="create_user">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-control">
+                            <option value="admin">Admin</option>
+                            <option value="doctor">Doctor</option>
+                            <option value="staff">Secretary</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password (optional)</label>
+                        <input type="password" name="password" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelUserBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-lg">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <?php endif; ?>
+
     <div class="grid grid-2">
         <div class="card">
             <div class="card-header">
@@ -130,3 +148,75 @@ $currentUser = getCurrentUser();
         </div>
     </div>
 </div>
+
+<script>
+    const userModal = document.getElementById('userModal');
+    const openUserModalBtn = document.getElementById('openUserModal');
+    const closeUserModalBtn = document.getElementById('closeUserModal');
+    const cancelUserBtn = document.getElementById('cancelUserBtn');
+    const userForm = document.getElementById('userForm');
+
+    function setupFocusTrap(el) {
+        const focusable = Array.from(el.querySelectorAll('a[href], button:not([disabled]), textarea, input:not([type="hidden"]), select'));
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const handler = function(e) {
+            if (e.key !== 'Tab') return;
+            if (e.shiftKey) {
+                if (document.activeElement === first) {
+                    e.preventDefault(); last.focus();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    e.preventDefault(); first.focus();
+                }
+            }
+        };
+        el._focusTrap = handler;
+        document.addEventListener('keydown', handler);
+    }
+
+    function removeFocusTrap(el) {
+        if (el._focusTrap) {
+            document.removeEventListener('keydown', el._focusTrap);
+            delete el._focusTrap;
+        }
+    }
+
+    function openUserModal() {
+        userModal.removeAttribute('hidden');
+        userModal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
+        const main = document.querySelector('.main-content');
+        if (main) main.setAttribute('aria-hidden', 'true');
+        setupFocusTrap(userModal);
+        userForm.reset();
+        userForm.querySelector('input[name="username"]').focus();
+    }
+
+    function closeUserModal() {
+        userModal.classList.remove('open');
+        userModal.setAttribute('hidden', '');
+        document.body.style.overflow = '';
+        document.body.classList.remove('modal-open');
+        const main = document.querySelector('.main-content');
+        if (main) main.removeAttribute('aria-hidden');
+        removeFocusTrap(userModal);
+    }
+
+    openUserModalBtn.addEventListener('click', openUserModal);
+    closeUserModalBtn.addEventListener('click', closeUserModal);
+    cancelUserBtn.addEventListener('click', closeUserModal);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && userModal.classList.contains('open')) {
+            closeUserModal();
+        }
+    });
+
+    userForm.addEventListener('submit', function(e) {
+        openUserModalBtn.disabled = true;
+        openUserModalBtn.textContent = 'Creating...';
+    });
+</script>

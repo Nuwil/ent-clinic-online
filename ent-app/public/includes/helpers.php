@@ -217,7 +217,7 @@ function getRBACMatrix() {
                 'export_data' => true,
                 'view_admin_dashboard' => true,
             ],
-            'accessible_pages' => ['admin', 'patients', 'patient-profile', 'analytics', 'settings']
+            'accessible_pages' => ['admin', 'patients', 'patient-profile', 'analytics', 'settings', 'medical-certificate']
         ],
         'doctor' => [
             'display_name' => 'Doctor',
@@ -238,7 +238,7 @@ function getRBACMatrix() {
                 'export_data' => false,
                 'view_doctor_dashboard' => true,
             ],
-            'accessible_pages' => ['doctor', 'patients', 'patient-profile', 'analytics']
+            'accessible_pages' => ['doctor', 'patients', 'patient-profile', 'analytics', 'medical-certificate']
         ],
         'staff' => [
             'display_name' => 'Secretary',
@@ -259,7 +259,7 @@ function getRBACMatrix() {
                 'export_data' => false,
                 'view_staff_dashboard' => true,
             ],
-            'accessible_pages' => ['staff', 'patients', 'patient-profile']
+            'accessible_pages' => ['staff', 'patients', 'patient-profile', 'medical-certificate']
         ]
     ];
 }
@@ -398,9 +398,9 @@ function canAccessPage($page) {
     
     // Define page access rules
     $pageAccess = [
-        'admin' => ['admin', 'patients', 'patient-profile', 'analytics', 'settings'],
-        'doctor' => ['doctor', 'patients', 'patient-profile', 'analytics'],
-        'staff' => ['staff', 'patients', 'patient-profile']
+        'admin' => ['admin', 'patients', 'patient-profile', 'analytics', 'settings', 'medical-certificate'],
+        'doctor' => ['doctor', 'patients', 'patient-profile', 'analytics', 'medical-certificate'],
+        'staff' => ['staff', 'patients', 'patient-profile', 'medical-certificate']
     ];
     
     return isset($pageAccess[$role]) && in_array($page, $pageAccess[$role]);

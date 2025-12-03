@@ -50,10 +50,13 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 </p>
             </div>
             <div class="flex gap-2">
-                <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=profile" 
-                   class="btn btn-primary">
+                <button type="button" id="openEditProfileBtn" class="btn btn-primary">
                     <i class="fas fa-edit"></i>
                     Edit Profile
+                </button>
+                <a href="<?php echo baseUrl(); ?>/?page=medical-certificate&patient_id=<?php echo $patientId; ?>" class="btn btn-secondary">
+                    <i class="fas fa-file-pdf"></i>
+                    Print Certificate
                 </a>
             </div>
         </div>
@@ -69,92 +72,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 </h3>
             </div>
 
-            <?php if ($editProfile): ?>
-                <form method="POST" action="<?php echo baseUrl(); ?>/">
-                    <input type="hidden" name="action" value="update_patient_profile">
-                    <input type="hidden" name="id" value="<?php echo $patientId; ?>">
-                    
-                    <div class="form-group">
-                        <label class="form-label">First Name *</label>
-                        <input type="text" name="first_name" class="form-control" 
-                               value="<?php echo e(isset($patient['first_name']) ? $patient['first_name'] : ''); ?>" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Last Name *</label>
-                        <input type="text" name="last_name" class="form-control" 
-                               value="<?php echo e(isset($patient['last_name']) ? $patient['last_name'] : ''); ?>" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Date of Birth</label>
-                        <input type="date" name="date_of_birth" class="form-control" 
-                               value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Gender *</label>
-                        <select name="gender" class="form-control" required>
-                            <option value="">Select Gender</option>
-                            <option value="male" <?php echo (isset($patient['gender']) && $patient['gender'] === 'male') ? 'selected' : ''; ?>>Male</option>
-                            <option value="female" <?php echo (isset($patient['gender']) && $patient['gender'] === 'female') ? 'selected' : ''; ?>>Female</option>
-                            <option value="other" <?php echo (isset($patient['gender']) && $patient['gender'] === 'other') ? 'selected' : ''; ?>>Other</option>
-                        </select>
-                    </div>
-                    <!-- Email removed from edit form per request -->
-                    <div class="form-group">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" name="phone" class="form-control" 
-                               value="<?php echo e(isset($patient['phone']) ? $patient['phone'] : ''); ?>" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Occupation</label>
-                        <input type="text" name="occupation" class="form-control" 
-                               value="<?php echo e(isset($patient['occupation']) ? $patient['occupation'] : ''); ?>" />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Address</label>
-                        <input type="text" name="address" class="form-control" 
-                               value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
-                    </div>
-                    <div class="grid grid-2">
-                        <div class="form-group">
-                            <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control" 
-                                   value="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">State</label>
-                            <input type="text" name="state" class="form-control" 
-                                   value="<?php echo e(isset($patient['state']) ? $patient['state'] : ''); ?>" />
-                        </div>
-                    </div>
-                    <div class="grid grid-2">
-                        <div class="form-group">
-                            <label class="form-label">Postal Code</label>
-                            <input type="text" name="postal_code" class="form-control" 
-                                   value="<?php echo e(isset($patient['postal_code']) ? $patient['postal_code'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Country</label>
-                            <input type="text" name="country" class="form-control" 
-                                   value="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>" />
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Medical History</label>
-                        <textarea name="medical_history" class="form-control" rows="4"><?php echo e(isset($patient['medical_history']) ? $patient['medical_history'] : ''); ?></textarea>
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-save"></i>
-                            Save Changes
-                        </button>
-                        <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>" class="btn btn-secondary">
-                            <i class="fas fa-times"></i>
-                            Cancel
-                        </a>
-                    </div>
-                </form>
-            <?php else: ?>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
                     <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
                         <span class="text-muted">Name:</span>
                         <strong><?php echo e(isset($patient['first_name']) ? $patient['first_name'] . ' ' . (isset($patient['last_name']) ? $patient['last_name'] : '') : ''); ?></strong>
@@ -202,7 +120,98 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                     </div>
                     <?php endif; ?>
                 </div>
-            <?php endif; ?>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        <div class="modal" id="editProfileModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
+            <div class="modal-backdrop"></div>
+            <div class="modal-dialog form-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">Edit Patient Profile</h2>
+                    <button type="button" class="modal-close" id="closeEditProfileModal" aria-label="Close modal">&times;</button>
+                </div>
+                <form id="editProfileForm" method="POST" action="<?php echo baseUrl(); ?>/">
+                    <div class="modal-body">
+                        <input type="hidden" name="action" value="update_patient_profile">
+                        <input type="hidden" name="id" value="<?php echo $patientId; ?>">
+                        
+                        <div class="form-group">
+                            <label class="form-label">First Name *</label>
+                            <input type="text" name="first_name" class="form-control" 
+                                   value="<?php echo e(isset($patient['first_name']) ? $patient['first_name'] : ''); ?>" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name *</label>
+                            <input type="text" name="last_name" class="form-control" 
+                                   value="<?php echo e(isset($patient['last_name']) ? $patient['last_name'] : ''); ?>" required />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date of Birth</label>
+                            <input type="date" name="date_of_birth" class="form-control" 
+                                   value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Gender *</label>
+                            <select name="gender" class="form-control" required>
+                                <option value="">Select Gender</option>
+                                <option value="male" <?php echo (isset($patient['gender']) && $patient['gender'] === 'male') ? 'selected' : ''; ?>>Male</option>
+                                <option value="female" <?php echo (isset($patient['gender']) && $patient['gender'] === 'female') ? 'selected' : ''; ?>>Female</option>
+                                <option value="other" <?php echo (isset($patient['gender']) && $patient['gender'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input type="tel" name="phone" class="form-control" 
+                                   value="<?php echo e(isset($patient['phone']) ? $patient['phone'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Occupation</label>
+                            <input type="text" name="occupation" class="form-control" 
+                                   value="<?php echo e(isset($patient['occupation']) ? $patient['occupation'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <input type="text" name="address" class="form-control" 
+                                   value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
+                        </div>
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" class="form-control" 
+                                       value="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">State</label>
+                                <input type="text" name="state" class="form-control" 
+                                       value="<?php echo e(isset($patient['state']) ? $patient['state'] : ''); ?>" />
+                            </div>
+                        </div>
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Postal Code</label>
+                                <input type="text" name="postal_code" class="form-control" 
+                                       value="<?php echo e(isset($patient['postal_code']) ? $patient['postal_code'] : ''); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Country</label>
+                                <input type="text" name="country" class="form-control" 
+                                       value="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Medical History</label>
+                            <textarea name="medical_history" class="form-control" rows="4"><?php echo e(isset($patient['medical_history']) ? $patient['medical_history'] : ''); ?></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" id="cancelEditProfileBtn">Cancel</button>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <!-- Visit Timeline -->
@@ -213,17 +222,22 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                     <i class="fas fa-calendar-check"></i>
                     Visit Timeline
                 </h3>
-                <button type="button" id="addVisitBtn" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i>
-                    Add Visit
-                </button>
             </div>
-            <?php 
-                // Always render the add visit container but hide it by default for client-side toggling.
-                $addVisibleAttr = $showAddVisit ? '' : 'style="display:none; margin-bottom: 1.5rem;"';
-            ?>
-            <div id="addVisitContainer" <?php echo $addVisibleAttr; ?> class="add-visit-container" style="padding: 1.5rem; background: var(--bg-primary); border-radius: 12px;">
-                    <h4 style="margin-bottom: 1rem;">Add New Visit</h4>
+
+            <!-- Add Visit Modal -->
+            <div class="modal" id="visitModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="modal-backdrop" data-modal-dismiss="visitModal"></div>
+                <div class="modal-dialog form-modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">
+                            <i class="fas fa-calendar-plus"></i>
+                            Add New Visit
+                        </h3>
+                        <button type="button" class="modal-close" data-modal-dismiss="visitModal" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
                     <form method="POST" action="<?php echo baseUrl(); ?>/">
                         <input type="hidden" name="action" value="add_visit">
                         <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
@@ -277,18 +291,20 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                             <label class="form-label">Plan</label>
                             <textarea name="notes" class="form-control" rows="3"></textarea>
                         </div>
-                        <div class="flex gap-2">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i>
-                                Save Visit
-                            </button>
-                            <button type="button" id="cancelAddVisit" class="btn btn-secondary">
-                                <i class="fas fa-times"></i>
-                                Cancel
-                            </button>
-                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i>
+                            Save Visit
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-lg" data-modal-dismiss="visitModal">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                    </div>
                     </form>
                 </div>
+            </div>
 
             <?php if (!empty($visitsList)): ?>
                 <div class="table-container">
@@ -348,10 +364,10 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 <div class="text-center p-3 text-muted">
                     <i class="fas fa-calendar-times" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
                     <p style="font-size: 1.125rem;">No visits recorded yet</p>
-                    <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&add=visit" class="btn btn-primary mt-2">
+                    <button type="button" id="addFirstVisitBtn" class="btn btn-primary mt-2">
                         <i class="fas fa-plus"></i>
                         Add First Visit
-                    </a>
+                    </button>
                 </div>
             <?php endif; ?>
         </div>
@@ -460,23 +476,142 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('addVisitBtn');
-    const addContainer = document.getElementById('addVisitContainer');
-    const cancelBtn = document.getElementById('cancelAddVisit');
+    const addFirstBtn = document.getElementById('addFirstVisitBtn');
+    const modal = document.getElementById('visitModal');
+    function setupFocusTrap(el) {
+        if (!el) return;
+        const focusable = Array.from(el.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const handler = function(e) {
+            if (e.key !== 'Tab') return;
+            if (focusable.length === 0) { e.preventDefault(); return; }
+            if (e.shiftKey) {
+                if (document.activeElement === first) {
+                    e.preventDefault(); last.focus();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    e.preventDefault(); first.focus();
+                }
+            }
+        };
+        el._focusTrap = handler;
+        document.addEventListener('keydown', handler);
+    }
 
-    if (addBtn && addContainer) {
-        addBtn.addEventListener('click', function() {
-            addContainer.style.display = '';
-            addBtn.style.display = 'none';
-            window.scrollTo({ top: addContainer.offsetTop - 20, behavior: 'smooth' });
+    function removeFocusTrap(el) {
+        if (!el || !el._focusTrap) return;
+        document.removeEventListener('keydown', el._focusTrap);
+        delete el._focusTrap;
+    }
+
+    function openVisitModal() {
+        if (!modal) return;
+        modal.removeAttribute('hidden');
+        modal.classList.add('open');
+        const main = document.querySelector('.main-content');
+        if (main) main.setAttribute('aria-hidden', 'true');
+        setupFocusTrap(modal);
+        setTimeout(function() {
+            const firstField = modal.querySelector('input[name="visit_date"]');
+            if (firstField) firstField.focus();
+        }, 50);
+    }
+
+    function closeVisitModal() {
+        if (!modal) return;
+        modal.classList.remove('open');
+        modal.setAttribute('hidden', '');
+        const main = document.querySelector('.main-content');
+        if (main) main.removeAttribute('aria-hidden');
+        removeFocusTrap(modal);
+    }
+
+    if (addFirstBtn) {
+        addFirstBtn.addEventListener('click', function() {
+            openVisitModal();
         });
     }
 
-    if (cancelBtn && addContainer) {
-        cancelBtn.addEventListener('click', function() {
-            addContainer.style.display = 'none';
-            if (addBtn) addBtn.style.display = '';
+    if (modal) {
+        modal.querySelectorAll('[data-modal-dismiss="visitModal"]').forEach(function(el) {
+            el.addEventListener('click', closeVisitModal);
+        });
+        // prevent backdrop click from closing (enforce explicit close)
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                e.stopPropagation();
+            }
+        });
+        // close on Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('open')) {
+                closeVisitModal();
+            }
         });
     }
+
+    // Auto-open when requested via query param (?add=visit)
+    if (<?php echo $showAddVisit ? 'true' : 'false'; ?>) {
+        openVisitModal();
+    }
+
+    // Edit Profile Modal handlers
+    const editProfileModal = document.getElementById('editProfileModal');
+    const openEditProfileBtn = document.getElementById('openEditProfileBtn');
+    const closeEditProfileModalBtn = document.getElementById('closeEditProfileModal');
+    const cancelEditProfileBtn = document.getElementById('cancelEditProfileBtn');
+    const editProfileForm = document.getElementById('editProfileForm');
+
+    function openEditProfileModal() {
+        if (!editProfileModal) return;
+        editProfileModal.removeAttribute('hidden');
+        editProfileModal.classList.add('open');
+        const main = document.querySelector('.main-content');
+        if (main) main.setAttribute('aria-hidden', 'true');
+        setupFocusTrap(editProfileModal);
+        setTimeout(function() {
+            const firstField = editProfileModal.querySelector('input[name="first_name"]');
+            if (firstField) firstField.focus();
+        }, 50);
+    }
+
+    function closeEditProfileModal() {
+        if (!editProfileModal) return;
+        editProfileModal.classList.remove('open');
+        editProfileModal.setAttribute('hidden', '');
+        const main = document.querySelector('.main-content');
+        if (main) main.removeAttribute('aria-hidden');
+        removeFocusTrap(editProfileModal);
+    }
+
+    if (openEditProfileBtn) {
+        openEditProfileBtn.addEventListener('click', openEditProfileModal);
+    }
+
+    if (closeEditProfileModalBtn) {
+        closeEditProfileModalBtn.addEventListener('click', closeEditProfileModal);
+    }
+
+    if (cancelEditProfileBtn) {
+        cancelEditProfileBtn.addEventListener('click', closeEditProfileModal);
+    }
+
+    if (editProfileModal) {
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && editProfileModal.classList.contains('open')) {
+                closeEditProfileModal();
+            }
+        });
+    }
+
+    // Auto-open when requested via query param (?edit=profile)
+    if (<?php echo $editProfile ? 'true' : 'false'; ?>) {
+        openEditProfileModal();
+    }
+
 });
 </script>
 
