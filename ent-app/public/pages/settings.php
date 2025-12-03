@@ -18,8 +18,11 @@ $currentUser = getCurrentUser();
 
     <?php if ($currentUser && $currentUser['role'] === 'admin'): ?>
     <div class="card mb-3">
-        <div class="card-header">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
             <h3 class="card-title"><i class="fas fa-users-cog"></i> Account Management</h3>
+            <div style="width: 14rem;">
+                    <button class="btn btn-primary btn-lg" id="openUserModal"><i class="fas fa-user-plus"></i> Create New User</button>
+            </div>
         </div>
         <div class="card-body">
             <?php
@@ -27,9 +30,9 @@ $currentUser = getCurrentUser();
                 $users = $db->fetchAll('SELECT id, username, email, full_name, role, is_active, created_at FROM users ORDER BY created_at DESC');
             ?>
             <div style="display:flex;gap:2rem;align-items:flex-start;">
-                <div style="flex:1;">
+                <!-- <div style="flex: 0.5;">
                     <button class="btn btn-primary btn-lg" id="openUserModal"><i class="fas fa-user-plus"></i> Create New User</button>
-                </div>
+                </div> -->
                 <div style="flex:2;">
                     <h4>Existing Accounts</h4>
                     <div class="table-container">
@@ -114,9 +117,7 @@ $currentUser = getCurrentUser();
                 </div>
             </form>
         </div>
-    </div>
-
-    <?php endif; ?>
+        </div>
 
     <div class="grid grid-2">
         <div class="card">

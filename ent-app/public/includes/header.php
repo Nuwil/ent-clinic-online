@@ -47,10 +47,13 @@ $currentUser = $_SESSION['user'] ?? null;
                     <span>Patients</span>
                 </a>
 
+                <!-- Print Medical Certificate hidden until feature is implemented -->
+                <?php /*
                 <a href="<?php echo baseUrl(); ?>/?page=medical-certificate" class="nav-item <?php echo $currentPage === 'medical-certificate' ? 'active' : ''; ?>">
                     <i class="fas fa-file-medical"></i>
                     <span>Print Medical Certificate</span>
                 </a>
+                */ ?>
                 
                 <?php if (hasRole(['admin', 'doctor'])): ?>
                 <a href="<?php echo baseUrl(); ?>/?page=analytics" class="nav-item <?php echo $currentPage === 'analytics' ? 'active' : ''; ?>">
@@ -129,6 +132,6 @@ $currentUser = $_SESSION['user'] ?? null;
             </header>
 
             <!-- Page Content -->
-            <main class="content-area" style="padding: 20px; margin: 0 10rem 0 10rem;">
+            <main class="content-area" style="padding: 20px; margin: 0 5rem 0 5rem;">
 
 

@@ -54,7 +54,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                     <i class="fas fa-edit"></i>
                     Edit Profile
                 </button>
-                <a href="<?php echo baseUrl(); ?>/?page=medical-certificate&patient_id=<?php echo $patientId; ?>" class="btn btn-secondary">
+                <a href="<?php echo baseUrl(); ?>/?page=medical-certificate&patient_id=<?php echo $patientId; ?>" class="btn btn-secondary" style="display: none;">
                     <i class="fas fa-file-pdf"></i>
                     Print Certificate
                 </a>
@@ -105,7 +105,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                                 $patient['address'] ?? '',
                                 $patient['city'] ?? '',
                                 $patient['state'] ?? '',
-                                $patient['postal_code'] ?? '',
+                                // $patient['postal_code'] ?? '',
                                 $patient['country'] ?? ''
                             ]);
                             echo e(implode(', ', $addressParts));
@@ -181,13 +181,124 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                                        value="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>" />
                             </div>
                             <div class="form-group">
-                                <label class="form-label">State</label>
-                                <input type="text" name="state" class="form-control" 
-                                       value="<?php echo e(isset($patient['state']) ? $patient['state'] : ''); ?>" />
+                                <label class="form-label">State/Province</label>
+                                <select name="state" class="form-control" required>
+                                    <option value="">Select Province</option>
+                                    <optgroup label="Cordillera Administrative Region (CAR)">
+                                        <option value="Abra" <?php echo (isset($patient['state']) && $patient['state'] === 'Abra') ? 'selected' : ''; ?>>Abra</option>
+                                        <option value="Apayao" <?php echo (isset($patient['state']) && $patient['state'] === 'Apayao') ? 'selected' : ''; ?>>Apayao</option>
+                                        <option value="Benguet" <?php echo (isset($patient['state']) && $patient['state'] === 'Benguet') ? 'selected' : ''; ?>>Benguet</option>
+                                        <option value="Ifugao" <?php echo (isset($patient['state']) && $patient['state'] === 'Ifugao') ? 'selected' : ''; ?>>Ifugao</option>
+                                        <option value="Kalinga" <?php echo (isset($patient['state']) && $patient['state'] === 'Kalinga') ? 'selected' : ''; ?>>Kalinga</option>
+                                        <option value="Mountain Province" <?php echo (isset($patient['state']) && $patient['state'] === 'Mountain Province') ? 'selected' : ''; ?>>Mountain Province</option>
+                                    </optgroup>
+                                    <optgroup label="Ilocos Region (Region I)">
+                                        <option value="Ilocos Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Ilocos Norte') ? 'selected' : ''; ?>>Ilocos Norte</option>
+                                        <option value="Ilocos Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Ilocos Sur') ? 'selected' : ''; ?>>Ilocos Sur</option>
+                                        <option value="La Union" <?php echo (isset($patient['state']) && $patient['state'] === 'La Union') ? 'selected' : ''; ?>>La Union</option>
+                                        <option value="Pangasinan" <?php echo (isset($patient['state']) && $patient['state'] === 'Pangasinan') ? 'selected' : ''; ?>>Pangasinan</option>
+                                    </optgroup>
+                                    <optgroup label="Cagayan Valley (Region II)">
+                                        <option value="Batanes" <?php echo (isset($patient['state']) && $patient['state'] === 'Batanes') ? 'selected' : ''; ?>>Batanes</option>
+                                        <option value="Cagayan" <?php echo (isset($patient['state']) && $patient['state'] === 'Cagayan') ? 'selected' : ''; ?>>Cagayan</option>
+                                        <option value="Isabela" <?php echo (isset($patient['state']) && $patient['state'] === 'Isabela') ? 'selected' : ''; ?>>Isabela</option>
+                                        <option value="Nueva Vizcaya" <?php echo (isset($patient['state']) && $patient['state'] === 'Nueva Vizcaya') ? 'selected' : ''; ?>>Nueva Vizcaya</option>
+                                        <option value="Quirino" <?php echo (isset($patient['state']) && $patient['state'] === 'Quirino') ? 'selected' : ''; ?>>Quirino</option>
+                                    </optgroup>
+                                    <optgroup label="Central Luzon (Region III)">
+                                        <option value="Aurora" <?php echo (isset($patient['state']) && $patient['state'] === 'Aurora') ? 'selected' : ''; ?>>Aurora</option>
+                                        <option value="Bataan" <?php echo (isset($patient['state']) && $patient['state'] === 'Bataan') ? 'selected' : ''; ?>>Bataan</option>
+                                        <option value="Bulacan" <?php echo (isset($patient['state']) && $patient['state'] === 'Bulacan') ? 'selected' : ''; ?>>Bulacan</option>
+                                        <option value="Nueva Ecija" <?php echo (isset($patient['state']) && $patient['state'] === 'Nueva Ecija') ? 'selected' : ''; ?>>Nueva Ecija</option>
+                                        <option value="Pampanga" <?php echo (isset($patient['state']) && $patient['state'] === 'Pampanga') ? 'selected' : ''; ?>>Pampanga</option>
+                                        <option value="Tarlac" <?php echo (isset($patient['state']) && $patient['state'] === 'Tarlac') ? 'selected' : ''; ?>>Tarlac</option>
+                                        <option value="Zambales" <?php echo (isset($patient['state']) && $patient['state'] === 'Zambales') ? 'selected' : ''; ?>>Zambales</option>
+                                    </optgroup>
+                                    <optgroup label="Calabarzon (Region IV-A)">
+                                        <option value="Batangas" <?php echo (isset($patient['state']) && $patient['state'] === 'Batangas') ? 'selected' : ''; ?>>Batangas</option>
+                                        <option value="Cavite" <?php echo (isset($patient['state']) && $patient['state'] === 'Cavite') ? 'selected' : ''; ?>>Cavite</option>
+                                        <option value="Laguna" <?php echo (isset($patient['state']) && $patient['state'] === 'Laguna') ? 'selected' : ''; ?>>Laguna</option>
+                                        <option value="Quezon" <?php echo (isset($patient['state']) && $patient['state'] === 'Quezon') ? 'selected' : ''; ?>>Quezon</option>
+                                        <option value="Rizal" <?php echo (isset($patient['state']) && $patient['state'] === 'Rizal') ? 'selected' : ''; ?>>Rizal</option>
+                                    </optgroup>
+                                    <optgroup label="Mimaropa (Region IV-B)">
+                                        <option value="Antique" <?php echo (isset($patient['state']) && $patient['state'] === 'Antique') ? 'selected' : ''; ?>>Antique</option>
+                                        <option value="Capiz" <?php echo (isset($patient['state']) && $patient['state'] === 'Capiz') ? 'selected' : ''; ?>>Capiz</option>
+                                        <option value="Marinduque" <?php echo (isset($patient['state']) && $patient['state'] === 'Marinduque') ? 'selected' : ''; ?>>Marinduque</option>
+                                        <option value="Occidental Mindoro" <?php echo (isset($patient['state']) && $patient['state'] === 'Occidental Mindoro') ? 'selected' : ''; ?>>Occidental Mindoro</option>
+                                        <option value="Oriental Mindoro" <?php echo (isset($patient['state']) && $patient['state'] === 'Oriental Mindoro') ? 'selected' : ''; ?>>Oriental Mindoro</option>
+                                        <option value="Palawan" <?php echo (isset($patient['state']) && $patient['state'] === 'Palawan') ? 'selected' : ''; ?>>Palawan</option>
+                                        <option value="Romblon" <?php echo (isset($patient['state']) && $patient['state'] === 'Romblon') ? 'selected' : ''; ?>>Romblon</option>
+                                    </optgroup>
+                                    <optgroup label="Bicol (Region V)">
+                                        <option value="Albay" <?php echo (isset($patient['state']) && $patient['state'] === 'Albay') ? 'selected' : ''; ?>>Albay</option>
+                                        <option value="Camarines Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Camarines Norte') ? 'selected' : ''; ?>>Camarines Norte</option>
+                                        <option value="Camarines Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Camarines Sur') ? 'selected' : ''; ?>>Camarines Sur</option>
+                                        <option value="Catanduanes" <?php echo (isset($patient['state']) && $patient['state'] === 'Catanduanes') ? 'selected' : ''; ?>>Catanduanes</option>
+                                        <option value="Masbate" <?php echo (isset($patient['state']) && $patient['state'] === 'Masbate') ? 'selected' : ''; ?>>Masbate</option>
+                                    </optgroup>
+                                    <optgroup label="Western Visayas (Region VI)">
+                                        <option value="Aklan" <?php echo (isset($patient['state']) && $patient['state'] === 'Aklan') ? 'selected' : ''; ?>>Aklan</option>
+                                        <option value="Capiz" <?php echo (isset($patient['state']) && $patient['state'] === 'Capiz') ? 'selected' : ''; ?>>Capiz</option>
+                                        <option value="Guimaras" <?php echo (isset($patient['state']) && $patient['state'] === 'Guimaras') ? 'selected' : ''; ?>>Guimaras</option>
+                                        <option value="Iloilo" <?php echo (isset($patient['state']) && $patient['state'] === 'Iloilo') ? 'selected' : ''; ?>>Iloilo</option>
+                                        <option value="Negros Occidental" <?php echo (isset($patient['state']) && $patient['state'] === 'Negros Occidental') ? 'selected' : ''; ?>>Negros Occidental</option>
+                                    </optgroup>
+                                    <optgroup label="Central Visayas (Region VII)">
+                                        <option value="Bohol" <?php echo (isset($patient['state']) && $patient['state'] === 'Bohol') ? 'selected' : ''; ?>>Bohol</option>
+                                        <option value="Cebu" <?php echo (isset($patient['state']) && $patient['state'] === 'Cebu') ? 'selected' : ''; ?>>Cebu</option>
+                                        <option value="Negros Oriental" <?php echo (isset($patient['state']) && $patient['state'] === 'Negros Oriental') ? 'selected' : ''; ?>>Negros Oriental</option>
+                                        <option value="Siquijor" <?php echo (isset($patient['state']) && $patient['state'] === 'Siquijor') ? 'selected' : ''; ?>>Siquijor</option>
+                                    </optgroup>
+                                    <optgroup label="Eastern Visayas (Region VIII)">
+                                        <option value="Biliran" <?php echo (isset($patient['state']) && $patient['state'] === 'Biliran') ? 'selected' : ''; ?>>Biliran</option>
+                                        <option value="Eastern Samar" <?php echo (isset($patient['state']) && $patient['state'] === 'Eastern Samar') ? 'selected' : ''; ?>>Eastern Samar</option>
+                                        <option value="Leyte" <?php echo (isset($patient['state']) && $patient['state'] === 'Leyte') ? 'selected' : ''; ?>>Leyte</option>
+                                        <option value="Northern Samar" <?php echo (isset($patient['state']) && $patient['state'] === 'Northern Samar') ? 'selected' : ''; ?>>Northern Samar</option>
+                                        <option value="Samar" <?php echo (isset($patient['state']) && $patient['state'] === 'Samar') ? 'selected' : ''; ?>>Samar</option>
+                                        <option value="Southern Leyte" <?php echo (isset($patient['state']) && $patient['state'] === 'Southern Leyte') ? 'selected' : ''; ?>>Southern Leyte</option>
+                                    </optgroup>
+                                    <optgroup label="Zamboanga Peninsula (Region IX)">
+                                        <option value="Zamboanga del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Zamboanga del Norte') ? 'selected' : ''; ?>>Zamboanga del Norte</option>
+                                        <option value="Zamboanga del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Zamboanga del Sur') ? 'selected' : ''; ?>>Zamboanga del Sur</option>
+                                        <option value="Zamboanga Sibugay" <?php echo (isset($patient['state']) && $patient['state'] === 'Zamboanga Sibugay') ? 'selected' : ''; ?>>Zamboanga Sibugay</option>
+                                    </optgroup>
+                                    <optgroup label="Northern Mindanao (Region X)">
+                                        <option value="Bukidnon" <?php echo (isset($patient['state']) && $patient['state'] === 'Bukidnon') ? 'selected' : ''; ?>>Bukidnon</option>
+                                        <option value="Camiguin" <?php echo (isset($patient['state']) && $patient['state'] === 'Camiguin') ? 'selected' : ''; ?>>Camiguin</option>
+                                        <option value="Lanao del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Lanao del Norte') ? 'selected' : ''; ?>>Lanao del Norte</option>
+                                        <option value="Misamis Oriental" <?php echo (isset($patient['state']) && $patient['state'] === 'Misamis Oriental') ? 'selected' : ''; ?>>Misamis Oriental</option>
+                                    </optgroup>
+                                    <optgroup label="Davao (Region XI)">
+                                        <option value="Davao del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Davao del Norte') ? 'selected' : ''; ?>>Davao del Norte</option>
+                                        <option value="Davao del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Davao del Sur') ? 'selected' : ''; ?>>Davao del Sur</option>
+                                        <option value="Davao Oriental" <?php echo (isset($patient['state']) && $patient['state'] === 'Davao Oriental') ? 'selected' : ''; ?>>Davao Oriental</option>
+                                    </optgroup>
+                                    <optgroup label="Soccsksargen (Region XII)">
+                                        <option value="Cotabato" <?php echo (isset($patient['state']) && $patient['state'] === 'Cotabato') ? 'selected' : ''; ?>>Cotabato</option>
+                                        <option value="Sarangani" <?php echo (isset($patient['state']) && $patient['state'] === 'Sarangani') ? 'selected' : ''; ?>>Sarangani</option>
+                                        <option value="South Cotabato" <?php echo (isset($patient['state']) && $patient['state'] === 'South Cotabato') ? 'selected' : ''; ?>>South Cotabato</option>
+                                        <option value="Sultan Kudarat" <?php echo (isset($patient['state']) && $patient['state'] === 'Sultan Kudarat') ? 'selected' : ''; ?>>Sultan Kudarat</option>
+                                    </optgroup>
+                                    <optgroup label="BARMM (Bangsamoro Autonomous Region in Muslim Mindanao)">
+                                        <option value="Basilan" <?php echo (isset($patient['state']) && $patient['state'] === 'Basilan') ? 'selected' : ''; ?>>Basilan</option>
+                                        <option value="Lanao del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Lanao del Sur') ? 'selected' : ''; ?>>Lanao del Sur</option>
+                                        <option value="Maguindanao" <?php echo (isset($patient['state']) && $patient['state'] === 'Maguindanao') ? 'selected' : ''; ?>>Maguindanao</option>
+                                        <option value="Sulu" <?php echo (isset($patient['state']) && $patient['state'] === 'Sulu') ? 'selected' : ''; ?>>Sulu</option>
+                                        <option value="Tawi-Tawi" <?php echo (isset($patient['state']) && $patient['state'] === 'Tawi-Tawi') ? 'selected' : ''; ?>>Tawi-Tawi</option>
+                                    </optgroup>
+                                    <optgroup label="Caraga (Region XIII)">
+                                        <option value="Agusan del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Agusan del Norte') ? 'selected' : ''; ?>>Agusan del Norte</option>
+                                        <option value="Agusan del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Agusan del Sur') ? 'selected' : ''; ?>>Agusan del Sur</option>
+                                        <option value="Dinagat Islands" <?php echo (isset($patient['state']) && $patient['state'] === 'Dinagat Islands') ? 'selected' : ''; ?>>Dinagat Islands</option>
+                                        <option value="Surigao del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Surigao del Norte') ? 'selected' : ''; ?>>Surigao del Norte</option>
+                                        <option value="Surigao del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Surigao del Sur') ? 'selected' : ''; ?>>Surigao del Sur</option>
+                                    </optgroup>
+                                </select>
                             </div>
                         </div>
                         <div class="grid grid-2">
-                            <div class="form-group">
+                            <!-- <div class="form-group">
                                 <label class="form-label">Postal Code</label>
                                 <input type="text" name="postal_code" class="form-control" 
                                        value="<?php echo e(isset($patient['postal_code']) ? $patient['postal_code'] : ''); ?>" />
@@ -196,7 +307,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                                 <label class="form-label">Country</label>
                                 <input type="text" name="country" class="form-control" 
                                        value="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>" />
-                            </div>
+                            </div> -->
                         </div>
                         <div class="form-group">
                             <label class="form-label">Medical History</label>
@@ -217,11 +328,17 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
         <!-- Visit Timeline -->
         <?php if (hasRole(['admin', 'doctor'])): ?>
         <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
+            <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+                <h3 class="card-title" style="margin:0;">
                     <i class="fas fa-calendar-check"></i>
                     Visit Timeline
                 </h3>
+                <div>
+                    <button type="button" id="addVisitBtn" class="btn btn-primary">
+                        <i class="fas fa-calendar-plus"></i>
+                        Add Visit
+                    </button>
+                </div>
             </div>
 
             <!-- Add Visit Modal -->
@@ -531,6 +648,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (addFirstBtn) {
         addFirstBtn.addEventListener('click', function() {
+            openVisitModal();
+        });
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
             openVisitModal();
         });
     }
