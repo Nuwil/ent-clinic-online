@@ -130,6 +130,20 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 INSERT IGNORE INTO users (username, email, password_hash, full_name, role, is_active)
 VALUES ('admin', 'admin@entclinic.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator', 'admin', TRUE);
 
+-- Medicines Table
+CREATE TABLE IF NOT EXISTS medicines (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL,
+    dosage VARCHAR(100),
+    unit VARCHAR(50),
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_name (name),
+    INDEX idx_is_active (is_active)
+);
+
 -- Patient Visits Table
 CREATE TABLE IF NOT EXISTS patient_visits (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -150,3 +164,26 @@ CREATE TABLE IF NOT EXISTS patient_visits (
     INDEX idx_patient_id (patient_id),
     INDEX idx_visit_date (visit_date)
 );
+
+-- Insert sample medicines
+INSERT IGNORE INTO medicines (name, dosage, unit) VALUES
+('Amoxicillin', '500', 'mg'),
+('Ibuprofen', '200', 'mg'),
+('Paracetamol', '500', 'mg'),
+('Cetirizine', '10', 'mg'),
+('Omeprazole', '20', 'mg'),
+('Metronidazole', '400', 'mg'),
+('Cephalexin', '500', 'mg'),
+('Aspirin', '81', 'mg'),
+('Loratadine', '10', 'mg'),
+('Dexamethasone', '0.5', 'mg'),
+('Ambroxol', '30', 'mg'),
+('Diphenhydramine', '25', 'mg'),
+('Fluconazole', '150', 'mg'),
+('Hydrocodone', '5', 'mg'),
+('Itraconazole', '100', 'mg'),
+('Ketoconazole', '200', 'mg'),
+('Levofloxacin', '500', 'mg'),
+('Mometasone', '50', 'mcg'),
+('Nifedipine', '30', 'mg'),
+('Oxymetazoline', '0.05', '%');

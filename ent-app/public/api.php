@@ -11,6 +11,8 @@ require_once __DIR__ . '/../api/PatientsController.php';
 require_once __DIR__ . '/../api/VisitsController.php';
 require_once __DIR__ . '/../api/AnalyticsController.php';
 require_once __DIR__ . '/../api/AuthController.php';
+require_once __DIR__ . '/../api/MedicinesController.php';
+require_once __DIR__ . '/../api/PrescriptionController.php';
 
 $router = new Router();
 
@@ -54,6 +56,20 @@ $router->put('/api/visits/:id', function ($id) {
 
 $router->delete('/api/visits/:id', function ($id) {
     (new VisitsController())->delete($id);
+});
+
+// Medicines endpoints
+$router->get('/api/medicines', function () {
+    (new MedicinesController())->index();
+});
+
+$router->post('/api/medicines', function () {
+    (new MedicinesController())->store();
+});
+
+// Prescription endpoints
+$router->post('/api/prescription/export', function () {
+    (new PrescriptionController())->export();
 });
 
 // Health check
@@ -104,5 +120,4 @@ $router->get('/api/auth/me', function () {
 });
 
 $router->dispatch();
-
 

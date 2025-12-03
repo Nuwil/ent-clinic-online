@@ -333,12 +333,10 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                     <i class="fas fa-calendar-check"></i>
                     Visit Timeline
                 </h3>
-                <div>
-                    <button type="button" id="addVisitBtn" class="btn btn-primary">
-                        <i class="fas fa-calendar-plus"></i>
-                        Add Visit
-                    </button>
-                </div>
+                <button type="button" id="addVisitBtn" class="btn btn-primary">
+                    <i class="fas fa-calendar-plus"></i>
+                    Add Visit
+                </button>
             </div>
 
             <!-- Add Visit Modal -->
@@ -420,6 +418,149 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                         </button>
                     </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- Prescription Panel (Sidebar) - Shows beside visit modal -->
+            <div id="prescriptionPanel" class="prescription-panel" style="display: none;">
+                <div class="prescription-panel-content">
+                    <div class="prescription-panel-header">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-prescription-bottle"></i>
+                            Prescribe Meds
+                        </h3>
+                        <button type="button" id="closePrescriptionPanel" class="modal-close" aria-label="Close prescription panel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="prescription-panel-body">
+                        <!-- Medicines Selection -->
+                        <div class="form-group">
+                            <label class="form-label">Select Medicines</label>
+                            <div id="medicinesContainer" style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 0.25rem; overflow-y: auto; background-color: var(--bg-secondary);">
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="1" data-medicine="Amoxicillin 500mg" id="med_1" />
+                                    <label for="med_1" style="margin: 0; cursor: pointer; flex: 1;">Amoxicillin <strong>500mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="2" data-medicine="Aspirin 100mg" id="med_2" />
+                                    <label for="med_2" style="margin: 0; cursor: pointer; flex: 1;">Aspirin <strong>100mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="3" data-medicine="Atorvastatin 10mg" id="med_3" />
+                                    <label for="med_3" style="margin: 0; cursor: pointer; flex: 1;">Atorvastatin <strong>10mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="4" data-medicine="Cetirizine 10mg" id="med_4" />
+                                    <label for="med_4" style="margin: 0; cursor: pointer; flex: 1;">Cetirizine <strong>10mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="5" data-medicine="Metformin 500mg" id="med_5" />
+                                    <label for="med_5" style="margin: 0; cursor: pointer; flex: 1;">Metformin <strong>500mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="6" data-medicine="Ibuprofen 400mg" id="med_6" />
+                                    <label for="med_6" style="margin: 0; cursor: pointer; flex: 1;">Ibuprofen <strong>400mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="7" data-medicine="Paracetamol 500mg" id="med_7" />
+                                    <label for="med_7" style="margin: 0; cursor: pointer; flex: 1;">Paracetamol <strong>500mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="8" data-medicine="Ciprofloxacin 500mg" id="med_8" />
+                                    <label for="med_8" style="margin: 0; cursor: pointer; flex: 1;">Ciprofloxacin <strong>500mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="9" data-medicine="Omeprazole 20mg" id="med_9" />
+                                    <label for="med_9" style="margin: 0; cursor: pointer; flex: 1;">Omeprazole <strong>20mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="10" data-medicine="Loratadine 10mg" id="med_10" />
+                                    <label for="med_10" style="margin: 0; cursor: pointer; flex: 1;">Loratadine <strong>10mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="11" data-medicine="Lisinopril 10mg" id="med_11" />
+                                    <label for="med_11" style="margin: 0; cursor: pointer; flex: 1;">Lisinopril <strong>10mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="12" data-medicine="Amlodipine 5mg" id="med_12" />
+                                    <label for="med_12" style="margin: 0; cursor: pointer; flex: 1;">Amlodipine <strong>5mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="13" data-medicine="Azithromycin 500mg" id="med_13" />
+                                    <label for="med_13" style="margin: 0; cursor: pointer; flex: 1;">Azithromycin <strong>500mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="14" data-medicine="Fluoxetine 20mg" id="med_14" />
+                                    <label for="med_14" style="margin: 0; cursor: pointer; flex: 1;">Fluoxetine <strong>20mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="15" data-medicine="Sertraline 50mg" id="med_15" />
+                                    <label for="med_15" style="margin: 0; cursor: pointer; flex: 1;">Sertraline <strong>50mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="16" data-medicine="Gabapentin 300mg" id="med_16" />
+                                    <label for="med_16" style="margin: 0; cursor: pointer; flex: 1;">Gabapentin <strong>300mg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="17" data-medicine="Albuterol Inhaler 90mcg" id="med_17" />
+                                    <label for="med_17" style="margin: 0; cursor: pointer; flex: 1;">Albuterol Inhaler <strong>90mcg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="18" data-medicine="Fluticasone Nasal Spray 50mcg" id="med_18" />
+                                    <label for="med_18" style="margin: 0; cursor: pointer; flex: 1;">Fluticasone Nasal Spray <strong>50mcg</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="19" data-medicine="Vitamin D3 1000IU" id="med_19" />
+                                    <label for="med_19" style="margin: 0; cursor: pointer; flex: 1;">Vitamin D3 <strong>1000IU</strong></label>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                                    <input type="checkbox" name="medicine" value="20" data-medicine="Oxymetazoline Nasal Spray" id="med_20" />
+                                    <label for="med_20" style="margin: 0; cursor: pointer; flex: 1;">Oxymetazoline Nasal Spray</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Prescription Notes
+                        <div class="form-group">
+                            <label class="form-label">Additional Notes</label>
+                            <textarea id="prescriptionNotes" class="form-control" rows="2" placeholder="Special instructions, dosage modifications, etc."></textarea>
+                        </div>
+
+                         Prescription Fields -->
+                        <!-- <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Refill</label>
+                                <input type="text" id="refillField" class="form-control" placeholder="e.g., 012345" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="labelCheckbox" /> Label
+                                </label>
+                            </div>
+                        </div> -->
+
+                        <!-- Date and Signature Fields -->
+                        <!-- <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Prescription Date</label>
+                                <input type="date" id="prescriptionDateField" class="form-control" value="<?php echo date('Y-m-d'); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Doctor's Signature</label>
+                                <input type="text" id="signatureField" class="form-control" placeholder="e.g., Dr. Smith / DS" />
+                            </div>
+                        </div> -->
+
+                        <!-- Hidden field for collected medicines -->
+                        <input type="hidden" id="medicinesSelected" value="">
+                    </div>
+                    <div class="prescription-panel-footer">
+                        <button type="button" class="btn btn-info btn-lg" id="printPrescription" style="width: 100%;">
+                            <i class="fas fa-print"></i>
+                            Print Prescription
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -549,6 +690,83 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+/* Prescription Panel Styling */
+.prescription-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100vh;
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-color);
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 1040;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.prescription-panel-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #fff;
+}
+
+.prescription-panel-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prescription-panel-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.prescription-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.prescription-panel-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+/* Adjust modal overlay when prescription panel is open */
+.modal.open ~ .prescription-panel {
+    display: flex;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .prescription-panel {
+        width: 100%;
+        right: 0;
+        left: auto;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
 }
 
 .timeline-header h4 {
@@ -733,6 +951,224 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-open when requested via query param (?edit=profile)
     if (<?php echo $editProfile ? 'true' : 'false'; ?>) {
         openEditProfileModal();
+    }
+
+    // ==================== Prescription Panel Handlers (Side Panel) ====================
+    const prescriptionPanel = document.getElementById('prescriptionPanel');
+    const medicinesContainer = document.getElementById('medicinesContainer');
+    const medicinesSelectedInput = document.getElementById('medicinesSelected');
+    const prescriptionNotes = document.getElementById('prescriptionNotes');
+    const refillField = document.getElementById('refillField');
+    const labelCheckbox = document.getElementById('labelCheckbox');
+    const prescriptionDateField = document.getElementById('prescriptionDateField');
+    const signatureField = document.getElementById('signatureField');
+    const exportPrescriptionPDF = document.getElementById('exportPrescriptionPDF');
+    const exportPrescriptionWord = document.getElementById('exportPrescriptionWord');
+    const closePrescriptionPanel = document.getElementById('closePrescriptionPanel');
+    
+    // toBePrint object to track medicines for printing
+    let toBePrint = {
+        medicines: [],
+        patientId: <?php echo $patientId; ?>,
+        patientName: '<?php echo e($patient['first_name'] . ' ' . $patient['last_name']); ?>',
+        patientAddress: '<?php echo e(isset($patient['address']) ? addslashes($patient['address']) : ''); ?>'
+    };
+
+    // Initialize medicines checkboxes
+    function loadMedicines() {
+        if (!medicinesContainer) return;
+        
+        // Attach change listener to all medicine checkboxes
+        medicinesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedMedicines);
+        });
+    }
+
+    function updateSelectedMedicines() {
+        const selected = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(cb => cb.getAttribute('data-medicine'))
+            .join('; ');
+        medicinesSelectedInput.value = selected;
+        
+        // Update toBePrint dataset
+        toBePrint.medicines = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(cb => ({ name: cb.getAttribute('data-medicine'), id: cb.value }));
+    }
+
+    function openPrescriptionPanel() {
+        if (!prescriptionPanel) return;
+        prescriptionPanel.style.display = 'flex';
+        loadMedicines(); // Load medicines when panel opens
+    }
+
+    function closePrescriptionPanelFn() {
+        if (!prescriptionPanel) return;
+        prescriptionPanel.style.display = 'none';
+    }
+
+    // Update openVisitModal to also show prescription panel
+    const originalOpenVisitModal = openVisitModal;
+    openVisitModal = function() {
+        originalOpenVisitModal();
+        openPrescriptionPanel(); // Show prescription panel when visit modal opens
+    };
+
+    // Update closeVisitModal to also hide prescription panel
+    const originalCloseVisitModal = closeVisitModal;
+    closeVisitModal = function() {
+        originalCloseVisitModal();
+        closePrescriptionPanelFn(); // Hide prescription panel when visit modal closes
+    };
+
+    // Close prescription panel button
+    if (closePrescriptionPanel) {
+        closePrescriptionPanel.addEventListener('click', closePrescriptionPanelFn);
+    }
+
+    // Export handlers for prescription panel
+    if (exportPrescriptionPDF) {
+        exportPrescriptionPDF.addEventListener('click', function() {
+            updateSelectedMedicines();
+            
+            if (toBePrint.medicines.length === 0) {
+                alert('Please select at least one medicine.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.set('patient_id', toBePrint.patientId);
+            formData.set('medicines_selected', medicinesSelectedInput.value);
+            formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
+            formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
+            formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
+            formData.set('prescription_date', (typeof prescriptionDateField !== 'undefined' && prescriptionDateField ? prescriptionDateField.value : ''));
+            formData.set('signature', (typeof signatureField !== 'undefined' && signatureField ? signatureField.value : ''));
+            formData.set('export_format', 'pdf');
+            formData.set('action', 'export_prescription');
+            
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/prescription/export', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Failed to export PDF');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'prescription_<?php echo $patientId; ?>_' + new Date().getTime() + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                closePrescriptionPanelFn();
+            })
+            .catch(error => {
+                console.error('Error exporting PDF:', error);
+                alert('Error exporting PDF. Please try again.');
+            });
+        });
+    }
+
+    if (exportPrescriptionWord) {
+        exportPrescriptionWord.addEventListener('click', function() {
+            updateSelectedMedicines();
+            
+            if (toBePrint.medicines.length === 0) {
+                alert('Please select at least one medicine.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.set('patient_id', toBePrint.patientId);
+            formData.set('medicines_selected', medicinesSelectedInput.value);
+            formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
+            formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
+            formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
+            formData.set('prescription_date', (typeof prescriptionDateField !== 'undefined' && prescriptionDateField ? prescriptionDateField.value : ''));
+            formData.set('signature', (typeof signatureField !== 'undefined' && signatureField ? signatureField.value : ''));
+            formData.set('export_format', 'word');
+            formData.set('action', 'export_prescription');
+            
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/prescription/export', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Failed to export Word');
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'prescription_<?php echo $patientId; ?>_' + new Date().getTime() + '.docx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                closePrescriptionPanelFn();
+            })
+            .catch(error => {
+                console.error('Error exporting Word:', error);
+                alert('Error exporting Word document. Please try again.');
+            });
+        });
+    }
+
+    // Print handler - open a printable window containing selected medicines and clinic header
+    const printPrescriptionBtn = document.getElementById('printPrescription');
+    function printPrescriptionFn() {
+        updateSelectedMedicines();
+
+        const meds = (toBePrint.medicines && toBePrint.medicines.length)
+            ? toBePrint.medicines.map(m => `<li>${m.name}</li>`).join('')
+            : '<li><em>No medicines selected</em></li>';
+
+        const clinicHeader = `
+            <div style="text-align:center; margin-bottom:12px;">
+                <h2 style="margin:0;">Clinic</h2>
+                <div style="font-size:0.9rem;">Address / Contact</div>
+                <hr style="margin-top:12px;" />
+            </div>`;
+
+        const printable = `
+            <html>
+            <head>
+                <title>Prescription - ${toBePrint.patientName}</title>
+                <style>body{font-family:Arial,Helvetica,sans-serif;padding:20px;color:#000}ul{padding-left:0}li{list-style:none;margin-bottom:8px}</style>
+            </head>
+            <body>
+                ${clinicHeader}
+                <h3>Prescription for: ${toBePrint.patientName}</h3>
+                <p>Patient ID: ${toBePrint.patientId}</p>
+                <ul>
+                    ${meds}
+                </ul>
+                <div style="margin-top:24px;">Printed: ${new Date().toLocaleString()}</div>
+            </body>
+            </html>`;
+
+        const w = window.open('', '_blank');
+        if (!w) {
+            alert('Pop-up blocked. Please allow pop-ups to print.');
+            return;
+        }
+        w.document.open();
+        w.document.write(printable);
+        w.document.close();
+        w.focus();
+        w.print();
+    }
+
+    if (printPrescriptionBtn) {
+        printPrescriptionBtn.addEventListener('click', printPrescriptionFn);
     }
 
 });

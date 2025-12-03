@@ -63,6 +63,17 @@ $currentUser = getCurrentUser();
                                             <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
                                             <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this user?');">Delete</button>
                                         </form>
+                                        <button class="btn btn-sm btn-secondary" style="display:inline-block; margin-left:0.5rem; background:#008000;" 
+                                            onclick='openUserModal(<?php echo json_encode(["id" => $u["id"], "username" => $u["username"], "email" => $u["email"], "full_name" => $u["full_name"], "role" => $u["role"], "is_active" => $u["is_active"]]); ?>)'>Edit</button>
+                                        <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline-block; margin-left: 0.5rem;">
+                                            <input type="hidden" name="action" value="toggle_user_active">
+                                            <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                            <?php if ($u['is_active']): ?>
+                                                <button class="btn btn-sm btn-warning">Deactivate</button>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-success">Activate</button>
+                                            <?php endif; ?>
+                                        </form>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -86,6 +97,7 @@ $currentUser = getCurrentUser();
             <form id="userForm" method="POST" action="<?php echo baseUrl(); ?>/">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="create_user">
+                    <input type="hidden" name="id" value="">
                     <div class="form-group">
                         <label class="form-label">Username</label>
                         <input type="text" name="username" class="form-control" required />
@@ -110,16 +122,21 @@ $currentUser = getCurrentUser();
                         <label class="form-label">Password (optional)</label>
                         <input type="password" name="password" class="form-control" />
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" name="is_active" value="1" id="userIsActive" /> Active
+                        </label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelUserBtn">Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-lg">Create User</button>
+                    <button type="submit" class="btn btn-primary btn-lg" id="userFormSubmit">Create User</button>
                 </div>
             </form>
         </div>
         </div>
 
-    <div class="grid grid-2">
+    <div class="grid grid-2" style="grid-template-columns: 1fr 1fr;">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
@@ -184,7 +201,7 @@ $currentUser = getCurrentUser();
         }
     }
 
-    function openUserModal() {
+    function openUserModal(userData) {
         userModal.removeAttribute('hidden');
         userModal.classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -192,8 +209,35 @@ $currentUser = getCurrentUser();
         const main = document.querySelector('.main-content');
         if (main) main.setAttribute('aria-hidden', 'true');
         setupFocusTrap(userModal);
-        userForm.reset();
-        userForm.querySelector('input[name="username"]').focus();
+
+        // If userData provided -> edit mode
+        if (userData && typeof userData === 'object') {
+            userForm.reset();
+            userForm.querySelector('input[name="id"]').value = userData.id || '';
+            if (userForm.querySelector('input[name="username"]')) userForm.querySelector('input[name="username"]').value = userData.username || '';
+            if (userForm.querySelector('input[name="email"]')) userForm.querySelector('input[name="email"]').value = userData.email || '';
+            if (userForm.querySelector('input[name="full_name"]')) userForm.querySelector('input[name="full_name"]').value = userData.full_name || '';
+            if (userForm.querySelector('select[name="role"]')) userForm.querySelector('select[name="role"]').value = userData.role || 'staff';
+            const isActiveEl = userForm.querySelector('input[name="is_active"]');
+            if (isActiveEl) isActiveEl.checked = userData.is_active ? true : false;
+            userForm.querySelector('input[name="action"]').value = 'update_user';
+            const submitBtn = document.getElementById('userFormSubmit');
+            if (submitBtn) submitBtn.textContent = 'Update User';
+            const title = userModal.querySelector('.modal-title');
+            if (title) title.textContent = 'Edit User';
+            // focus full name field for convenience
+            if (userForm.querySelector('input[name="full_name"]')) userForm.querySelector('input[name="full_name"]').focus();
+        } else {
+            // Create mode
+            userForm.reset();
+            userForm.querySelector('input[name="action"]').value = 'create_user';
+            userForm.querySelector('input[name="id"]').value = '';
+            const submitBtn = document.getElementById('userFormSubmit');
+            if (submitBtn) submitBtn.textContent = 'Create User';
+            const title = userModal.querySelector('.modal-title');
+            if (title) title.textContent = 'Create New User';
+            userForm.querySelector('input[name="username"]').focus();
+        }
     }
 
     function closeUserModal() {
@@ -217,7 +261,8 @@ $currentUser = getCurrentUser();
     });
 
     userForm.addEventListener('submit', function(e) {
+        const actionVal = userForm.querySelector('input[name="action"]').value || 'create_user';
         openUserModalBtn.disabled = true;
-        openUserModalBtn.textContent = 'Creating...';
+        openUserModalBtn.textContent = (actionVal === 'update_user') ? 'Updating...' : 'Creating...';
     });
 </script>

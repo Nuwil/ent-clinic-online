@@ -24,14 +24,16 @@ requireRole(['admin', 'doctor']);
 
     <div id="descriptive" style="margin-bottom:1.25rem;">
         <h3 style="margin:0 0 0.5rem 0;font-size:1.05rem;">Descriptive Analysis</h3>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px;">
-            <div class="card" style="padding:12px;">
-                <div style="font-size:0.85rem;color:#666;">Total Visits (range)</div>
-                <div id="totalVisits" style="font-size:1.5rem;font-weight:700;">—</div>
-            </div>
-            <div class="card" style="padding:12px;">
-                <div style="font-size:0.85rem;color:#666;">ENT Distribution</div>
-                <canvas id="entPie" style="height:110px;"></canvas>
+        <div style="display:grid;grid-template-columns:1fr 2.5fr;gap:12px;margin-bottom:12px;">
+            <div class="grid grid-2" style="gap:12px; display:flex; flex-direction: column;">
+                <div class="card" style="padding:12px; margin:0;">
+                    <div style="font-size:0.85rem;color:#666;">Total Visits (range)</div>
+                    <div id="totalVisits" style="font-size:1.5rem;font-weight:700;">—</div>
+                </div>
+                <div class="card" style="padding:12px;">
+                    <div style="font-size:0.85rem;color:#666;">ENT Distribution</div>
+                    <canvas id="entPie" style="height:110px;"></canvas>
+                </div>
             </div>
             <div class="card" style="padding:12px;">
                 <div style="font-size:0.85rem;color:#666;">Daily Visits</div>

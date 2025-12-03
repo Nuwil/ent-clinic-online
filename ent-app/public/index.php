@@ -289,9 +289,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             if ($id) {
                 $data = [];
+                // Basic fields
                 if (isset($_POST['full_name'])) $data['full_name'] = $_POST['full_name'];
                 if (isset($_POST['role'])) $data['role'] = $_POST['role'];
                 if (isset($_POST['is_active'])) $data['is_active'] = $_POST['is_active'] ? 1 : 0;
+
+                // Allow updating username and email (with uniqueness checks)
+                $newUsername = isset($_POST['username']) ? trim($_POST['username']) : null;
+                $newEmail = isset($_POST['email']) ? trim($_POST['email']) : null;
+
+                // Check username uniqueness
+                if ($newUsername !== null && $newUsername !== '') {
+                    $existing = $db->fetch('SELECT id FROM users WHERE username = ? AND id != ? LIMIT 1', [$newUsername, $id]);
+                    if ($existing) {
+                        $_SESSION['message'] = 'Username already taken by another account';
+                        redirect('/?page=settings');
+                    }
+                    $data['username'] = $newUsername;
+                }
+
+                // Check email uniqueness
+                if ($newEmail !== null && $newEmail !== '') {
+                    $existingEmail = $db->fetch('SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1', [$newEmail, $id]);
+                    if ($existingEmail) {
+                        $_SESSION['message'] = 'Email already used by another account';
+                        redirect('/?page=settings');
+                    }
+                    $data['email'] = $newEmail;
+                }
+
+                // If password provided, hash it and update password_hash
+                if (!empty($_POST['password'])) {
+                    $data['password_hash'] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                }
+
                 if (!empty($data)) {
                     try {
                         $db->update('users', $data, 'id = ?', [$id]);
