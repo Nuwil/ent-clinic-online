@@ -65,7 +65,7 @@ $currentUser = getCurrentUser();
                                         </form>
                                         <button class="btn btn-sm btn-secondary" style="display:inline-block; margin-left:0.5rem; background:#008000;" 
                                             onclick='openUserModal(<?php echo json_encode(["id" => $u["id"], "username" => $u["username"], "email" => $u["email"], "full_name" => $u["full_name"], "role" => $u["role"], "is_active" => $u["is_active"]]); ?>)'>Edit</button>
-                                        <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline-block; margin-left: 0.5rem;">
+                                        <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline-block; margin-left: 0.5rem; display:none;">
                                             <input type="hidden" name="action" value="toggle_user_active">
                                             <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
                                             <?php if ($u['is_active']): ?>
@@ -122,7 +122,7 @@ $currentUser = getCurrentUser();
                         <label class="form-label">Password (optional)</label>
                         <input type="password" name="password" class="form-control" />
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="display:none;">
                         <label class="form-label">
                             <input type="checkbox" name="is_active" value="1" id="userIsActive" /> Active
                         </label>
@@ -211,7 +211,7 @@ $currentUser = getCurrentUser();
         setupFocusTrap(userModal);
 
         // If userData provided -> edit mode
-        if (userData && typeof userData === 'object') {
+        if (userData && typeof userData === 'object' && userData.id) {
             userForm.reset();
             userForm.querySelector('input[name="id"]').value = userData.id || '';
             if (userForm.querySelector('input[name="username"]')) userForm.querySelector('input[name="username"]').value = userData.username || '';

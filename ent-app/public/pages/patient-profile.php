@@ -24,9 +24,26 @@ if (!$visitsList && $visits === null) {
     $visitsList = []; // Table might not exist yet
 }
 
-// Check if editing profile
+// Check if editing profile or visit
 $editProfile = isset($_GET['edit']) && $_GET['edit'] === 'profile';
 $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
+$editVisit = isset($_GET['edit']) && $_GET['edit'] === 'visit';
+$editVisitId = isset($_GET['visit_id']) ? $_GET['visit_id'] : null;
+$editVisitData = null;
+
+if ($editVisit && $editVisitId) {
+    // Load the visit to edit
+    $allVisits = apiCall('GET', '/api/visits?patient_id=' . $patientId);
+    if (isset($allVisits['visits'])) {
+        foreach ($allVisits['visits'] as $v) {
+            if ($v['id'] == $editVisitId) {
+                $editVisitData = $v;
+                $showAddVisit = true; // Show the modal
+                break;
+            }
+        }
+    }
+}
 ?>
 
 <div class="patient-profile-page">
@@ -72,54 +89,80 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 </h3>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Name:</span>
-                        <strong><?php echo e(isset($patient['first_name']) ? $patient['first_name'] . ' ' . (isset($patient['last_name']) ? $patient['last_name'] : '') : ''); ?></strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Date of Birth:</span>
-                        <strong><?php echo e(isset($patient['date_of_birth']) ? formatDate($patient['date_of_birth']) : 'N/A'); ?></strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Gender:</span>
-                        <strong><?php echo e(isset($patient['gender']) ? ucfirst($patient['gender']) : 'N/A'); ?></strong>
-                    </div>
-                    <!-- Email removed from profile view per request -->
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Phone:</span>
-                        <strong><?php echo e(isset($patient['phone']) ? $patient['phone'] : 'N/A'); ?></strong>
-                    </div>
-                    <?php if (isset($patient['occupation']) && $patient['occupation']): ?>
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Occupation:</span>
-                        <strong><?php echo e($patient['occupation']); ?></strong>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (isset($patient['address']) && $patient['address']): ?>
-                    <div style="display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
-                        <span class="text-muted">Address:</span>
-                        <strong style="text-align: right;">
-                            <?php 
-                            $addressParts = array_filter([
-                                $patient['address'] ?? '',
-                                $patient['city'] ?? '',
-                                $patient['state'] ?? '',
-                                // $patient['postal_code'] ?? '',
-                                $patient['country'] ?? ''
-                            ]);
-                            echo e(implode(', ', $addressParts));
-                            ?>
-                        </strong>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (isset($patient['medical_history']) && $patient['medical_history']): ?>
-                    <div style="padding: 0.75rem 0;">
-                        <span class="text-muted" style="display: block; margin-bottom: 0.5rem;">Medical History:</span>
-                        <p><?php echo nl2br(e($patient['medical_history'])); ?></p>
-                    </div>
-                    <?php endif; ?>
-                </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <?php
+                // Fields to display in Patient Information (label => key)
+                $fields = [
+                    'Patient ID' => 'patient_id',
+                    'Name' => ['first_name','last_name'],
+                    'Date of Birth' => 'date_of_birth',
+                    'Gender' => 'gender',
+                    'Email' => 'email',
+                    'Phone' => 'phone',
+                    'Height' => 'height',
+                    'Weight' => 'weight',
+                    'Occupation' => 'occupation',
+                    'Blood Type' => 'blood_type',
+                    'Marital Status' => 'marital_status',
+                    'Allergies' => 'allergies',
+                    'Postal Code' => 'postal_code',
+                    'Country' => 'country',
+                    'State/Province' => 'state',
+                    'City' => 'city',
+                    'Address' => 'address',
+                    'Emergency Contact' => ['emergency_contact_name','emergency_contact_phone'],
+                    'Medical History' => 'medical_history',
+                    'Notes' => 'notes'
+                ];
+
+                foreach ($fields as $label => $key) {
+                    $value = '';
+                    if (is_array($key)) {
+                        // Combine multiple keys
+                        $parts = [];
+                        foreach ($key as $k) {
+                            if (!empty($patient[$k])) $parts[] = $patient[$k];
+                        }
+                        $value = implode(' ', $parts);
+                    } else {
+                        if (isset($patient[$key])) $value = $patient[$key];
+                    }
+
+                    if ($label === 'Date of Birth') {
+                        $value = $value ? formatDate($value) : '';
+                    }
+                    if ($label === 'Gender') {
+                        $value = $value ? ucfirst($value) : '';
+                    }
+                    if ($label === 'Address') {
+                        $addressParts = array_filter([
+                            $patient['address'] ?? '',
+                            $patient['city'] ?? '',
+                            $patient['state'] ?? '',
+                            $patient['postal_code'] ?? '',
+                            $patient['country'] ?? ''
+                        ]);
+                        $value = implode(', ', $addressParts);
+                    }
+
+                    // Skip empty values except for Medical History (show N/A)
+                    if ($label === 'Medical History') {
+                        echo '<div style="padding:0.5rem 0; border-bottom:1px solid var(--border-color);">';
+                        echo '<span class="text-muted" style="display:block;margin-bottom:0.25rem;">' . e($label) . ':</span>';
+                        echo '<div>' . ($value ? nl2br(e($value)) : '<em>N/A</em>') . '</div>';
+                        echo '</div>'; 
+                        continue;
+                    }
+
+                    if ($value === '' || $value === null) continue;
+
+                    echo '<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border-color);">';
+                    echo '<span class="text-muted">' . e($label) . ':</span>';
+                    echo '<strong style="text-align:right;">' . e($value) . '</strong>';
+                    echo '</div>';
+                }
+                ?>
+            </div>
         </div>
 
         <!-- Edit Profile Modal -->
@@ -148,7 +191,7 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                         <div class="form-group">
                             <label class="form-label">Date of Birth</label>
                             <input type="date" name="date_of_birth" class="form-control" 
-                                   value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" />
+                                   value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" required/>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Gender *</label>
@@ -177,36 +220,14 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                         <div class="grid grid-2">
                             <div class="form-group">
                                 <label class="form-label">City</label>
-                                <input type="text" name="city" class="form-control" 
-                                       value="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>" />
+                                <select name="city" id="citySelect" class="form-control" data-selected="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>">
+                                    <option value=""><?php echo e(isset($patient['city']) ? $patient['city'] : '-- Select City --'); ?></option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">State/Province</label>
-                                <select name="state" class="form-control" required>
-                                    <option value="">Select Province</option>
-                                    <optgroup label="Cordillera Administrative Region (CAR)">
-                                        <option value="Abra" <?php echo (isset($patient['state']) && $patient['state'] === 'Abra') ? 'selected' : ''; ?>>Abra</option>
-                                        <option value="Apayao" <?php echo (isset($patient['state']) && $patient['state'] === 'Apayao') ? 'selected' : ''; ?>>Apayao</option>
-                                        <option value="Benguet" <?php echo (isset($patient['state']) && $patient['state'] === 'Benguet') ? 'selected' : ''; ?>>Benguet</option>
-                                        <option value="Ifugao" <?php echo (isset($patient['state']) && $patient['state'] === 'Ifugao') ? 'selected' : ''; ?>>Ifugao</option>
-                                        <option value="Kalinga" <?php echo (isset($patient['state']) && $patient['state'] === 'Kalinga') ? 'selected' : ''; ?>>Kalinga</option>
-                                        <option value="Mountain Province" <?php echo (isset($patient['state']) && $patient['state'] === 'Mountain Province') ? 'selected' : ''; ?>>Mountain Province</option>
-                                    </optgroup>
-                                    <optgroup label="Ilocos Region (Region I)">
-                                        <option value="Ilocos Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Ilocos Norte') ? 'selected' : ''; ?>>Ilocos Norte</option>
-                                        <option value="Ilocos Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Ilocos Sur') ? 'selected' : ''; ?>>Ilocos Sur</option>
-                                        <option value="La Union" <?php echo (isset($patient['state']) && $patient['state'] === 'La Union') ? 'selected' : ''; ?>>La Union</option>
-                                        <option value="Pangasinan" <?php echo (isset($patient['state']) && $patient['state'] === 'Pangasinan') ? 'selected' : ''; ?>>Pangasinan</option>
-                                    </optgroup>
-                                    <optgroup label="Cagayan Valley (Region II)">
-                                        <option value="Batanes" <?php echo (isset($patient['state']) && $patient['state'] === 'Batanes') ? 'selected' : ''; ?>>Batanes</option>
-                                        <option value="Cagayan" <?php echo (isset($patient['state']) && $patient['state'] === 'Cagayan') ? 'selected' : ''; ?>>Cagayan</option>
-                                        <option value="Isabela" <?php echo (isset($patient['state']) && $patient['state'] === 'Isabela') ? 'selected' : ''; ?>>Isabela</option>
-                                        <option value="Nueva Vizcaya" <?php echo (isset($patient['state']) && $patient['state'] === 'Nueva Vizcaya') ? 'selected' : ''; ?>>Nueva Vizcaya</option>
-                                        <option value="Quirino" <?php echo (isset($patient['state']) && $patient['state'] === 'Quirino') ? 'selected' : ''; ?>>Quirino</option>
-                                    </optgroup>
-                                    <optgroup label="Central Luzon (Region III)">
-                                        <option value="Aurora" <?php echo (isset($patient['state']) && $patient['state'] === 'Aurora') ? 'selected' : ''; ?>>Aurora</option>
+                                <select name="state" id="stateSelect" class="form-control">
+                                    <option value=""><?php echo isset($patient['state']) ? $patient['state'] : 'Select Province'; ?></option>
                                         <option value="Bataan" <?php echo (isset($patient['state']) && $patient['state'] === 'Bataan') ? 'selected' : ''; ?>>Bataan</option>
                                         <option value="Bulacan" <?php echo (isset($patient['state']) && $patient['state'] === 'Bulacan') ? 'selected' : ''; ?>>Bulacan</option>
                                         <option value="Nueva Ecija" <?php echo (isset($patient['state']) && $patient['state'] === 'Nueva Ecija') ? 'selected' : ''; ?>>Nueva Ecija</option>
@@ -298,16 +319,17 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                             </div>
                         </div>
                         <div class="grid grid-2">
-                            <!-- <div class="form-group">
+                            <div class="form-group">
                                 <label class="form-label">Postal Code</label>
                                 <input type="text" name="postal_code" class="form-control" 
                                        value="<?php echo e(isset($patient['postal_code']) ? $patient['postal_code'] : ''); ?>" />
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Country</label>
-                                <input type="text" name="country" class="form-control" 
-                                       value="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>" />
-                            </div> -->
+                                <select name="country" id="countrySelect" class="form-control" data-selected="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>">
+                                    <option value=""><?php echo e(isset($patient['country']) ? $patient['country'] : '-- Select Country --'); ?></option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Medical History</label>
@@ -345,8 +367,8 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                 <div class="modal-dialog form-modal">
                     <div class="modal-header">
                         <h3 class="modal-title">
-                            <i class="fas fa-calendar-plus"></i>
-                            Add New Visit
+                            <i class="fas fa-<?php echo $editVisitData ? 'edit' : 'calendar-plus'; ?>"></i>
+                            <?php echo $editVisitData ? 'Edit Visit' : 'Add New Visit'; ?>
                         </h3>
                         <button type="button" class="modal-close" data-modal-dismiss="visitModal" aria-label="Close">
                             <i class="fas fa-times"></i>
@@ -354,8 +376,11 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                     </div>
                     <div class="modal-body">
                     <form method="POST" action="<?php echo baseUrl(); ?>/">
-                        <input type="hidden" name="action" value="add_visit">
+                        <input type="hidden" name="action" value="<?php echo $editVisitData ? 'update_visit' : 'add_visit'; ?>">
                         <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
+                        <?php if ($editVisitData): ?>
+                        <input type="hidden" name="id" value="<?php echo $editVisitData['id']; ?>">
+                        <?php endif; ?>
                         
                         <div class="form-group">
                             <label class="form-label">Visit Date & Time *</label>
@@ -365,52 +390,52 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                                 $manilaValue = $manilaNow->format('Y-m-d\\TH:i');
                             ?>
                             <input type="datetime-local" name="visit_date" class="form-control" 
-                                   value="<?php echo e($manilaValue); ?>" required />
+                                   value="<?php echo e($editVisitData ? substr($editVisitData['visit_date'], 0, 16) : $manilaValue); ?>" required />
                         </div>
                         <div class="form-group">
                             <label class="form-label">Visit Type *</label>
                             <select name="visit_type" class="form-control" required>
                                 <option value="">Select Visit Type</option>
-                                <option value="Consultation">Consultation</option>
-                                <option value="Follow-up">Follow-up</option>
-                                <option value="Emergency">Emergency</option>
-                                <option value="Routine Check">Routine Check</option>
-                                <option value="Procedure">Procedure</option>
+                                <option value="Consultation" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Consultation') ? 'selected' : ''; ?>>Consultation</option>
+                                <option value="Follow-up" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Follow-up') ? 'selected' : ''; ?>>Follow-up</option>
+                                <option value="Emergency" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
+                                <option value="Routine Check" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Routine Check') ? 'selected' : ''; ?>>Routine Check</option>
+                                <option value="Procedure" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Procedure') ? 'selected' : ''; ?>>Procedure</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">ENT Classification *</label>
                             <select name="ent_type" class="form-control" required>
-                                <option value="ear">Ear</option>
-                                <option value="nose">Nose</option>
-                                <option value="throat">Throat</option>
+                                <option value="ear" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'ear') ? 'selected' : ''; ?>>Ear</option>
+                                <option value="nose" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'nose') ? 'selected' : ''; ?>>Nose</option>
+                                <option value="throat" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'throat') ? 'selected' : ''; ?>>Throat</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Chief Complaint</label>
-                            <textarea name="chief_complaint" class="form-control" rows="2"></textarea>
+                            <textarea name="chief_complaint" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['chief_complaint']) : ''; ?></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Diagnosis</label>
-                            <textarea name="diagnosis" class="form-control" rows="2"></textarea>
+                            <textarea name="diagnosis" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['diagnosis']) : ''; ?></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Treatment Plan</label>
-                            <textarea name="treatment_plan" class="form-control" rows="2"></textarea>
+                            <textarea name="treatment_plan" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['treatment_plan']) : ''; ?></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Prescription</label>
-                            <textarea name="prescription" class="form-control" rows="2"></textarea>
+                            <textarea name="prescription" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['prescription']) : ''; ?></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Plan</label>
-                            <textarea name="notes" class="form-control" rows="3"></textarea>
+                            <textarea name="notes" class="form-control" rows="3"><?php echo $editVisitData ? e($editVisitData['notes']) : ''; ?></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success btn-lg">
                             <i class="fas fa-save"></i>
-                            Save Visit
+                            <?php echo $editVisitData ? 'Update Visit' : 'Save Visit'; ?>
                         </button>
                         <button type="button" class="btn btn-secondary btn-lg" data-modal-dismiss="visitModal">
                             <i class="fas fa-times"></i>
@@ -577,7 +602,6 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                                 <th>Treatment</th>
                                 <th>Prescription</th>
                                 <th>Plan</th>
-                                <th>Doctor</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -592,16 +616,6 @@ $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
                                 <td><?php echo isset($visit['treatment_plan']) ? nl2br(e($visit['treatment_plan'])) : ''; ?></td>
                                 <td><?php echo isset($visit['prescription']) ? nl2br(e($visit['prescription'])) : ''; ?></td>
                                 <td><?php echo isset($visit['notes']) ? nl2br(e($visit['notes'])) : ''; ?></td>
-                                <td>
-                                    <?php
-                                        $doc = isset($visit['doctor_name']) ? trim(strtolower($visit['doctor_name'])) : '';
-                                        if ($doc && $doc !== 'admin' && $doc !== 'administrator') {
-                                            echo e($visit['doctor_name']);
-                                        } else {
-                                            echo '-';
-                                        }
-                                    ?>
-                                </td>
                                 <td>
                                     <div class="flex gap-1">
                                         <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=visit&visit_id=<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>" class="btn btn-sm btn-secondary btn-icon" title="Edit Visit"><i class="fas fa-edit"></i></a>
@@ -1172,5 +1186,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 });
+</script>
+<!-- Location data loader (using lightweight location-loader) -->
+<script src="<?php echo baseUrl(); ?>/js/location-loader.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', function () {
+        if (window.initLocationSelectors) {
+            window.initLocationSelectors('<?php echo baseUrl(); ?>/api-locations.php');
+        }
+    });
 </script>
 

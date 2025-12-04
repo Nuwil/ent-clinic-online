@@ -130,10 +130,14 @@ class AnalyticsController extends Controller
                 $d = $r['d'];
                 $cnt = (int)$r['c'];
                 if (isset($dates[$d])) $dates[$d] += $cnt;
-                $type = $r['ent_type'] ?? 'ear';
+
+                // Normalize ent_type to avoid mismatches due to casing or whitespace
+                $rawType = isset($r['ent_type']) ? $r['ent_type'] : '';
+                $type = trim(strtolower($rawType ?: 'ear'));
                 if (isset($descriptive['ent_distribution'][$type])) {
                     $descriptive['ent_distribution'][$type] += $cnt;
                 }
+
                 $dow = (int)$r['dow'];
                 if ($dow >= 1 && $dow <= 7) $weeklyCounts[$dow] += $cnt;
             }

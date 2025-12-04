@@ -14,15 +14,23 @@ class PatientsController extends Controller
             $page = $_GET['page'] ?? 1;
             $limit = $_GET['limit'] ?? 10;
             $offset = ($page - 1) * $limit;
-            $search = $_GET['search'] ?? '';
+            $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
             $sql = "SELECT * FROM patients";
             $params = [];
 
             if (!empty($search)) {
-                $sql .= " WHERE first_name LIKE ? OR last_name LIKE ? OR email LIKE ? OR phone LIKE ?";
-                $searchTerm = "%$search%";
-                $params = [$searchTerm, $searchTerm, $searchTerm, $searchTerm];
+                // Normalize spaces in search and use SQL wildcards so "John Doe" and "John" both match
+                $normalized = preg_replace('/\s+/', ' ', $search);
+                $wildcard = '%' . str_replace(' ', '%', $normalized) . '%';
+
+                // Search by full name (first + last), reverse full name, individual first/last, email, or phone
+                $sql .= " WHERE (LOWER(CONCAT_WS(' ', first_name, last_name)) LIKE LOWER(?) ";
+                $sql .= " OR LOWER(CONCAT_WS(' ', last_name, first_name)) LIKE LOWER(?) ";
+                $sql .= " OR LOWER(first_name) LIKE LOWER(?) OR LOWER(last_name) LIKE LOWER(?) ";
+                $sql .= " OR LOWER(email) LIKE LOWER(?) OR phone LIKE ?)";
+
+                $params = [$wildcard, $wildcard, $wildcard, $wildcard, $wildcard, $search];
             }
 
             $countStmt = $this->db->prepare(str_replace('SELECT *', 'SELECT COUNT(*) as count', $sql));
@@ -30,8 +38,8 @@ class PatientsController extends Controller
             $total = $countStmt->fetch()['count'];
 
             $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
-            $params[] = $limit;
-            $params[] = $offset;
+            $params[] = (int)$limit;
+            $params[] = (int)$offset;
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute($params);

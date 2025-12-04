@@ -130,53 +130,14 @@ $isEditing = $editId ? true : false;
                         </div>
                         <div class="form-group">
                             <label class="form-label">City</label>
-                            <input type="text" name="city" class="form-control"
-                                value="<?php echo e(isset($editPatient['city']) ? $editPatient['city'] : ''); ?>" />
+                            <select name="city" id="citySelect" class="form-control" data-selected="<?php echo e(isset($editPatient['city']) ? $editPatient['city'] : ''); ?>">
+                                <option value=""><?php echo e(isset($editPatient['city']) ? $editPatient['city'] : '-- Select City --'); ?></option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">State/Province</label>
-                            <select name="state" class="form-control">
-                                <option value="">Select State/Province</option>
-                                <optgroup label="Cordillera Administrative Region (CAR)">
-                                    <option value="Abra">Abra (Bangued)</option>
-                                    <option value="Apayao">Apayao (Kabugao)</option>
-                                    <option value="Ifugao">Baguio (Baguio City)</option>
-                                    <option value="Benguet">Benguet (La Trinidad)</option>
-                                    <option value="Ifugao">Ifugao (Lagawe)</option>
-                                    <option value="Kalinga">Kalinga (Tabuk City)</option>
-                                    <option value="Mountain Province">Mountain Province (Bontoc)</option>
-                                </optgroup>
-                                <optgroup label="Ilocos Region (Region I)">
-                                    <option value="Ilocos Norte">Ilocos Norte (Laoag City)</option>
-                                    <option value="Ilocos Sur">Ilocos Sur (Vigan City)</option>
-                                    <option value="La Union">La Union (San Fernando City)</option>
-                                    <option value="Pangasinan">Pangasinan (Lingayen)</option>
-                                </optgroup>
-                                <optgroup label="Cagayan Valley (Region II)">
-                                    <option value="Batanes">Batanes (Basco)</option>
-                                    <option value="Cagayan">Cagayan (Tuguegarao City)</option>
-                                    <option value="Isabela">Isabela (Ilagan City)</option>
-                                    <option value="Nueva Vizcaya">Nueva Vizcaya (Bayombong)</option>
-                                    <option value="Quirino">Quirino (Cabarroguis)</option>
-                                </optgroup>
-                                <optgroup label="Central Luzon (Region III)">
-                                    <option value="Aurora">Aurora (Baler)</option>
-                                    <option value="Bataan">Bataan (Balanga City)</option>
-                                    <option value="Bulacan">Bulacan (Malolos City)</option>
-                                    <option value="Nueva Ecija">Nueva Ecija (Palayan City)</option>
-                                    <option value="Pampanga">Pampanga (San Fernando City)</option>
-                                    <option value="Tarlac">Tarlac (Tarlac City)</option>
-                                    <option value="Zambales">Zambales (Iba)</option>
-                                </optgroup>
-                                <optgroup label="Calabarzon (Region IV-A)">
-                                    <option value="Batangas">Batangas (Batangas City)</option>
-                                    <option value="Cavite">Cavite (Imus City)</option>
-                                    <option value="Laguna">Laguna (Santa Cruz)</option>
-                                    <option value="Quezon">Quezon (Lucena City)</option>
-                                    <option value="Rizal">Rizal (Antipolo City)</option>
-                                </optgroup>
-                                <optgroup label="Mimaropa (Region IV-B)">
-                                    <option value="Marinduque">Marinduque (Boac)</option>
+                            <select name="state" id="stateSelect" class="form-control" data-selected="<?php echo e(isset($editPatient['state']) ? $editPatient['state'] : ''); ?>">
+                                <option value=""><?php echo e(isset($editPatient['state']) ? $editPatient['state'] : '-- Select State/Province --'); ?></option>
                                     <option value="Occidental Mindoro">Occidental Mindoro (Mamburao)</option>
                                     <option value="Oriental Mindoro">Oriental Mindoro (Calapan City)</option>
                                     <option value="Palawan">Palawan (Puerto Princesa City)</option>
@@ -263,8 +224,9 @@ $isEditing = $editId ? true : false;
 
                         <div class="form-group">
                             <label class="form-label">Country</label>
-                            <input type="text" name="country" class="form-control"
-                                value="<?php echo e(isset($editPatient['country']) ? $editPatient['country'] : ''); ?>" />
+                            <select name="country" id="countrySelect" class="form-control" data-selected="<?php echo e(isset($editPatient['country']) ? $editPatient['country'] : ''); ?>">
+                                <option value=""><?php echo e(isset($editPatient['country']) ? $editPatient['country'] : '-- Select Country --'); ?></option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Allergies</label>
@@ -458,6 +420,15 @@ $isEditing = $editId ? true : false;
                 var first = modal.querySelector('input[name="first_name"]');
                 if (first) first.focus();
             }, 50);
+        }
+    });
+</script>
+<!-- Location selectors loader -->
+<script src="<?php echo baseUrl(); ?>/js/location-loader.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', function () {
+        if (window.initLocationSelectors) {
+            window.initLocationSelectors('<?php echo baseUrl(); ?>/api-locations.php');
         }
     });
 </script>
