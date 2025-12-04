@@ -392,6 +392,12 @@ body {
     font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont;
 }
 
+/* Prescription Pad Size: 5.5" x 8.5" (standard pad) */
+.prescription-container {
+    width: 5.5in;
+    height: 8.5in;
+}
+
 .certificate-header {
     display: flex;
     justify-content: space-between;

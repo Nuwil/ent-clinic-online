@@ -61,15 +61,29 @@ class VisitsController extends Controller
     public function store()
     {
         try {
-            // only doctors or admins can create visits
-            $this->requireRole(['admin', 'doctor']);
+            // Allow admins and doctors full access; allow staff (secretary) to create visits
+            // but restrict them to only adding patient_id, visit_date, chief_complaint and vitals.
+            $this->requireRole(['admin', 'doctor', 'staff']);
             $input = $this->getInput();
 
-            $rules = [
-                'patient_id' => 'required|numeric',
-                'visit_date' => 'required',
-                'visit_type' => 'required',
-            ];
+            // Determine allowed fields and validation rules based on caller role
+            $apiUser = $this->getApiUser();
+            $isStaff = isset($apiUser['role']) && $apiUser['role'] === 'staff';
+
+            if ($isStaff) {
+                $rules = [
+                    'patient_id' => 'required|numeric',
+                    'visit_date' => 'required'
+                ];
+                $allowedFields = ['patient_id', 'visit_date', 'chief_complaint', 'height', 'weight', 'blood_pressure', 'temperature', 'vitals_notes'];
+            } else {
+                $rules = [
+                    'patient_id' => 'required|numeric',
+                    'visit_date' => 'required',
+                    'visit_type' => 'required',
+                ];
+                $allowedFields = ['patient_id','visit_date','visit_type','ent_type','chief_complaint','diagnosis','treatment_plan','prescription','notes','height','weight','blood_pressure','temperature','vitals_notes','doctor_id'];
+            }
 
             $errors = $this->validate($input, $rules);
             if (!empty($errors)) {
@@ -114,18 +128,17 @@ class VisitsController extends Controller
                 }
             }
 
-            $data = [
-                'patient_id' => $input['patient_id'],
-                'visit_date' => $input['visit_date'],
-                'visit_type' => $input['visit_type'] ?? null,
-                'ent_type' => $input['ent_type'] ?? 'ear',
-                'chief_complaint' => $input['chief_complaint'] ?? null,
-                'diagnosis' => $input['diagnosis'] ?? null,
-                'treatment_plan' => $input['treatment_plan'] ?? null,
-                'prescription' => $input['prescription'] ?? null,
-                'notes' => $input['notes'] ?? null,
-                'doctor_id' => $input['doctor_id'] ?? 1,
-            ];
+            // Build data only from allowed fields (prevents staff from setting doctor-only fields)
+            $data = [];
+            foreach ($allowedFields as $f) {
+                if (isset($input[$f])) {
+                    $data[$f] = $input[$f];
+                } else {
+                    // For ent_type default to 'ear' if not provided and allowed
+                    if ($f === 'ent_type') $data['ent_type'] = 'ear';
+                    if ($f === 'doctor_id' && !$isStaff) $data['doctor_id'] = $input['doctor_id'] ?? 1;
+                }
+            }
 
             $columns = implode(',', array_keys($data));
             $placeholders = implode(',', array_fill(0, count($data), '?'));
@@ -158,7 +171,8 @@ class VisitsController extends Controller
 
             $allowedFields = [
                 'visit_date', 'visit_type', 'ent_type', 'chief_complaint', 'diagnosis',
-                'treatment_plan', 'prescription', 'notes'
+                'treatment_plan', 'prescription', 'notes', 'height', 'weight', 'blood_pressure',
+                'temperature', 'vitals_notes'
             ];
 
             $data = [];

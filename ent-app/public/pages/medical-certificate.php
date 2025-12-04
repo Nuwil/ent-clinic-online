@@ -1,9 +1,18 @@
 <?php
 /**
- * Medical Certificate Page - Accessible by all authenticated roles
+ * Medical Certificate Page - Accessible only to doctors
  * Provides a clean, printable template for medical certificates.
  * Can auto-populate patient data if patient_id is passed via URL.
  */
+
+// Restrict access to doctors only
+if (session_status() === PHP_SESSION_NONE) @session_start();
+$currentUser = $_SESSION['user'] ?? null;
+if (!$currentUser || $currentUser['role'] !== 'doctor') {
+    $_SESSION['message'] = 'Only doctors can print medical certificates.';
+    header('Location: ' . baseUrl() . '/?page=patients');
+    exit;
+}
 
 $patientData = null;
 $patientName = '';
@@ -86,6 +95,10 @@ if (isset($_GET['patient_id'])) {
                 </p>
 
                 <p class="certificate-paragraph">
+                    <strong>Patient ID:</strong> <span contenteditable="true" class="editable-field"><?php echo !empty($patientData['patient_id']) ? htmlspecialchars($patientData['patient_id']) : '________________'; ?></span>
+                </p>
+
+                <p class="certificate-paragraph">
                     This is to certify that <span contenteditable="true" class="editable-field"><?php echo !empty($patientName) ? htmlspecialchars($patientName) : '__________________________________________'; ?></span>,
                     <span contenteditable="true" class="editable-field"><?php echo !empty($patientAge) ? $patientAge : '____'; ?></span> years old, was examined at
                     <span contenteditable="true" class="editable-field"><?php echo !empty($visitLocation) ? htmlspecialchars($visitLocation) : '__________________________________________'; ?></span>
@@ -120,10 +133,14 @@ if (isset($_GET['patient_id'])) {
                 </p>
 
                 <div class="certificate-signature-block">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem; text-align: center;">
+                        <em>Physical seal / signature to be applied here</em>
+                    </div>
                     <div class="signature-line"></div>
                     <p class="certificate-signatory" contenteditable="true">Dr. ________________________________</p>
                     <p class="certificate-signatory-meta" contenteditable="true">ENT Specialist</p>
                     <p class="certificate-signatory-meta" contenteditable="true">License No.: ________________</p>
+                    <p class="certificate-signatory-meta" style="margin-top: 0.75rem; font-size: 0.75rem; color: #9ca3af;" contenteditable="false">Valid with physical seal</p>
                 </div>
             </main>
         </div>

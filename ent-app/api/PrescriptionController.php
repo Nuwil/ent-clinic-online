@@ -13,56 +13,116 @@ class PrescriptionController extends Controller
     public function export()
     {
         try {
-            $patientId = $_POST['patient_id'] ?? null;
-            $exportFormat = $_POST['export_format'] ?? 'pdf';
-            $medicinesSelected = $_POST['medicines_selected'] ?? '';
-            $prescriptionNotes = $_POST['prescription_notes'] ?? '';
-            $refill = $_POST['refill'] ?? '';
-            $label = isset($_POST['label_checkbox']) ? '☑' : '☐';
-            $prescriptionDate = $_POST['prescription_date'] ?? date('Y-m-d');
-            $signature = $_POST['signature'] ?? '';
+            $input = $this->getInput();
+            $patientId = $input['patient_id'] ?? null;
+            $exportFormat = $input['export_format'] ?? 'pdf';
+            $medicinesSelected = $input['medicines_selected'] ?? '';
+            $prescriptionNotes = $input['prescription_notes'] ?? '';
+            $refill = $input['refill'] ?? '';
+            $label = isset($input['label_checkbox']) ? '☑' : '☐';
+            $prescriptionDate = $input['prescription_date'] ?? date('Y-m-d');
+            $signature = $input['signature'] ?? '';
 
             if (!$patientId) {
                 $this->error('Patient ID is required', 400);
             }
 
-            // Fetch patient data
+            // Fetch patient data using PDO
             $patientQuery = "SELECT first_name, last_name, address FROM patients WHERE id = ?";
             $stmt = $this->db->prepare($patientQuery);
-            if (!$stmt) {
-                throw new Exception('Prepare failed: ' . $this->db->error);
-            }
-            $stmt->bind_param('i', $patientId);
-            $stmt->execute();
-            $patientResult = $stmt->get_result();
-            $patient = $patientResult->fetch_assoc();
+            $stmt->execute([$patientId]);
+            $patient = $stmt->fetch();
 
             if (!$patient) {
                 $this->error('Patient not found', 404);
             }
 
-            $patientName = $patient['first_name'] . ' ' . $patient['last_name'];
+            $patientName = trim(($patient['first_name'] ?? '') . ' ' . ($patient['last_name'] ?? ''));
             $patientAddress = $patient['address'] ?? '';
 
-            // Generate HTML prescription template
-            $html = $this->generatePrescriptionHTML(
-                $patientName,
-                $patientAddress,
-                $medicinesSelected,
-                $prescriptionNotes,
-                $refill,
-                $label,
-                $prescriptionDate,
-                $signature
-            );
+            // Decode medicines payload if JSON
+            $medicinesData = $medicinesSelected;
+            if (!empty($medicinesSelected) && (is_string($medicinesSelected) && (strpos(trim($medicinesSelected), '[') === 0 || strpos(trim($medicinesSelected), '{') === 0))) {
+                $decoded = json_decode($medicinesSelected, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $medicinesData = $decoded;
+                }
+            }
+
+            // Persist prescription items if we have structured medicines array
+            if (!empty($medicinesData) && is_array($medicinesData)) {
+                $visitId = $input['visit_id'] ?? null;
+                $doctor = $this->getApiUser();
+                $doctorId = $doctor['id'] ?? null;
+
+                // If no visit_id provided, create a minimal visit to attach prescription items
+                if (empty($visitId)) {
+                    $insertVisit = $this->db->prepare("INSERT INTO patient_visits (patient_id, visit_date, visit_type, created_at) VALUES (?, ?, ?, NOW())");
+                    $insertVisit->execute([$patientId, date('Y-m-d H:i:s'), 'prescription_export']);
+                    $visitId = $this->db->lastInsertId();
+                }
+
+                $insertPresc = $this->db->prepare("INSERT INTO prescription_items (visit_id, patient_id, medicine_id, medicine_name, instruction, doctor_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+                foreach ($medicinesData as $m) {
+                    if (is_array($m)) {
+                        $medId = $m['id'] ?? null;
+                        $medName = $m['name'] ?? ($m['medicine_name'] ?? null) ?? (isset($m[0]) ? $m[0] : null);
+                        $instr = $m['instruction'] ?? $m['note'] ?? '';
+                    } else {
+                        $medId = null;
+                        $medName = (string)$m;
+                        $instr = '';
+                    }
+                    $insertPresc->execute([$visitId, $patientId, $medId, $medName, $instr, $doctorId]);
+                }
+            }
+
+            // Generate HTML and export according to requested format
+            $html = $this->generatePrescriptionHTML($patientName, $patientAddress, $medicinesData, $prescriptionNotes, $refill, $label, $prescriptionDate, $signature);
 
             if ($exportFormat === 'pdf') {
                 $this->exportPDF($html, $patientId);
             } elseif ($exportFormat === 'word') {
                 $this->exportWord($html, $patientId);
             } else {
-                $this->error('Invalid export format', 400);
+                // Default: return HTML
+                header('Content-Type: text/html; charset=UTF-8');
+                echo $html;
+                exit;
             }
+
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * GET /api/prescription/items - Return prescription items for a visit or patient
+     */
+    public function items()
+    {
+        try {
+            $visitId = $_GET['visit_id'] ?? null;
+            $patientId = $_GET['patient_id'] ?? null;
+
+            if (empty($visitId) && empty($patientId)) {
+                $this->error('visit_id or patient_id is required', 400);
+            }
+
+            if (!empty($visitId)) {
+                $sql = "SELECT * FROM prescription_items WHERE visit_id = ? ORDER BY created_at DESC";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([(int)$visitId]);
+                $rows = $stmt->fetchAll();
+                $this->success($rows);
+            } else {
+                $sql = "SELECT * FROM prescription_items WHERE patient_id = ? ORDER BY created_at DESC";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([(int)$patientId]);
+                $rows = $stmt->fetchAll();
+                $this->success($rows);
+            }
+
         } catch (Exception $e) {
             $this->error($e->getMessage(), 500);
         }
@@ -74,11 +134,23 @@ class PrescriptionController extends Controller
     private function generatePrescriptionHTML($patientName, $patientAddress, $medicines, $notes, $refill, $label, $date, $signature)
     {
         $medicinesList = '';
+        // If $medicines is an array (structured with id/name/instruction), render with instructions
         if (!empty($medicines)) {
-            $medicinesArray = explode(';', $medicines);
-            $medicinesList = '<div style="margin: 1rem 0; line-height: 2;">
-                ' . implode('<br>', array_map(fn($m) => '• ' . trim($m), $medicinesArray)) . '
-            </div>';
+            if (is_array($medicines)) {
+                $lines = [];
+                foreach ($medicines as $m) {
+                    $name = isset($m['name']) ? $m['name'] : (isset($m[0]) ? $m[0] : '');
+                    $instr = isset($m['instruction']) ? trim($m['instruction']) : '';
+                    $lines[] = '• ' . trim($name) . ($instr !== '' ? ' — ' . htmlspecialchars($instr) : '');
+                }
+                $medicinesList = '<div style="margin: 1rem 0; line-height: 2;">' . implode('<br>', $lines) . '</div>';
+            } else {
+                // fallback: string with semicolon-separated names
+                $medicinesArray = explode(';', $medicines);
+                $medicinesList = '<div style="margin: 1rem 0; line-height: 2;">'
+                    . implode('<br>', array_map(fn($m) => '• ' . trim($m), $medicinesArray))
+                    . '</div>';
+            }
         }
 
         $notesHtml = '';

@@ -131,8 +131,23 @@ class PatientsController extends Controller
                 'allergies' => $input['allergies'] ?? null,
                 'insurance_provider' => $input['insurance_provider'] ?? null,
                 'insurance_id' => $input['insurance_id'] ?? null,
+                'height' => isset($input['height']) && $input['height'] !== '' ? $input['height'] : null,
+                'weight' => isset($input['weight']) && $input['weight'] !== '' ? $input['weight'] : null,
+                'bmi' => null,
+                'blood_pressure' => $input['blood_pressure'] ?? null,
+                'temperature' => isset($input['temperature']) && $input['temperature'] !== '' ? $input['temperature'] : null,
+                'vitals_updated_at' => (!empty($input['height']) || !empty($input['weight']) || !empty($input['blood_pressure']) || !empty($input['temperature'])) ? date('Y-m-d H:i:s') : null,
                 'created_by' => $input['created_by'] ?? 1,
             ];
+
+            // Compute BMI server-side if height (cm) and weight (kg) provided
+            if (!empty($data['height']) && !empty($data['weight'])) {
+                $hMeters = floatval($data['height']) / 100.0;
+                if ($hMeters > 0) {
+                    $bmi = floatval($data['weight']) / ($hMeters * $hMeters);
+                    $data['bmi'] = round($bmi, 2);
+                }
+            }
 
             $columns = implode(',', array_keys($data));
             $placeholders = implode(',', array_fill(0, count($data), '?'));
@@ -167,7 +182,8 @@ class PatientsController extends Controller
                 'first_name', 'last_name', 'gender', 'date_of_birth', 'email',
                 'phone', 'occupation', 'address', 'city', 'state', 'postal_code', 'country',
                 'medical_history', 'current_medications', 'allergies',
-                'insurance_provider', 'insurance_id'
+                'insurance_provider', 'insurance_id',
+                'height', 'weight', 'blood_pressure', 'temperature', 'bmi'
             ];
 
             $data = [];
@@ -175,6 +191,22 @@ class PatientsController extends Controller
                 if (isset($input[$field])) {
                     $data[$field] = $input[$field];
                 }
+            }
+
+            // If height and weight provided compute BMI; also set vitals_updated_at if any vitals provided
+            if ((isset($input['height']) && $input['height'] !== '') || (isset($input['weight']) && $input['weight'] !== '') ) {
+                $height = isset($input['height']) && $input['height'] !== '' ? floatval($input['height']) : null;
+                $weight = isset($input['weight']) && $input['weight'] !== '' ? floatval($input['weight']) : null;
+                if ($height && $weight) {
+                    $hMeters = $height / 100.0;
+                    if ($hMeters > 0) {
+                        $data['bmi'] = round($weight / ($hMeters * $hMeters), 2);
+                    }
+                }
+            }
+
+            if (isset($input['height']) || isset($input['weight']) || isset($input['blood_pressure']) || isset($input['temperature'])) {
+                $data['vitals_updated_at'] = date('Y-m-d H:i:s');
             }
 
             if (empty($data)) {

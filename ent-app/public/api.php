@@ -71,6 +71,10 @@ $router->post('/api/medicines', function () {
 $router->post('/api/prescription/export', function () {
     (new PrescriptionController())->export();
 });
+// Fetch prescription items for timeline UI
+$router->get('/api/prescription/items', function () {
+    (new PrescriptionController())->items();
+});
 
 // Health check
 $router->get('/api/health', function () {

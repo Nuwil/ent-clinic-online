@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS patients (
     date_of_birth DATE,
     gender ENUM('male', 'female', 'other') NOT NULL,
     email VARCHAR(100),
+    full_name VARCHAR(255),
     phone VARCHAR(20),
     occupation VARCHAR(100),
     address VARCHAR(255),
@@ -38,8 +39,15 @@ CREATE TABLE IF NOT EXISTS patients (
     medical_history TEXT,
     current_medications TEXT,
     allergies TEXT,
+    vaccine_history TEXT,
     insurance_provider VARCHAR(100),
     insurance_id VARCHAR(100),
+    height DECIMAL(5,2) COMMENT 'Height in cm',
+    weight DECIMAL(5,2) COMMENT 'Weight in kg',
+    bmi DECIMAL(5,2) COMMENT 'Body Mass Index (kg/m2)',
+    blood_pressure VARCHAR(20) COMMENT 'e.g., 120/80',
+    temperature DECIMAL(4,1) COMMENT 'Temperature in Celsius',
+    vitals_updated_at TIMESTAMP NULL COMMENT 'Last update of vitals',
     created_by INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -150,12 +158,17 @@ CREATE TABLE IF NOT EXISTS patient_visits (
     patient_id INT NOT NULL,
     visit_date DATETIME NOT NULL,
     visit_type VARCHAR(100),
-    ent_type ENUM('ear', 'nose', 'throat') DEFAULT 'ear',
+    ent_type ENUM('ear', 'nose', 'throat', 'head_neck_tumor', 'lifestyle_medicine', 'misc') DEFAULT 'ear',
     chief_complaint TEXT,
     diagnosis TEXT,
     treatment_plan TEXT,
     prescription TEXT,
     notes TEXT,
+    height DECIMAL(5,2),
+    weight DECIMAL(5,2),
+    blood_pressure VARCHAR(20),
+    temperature DECIMAL(4,1),
+    vitals_notes TEXT,
     doctor_id INT,
     doctor_name VARCHAR(150),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -165,7 +178,6 @@ CREATE TABLE IF NOT EXISTS patient_visits (
     INDEX idx_visit_date (visit_date)
 );
 
--- Insert sample medicines
 INSERT IGNORE INTO medicines (name, dosage, unit) VALUES
 ('Amoxicillin', '500', 'mg'),
 ('Ibuprofen', '200', 'mg'),
@@ -187,3 +199,18 @@ INSERT IGNORE INTO medicines (name, dosage, unit) VALUES
 ('Mometasone', '50', 'mcg'),
 ('Nifedipine', '30', 'mg'),
 ('Oxymetazoline', '0.05', '%');
+
+-- Prescription items table: stores prescribed medicines and instructions linked to visits
+CREATE TABLE IF NOT EXISTS prescription_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    visit_id INT DEFAULT NULL,
+    patient_id INT NOT NULL,
+    medicine_id INT DEFAULT NULL,
+    medicine_name VARCHAR(255) NOT NULL,
+    instruction TEXT,
+    doctor_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (visit_id) REFERENCES patient_visits(id) ON DELETE SET NULL,
+    INDEX idx_patient_id_presc (patient_id),
+    INDEX idx_visit_id_presc (visit_id)
+);

@@ -184,7 +184,18 @@ function baseUrl() {
  * Redirect helper
  */
 function redirect($url) {
-    header("Location: " . baseUrl() . $url);
+    $location = baseUrl() . $url;
+    // If headers are not yet sent, use a proper HTTP redirect.
+    if (!headers_sent()) {
+        header("Location: " . $location);
+        exit;
+    }
+
+    // Headers already sent (HTML output started). Use a safe client-side
+    // redirect fallback (JavaScript + meta refresh) to avoid PHP warnings.
+    $safe = htmlspecialchars($location, ENT_QUOTES, 'UTF-8');
+    echo '<script>window.location.href="' . $safe . '";</script>';
+    echo '<noscript><meta http-equiv="refresh" content="0;url=' . $safe . '" /></noscript>';
     exit;
 }
 

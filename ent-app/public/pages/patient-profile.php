@@ -31,6 +31,19 @@ $editVisit = isset($_GET['edit']) && $_GET['edit'] === 'visit';
 $editVisitId = isset($_GET['visit_id']) ? $_GET['visit_id'] : null;
 $editVisitData = null;
 
+// Function to format ENT type labels
+function formatENTType($type) {
+    $map = [
+        'ear' => 'Ear',
+        'nose' => 'Nose',
+        'throat' => 'Throat',
+        'head_neck_tumor' => 'Head & Neck Tumors',
+        'lifestyle_medicine' => 'Lifestyle Medicine',
+        'misc' => 'Misc/Others'
+    ];
+    return isset($map[$type]) ? $map[$type] : ucfirst($type);
+}
+
 if ($editVisit && $editVisitId) {
     // Load the visit to edit
     $allVisits = apiCall('GET', '/api/visits?patient_id=' . $patientId);
@@ -44,6 +57,12 @@ if ($editVisit && $editVisitId) {
         }
     }
 }
+?>
+
+<?php
+// Current logged-in user (frontend session)
+$currentUser = isset($_SESSION['user']) ? $_SESSION['user'] : null;
+$currentRole = $currentUser['role'] ?? '';
 ?>
 
 <div class="patient-profile-page">
@@ -95,16 +114,21 @@ if ($editVisit && $editVisitId) {
                 $fields = [
                     'Patient ID' => 'patient_id',
                     'Name' => ['first_name','last_name'],
+                    'Age' => 'age_calculated',
                     'Date of Birth' => 'date_of_birth',
                     'Gender' => 'gender',
                     'Email' => 'email',
                     'Phone' => 'phone',
                     'Height' => 'height',
                     'Weight' => 'weight',
+                    'BMI' => 'bmi',
                     'Occupation' => 'occupation',
                     'Blood Type' => 'blood_type',
                     'Marital Status' => 'marital_status',
                     'Allergies' => 'allergies',
+                    'Vaccine History' => 'vaccine_history',
+                    'Insurance Provider' => 'insurance_provider',
+                    'Insurance ID' => 'insurance_id',
                     'Postal Code' => 'postal_code',
                     'Country' => 'country',
                     'State/Province' => 'state',
@@ -130,6 +154,18 @@ if ($editVisit && $editVisitId) {
 
                     if ($label === 'Date of Birth') {
                         $value = $value ? formatDate($value) : '';
+                    }
+                    if ($label === 'Age') {
+                        if (!empty($patient['date_of_birth'])) {
+                            try {
+                                $dob = new DateTime($patient['date_of_birth']);
+                                $today = new DateTime();
+                                $age = $today->diff($dob)->y;
+                                $value = $age . ' years';
+                            } catch (Exception $e) {
+                                $value = '';
+                            }
+                        }
                     }
                     if ($label === 'Gender') {
                         $value = $value ? ucfirst($value) : '';
@@ -216,6 +252,65 @@ if ($editVisit && $editVisitId) {
                             <label class="form-label">Address</label>
                             <input type="text" name="address" class="form-control" 
                                    value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
+                        </div>
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Height (cm)</label>
+                                <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
+                                       placeholder="e.g., 170" value="<?php echo e(isset($patient['height']) && $patient['height'] ? $patient['height'] : ''); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Weight (kg)</label>
+                                <input type="number" name="weight" class="form-control" step="0.1" min="20" max="300"
+                                       placeholder="e.g., 70.5" value="<?php echo e(isset($patient['weight']) && $patient['weight'] ? $patient['weight'] : ''); ?>" />
+                            </div>
+                        </div>
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">BMI (kg/m²)</label>
+                                <input type="number" name="bmi" id="editBmiField" class="form-control" step="0.01" readonly
+                                       placeholder="Auto-calculated" value="<?php echo e(isset($patient['bmi']) && $patient['bmi'] ? $patient['bmi'] : ''); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Blood Pressure (mmHg)</label>
+                                <input type="text" name="blood_pressure" class="form-control" placeholder="e.g., 120/80"
+                                       value="<?php echo e(isset($patient['blood_pressure']) && $patient['blood_pressure'] ? $patient['blood_pressure'] : ''); ?>" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Temperature (°C)</label>
+                            <input type="number" name="temperature" class="form-control" step="0.1" min="35" max="42"
+                                   placeholder="e.g., 37.5" value="<?php echo e(isset($patient['temperature']) && $patient['temperature'] ? $patient['temperature'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Allergies</label>
+                            <input type="text" name="allergies" class="form-control" placeholder="e.g., Penicillin"
+                                   value="<?php echo e(isset($patient['allergies']) ? $patient['allergies'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vaccine History</label>
+                            <input type="text" name="vaccine_history" class="form-control" placeholder="e.g., Flu, COVID-19"
+                                   value="<?php echo e(isset($patient['vaccine_history']) ? $patient['vaccine_history'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Insurance Provider (optional)</label>
+                            <input type="text" name="insurance_provider" class="form-control"
+                                   value="<?php echo e(isset($patient['insurance_provider']) ? $patient['insurance_provider'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Insurance ID (optional)</label>
+                            <input type="text" name="insurance_id" class="form-control"
+                                   value="<?php echo e(isset($patient['insurance_id']) ? $patient['insurance_id'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Name</label>
+                            <input type="text" name="emergency_contact_name" class="form-control"
+                                   value="<?php echo e(isset($patient['emergency_contact_name']) ? $patient['emergency_contact_name'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Phone</label>
+                            <input type="tel" name="emergency_contact_phone" class="form-control"
+                                   value="<?php echo e(isset($patient['emergency_contact_phone']) ? $patient['emergency_contact_phone'] : ''); ?>" />
                         </div>
                         <div class="grid grid-2">
                             <div class="form-group">
@@ -348,7 +443,7 @@ if ($editVisit && $editVisitId) {
         </div>
 
         <!-- Visit Timeline -->
-        <?php if (hasRole(['admin', 'doctor'])): ?>
+        <?php if (hasRole(['admin', 'doctor', 'staff'])): ?>
         <div class="card">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <h3 class="card-title" style="margin:0;">
@@ -388,10 +483,22 @@ if ($editVisit && $editVisitId) {
                                 // Default the datetime-local input to current time in Manila
                                 $manilaNow = new DateTime('now', new DateTimeZone('Asia/Manila'));
                                 $manilaValue = $manilaNow->format('Y-m-d\\TH:i');
+                                
+                                // If editing, convert stored UTC datetime to Manila for display
+                                if ($editVisitData) {
+                                    try {
+                                        $dt = new DateTime($editVisitData['visit_date'], new DateTimeZone('UTC'));
+                                        $dt->setTimezone(new DateTimeZone('Asia/Manila'));
+                                        $manilaValue = $dt->format('Y-m-d\\TH:i');
+                                    } catch (Exception $e) {
+                                        $manilaValue = substr($editVisitData['visit_date'], 0, 16);
+                                    }
+                                }
                             ?>
                             <input type="datetime-local" name="visit_date" class="form-control" 
-                                   value="<?php echo e($editVisitData ? substr($editVisitData['visit_date'], 0, 16) : $manilaValue); ?>" required />
+                                   value="<?php echo e($manilaValue); ?>" required />
                         </div>
+                        <?php if ($currentRole !== 'staff'): ?>
                         <div class="form-group">
                             <label class="form-label">Visit Type *</label>
                             <select name="visit_type" class="form-control" required>
@@ -401,36 +508,80 @@ if ($editVisit && $editVisitId) {
                                 <option value="Emergency" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
                                 <option value="Routine Check" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Routine Check') ? 'selected' : ''; ?>>Routine Check</option>
                                 <option value="Procedure" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Procedure') ? 'selected' : ''; ?>>Procedure</option>
+                                <option value="Misc/Others" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Misc/Others') ? 'selected' : ''; ?>>Misc/Others</option>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <?php if ($currentRole !== 'staff'): ?>
                         <div class="form-group">
                             <label class="form-label">ENT Classification *</label>
                             <select name="ent_type" class="form-control" required>
                                 <option value="ear" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'ear') ? 'selected' : ''; ?>>Ear</option>
                                 <option value="nose" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'nose') ? 'selected' : ''; ?>>Nose</option>
                                 <option value="throat" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'throat') ? 'selected' : ''; ?>>Throat</option>
+                                <option value="head_neck_tumor" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'head_neck_tumor') ? 'selected' : ''; ?>>Head & Neck Tumors</option>
+                                <option value="lifestyle_medicine" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'lifestyle_medicine') ? 'selected' : ''; ?>>Lifestyle Medicine</option>
+                                <option value="misc" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'misc') ? 'selected' : ''; ?>>Misc/Others</option>
                             </select>
                         </div>
+                        <?php endif; ?>
+                        <!-- Visit Workflow: Chief Complaint → History → Physical Exam → Diagnosis → Treatment Plan -->
                         <div class="form-group">
-                            <label class="form-label">Chief Complaint</label>
-                            <textarea name="chief_complaint" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['chief_complaint']) : ''; ?></textarea>
+                            <label class="form-label">Chief Complaint *</label>
+                            <textarea name="chief_complaint" class="form-control" rows="2" placeholder="Patient's primary complaint or reason for visit" required><?php echo $editVisitData ? e($editVisitData['chief_complaint']) : ''; ?></textarea>
+                        </div>
+                        
+                        <?php if ($currentRole !== 'staff'): ?>
+                        <div class="form-group">
+                            <label class="form-label">History of Present Illness</label>
+                            <textarea name="history" class="form-control" rows="2" placeholder="Onset, duration, associated symptoms, past treatments..."><?php echo $editVisitData && isset($editVisitData['history']) ? e($editVisitData['history']) : ''; ?></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Physical Examination Findings</label>
+                            <textarea name="physical_exam" class="form-control" rows="2" placeholder="Otoscopy, rhinoscopy, palpation, other findings..."><?php echo $editVisitData && isset($editVisitData['physical_exam']) ? e($editVisitData['physical_exam']) : ''; ?></textarea>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+                            <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Current Vitals</div>
+                            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                                <div style="padding:6px 0;">
+                                    <strong>Height:</strong>
+                                    <div><?php echo (isset($patient['height']) && $patient['height']) ? e($patient['height']) . ' cm' : '<span style="color:#999;">—</span>'; ?></div>
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <strong>Weight:</strong>
+                                    <div><?php echo (isset($patient['weight']) && $patient['weight']) ? e($patient['weight']) . ' kg' : '<span style="color:#999;">—</span>'; ?></div>
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <strong>Blood Pressure:</strong>
+                                    <div><?php echo (isset($patient['blood_pressure']) && $patient['blood_pressure']) ? e($patient['blood_pressure']) : '<span style="color:#999;">—</span>'; ?></div>
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <strong>Temperature:</strong>
+                                    <div><?php echo (isset($patient['temperature']) && $patient['temperature']) ? e($patient['temperature']) . '°C' : '<span style="color:#999;">—</span>'; ?></div>
+                                </div>
+                            </div>
+                            <?php if (isset($patient['vitals_updated_at']) && $patient['vitals_updated_at']): ?>
+                                <div style="margin-top:8px;font-size:0.85rem;color:#666;">Last updated: <?php echo formatDate($patient['vitals_updated_at']); ?></div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <?php if ($currentRole !== 'staff'): ?>
+                        <div class="form-group">
+                            <label class="form-label">Assessment & Diagnosis</label>
+                            <textarea name="diagnosis" class="form-control" rows="2" placeholder="Clinical assessment and diagnosis"><?php echo $editVisitData ? e($editVisitData['diagnosis']) : ''; ?></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Diagnosis</label>
-                            <textarea name="diagnosis" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['diagnosis']) : ''; ?></textarea>
+                            <label class="form-label">Treatment Plan & Recommendations</label>
+                            <textarea name="treatment_plan" class="form-control" rows="2" placeholder="Treatment options, medications, follow-up actions"><?php echo $editVisitData ? e($editVisitData['treatment_plan']) : ''; ?></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Treatment Plan</label>
-                            <textarea name="treatment_plan" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['treatment_plan']) : ''; ?></textarea>
+                            <label class="form-label">Notes & Follow-up</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Additional notes, return visit timing, patient education"><?php echo $editVisitData ? e($editVisitData['notes']) : ''; ?></textarea>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Prescription</label>
-                            <textarea name="prescription" class="form-control" rows="2"><?php echo $editVisitData ? e($editVisitData['prescription']) : ''; ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Plan</label>
-                            <textarea name="notes" class="form-control" rows="3"><?php echo $editVisitData ? e($editVisitData['notes']) : ''; ?></textarea>
-                        </div>
+                        <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success btn-lg">
@@ -466,82 +617,102 @@ if ($editVisit && $editVisitId) {
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="1" data-medicine="Amoxicillin 500mg" id="med_1" />
                                     <label for="med_1" style="margin: 0; cursor: pointer; flex: 1;">Amoxicillin <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_1" data-med-id="1" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="2" data-medicine="Aspirin 100mg" id="med_2" />
                                     <label for="med_2" style="margin: 0; cursor: pointer; flex: 1;">Aspirin <strong>100mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_2" data-med-id="2" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="3" data-medicine="Atorvastatin 10mg" id="med_3" />
                                     <label for="med_3" style="margin: 0; cursor: pointer; flex: 1;">Atorvastatin <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_3" data-med-id="3" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="4" data-medicine="Cetirizine 10mg" id="med_4" />
                                     <label for="med_4" style="margin: 0; cursor: pointer; flex: 1;">Cetirizine <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_4" data-med-id="4" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="5" data-medicine="Metformin 500mg" id="med_5" />
                                     <label for="med_5" style="margin: 0; cursor: pointer; flex: 1;">Metformin <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_5" data-med-id="5" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="6" data-medicine="Ibuprofen 400mg" id="med_6" />
                                     <label for="med_6" style="margin: 0; cursor: pointer; flex: 1;">Ibuprofen <strong>400mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_6" data-med-id="6" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="7" data-medicine="Paracetamol 500mg" id="med_7" />
                                     <label for="med_7" style="margin: 0; cursor: pointer; flex: 1;">Paracetamol <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_7" data-med-id="7" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="8" data-medicine="Ciprofloxacin 500mg" id="med_8" />
                                     <label for="med_8" style="margin: 0; cursor: pointer; flex: 1;">Ciprofloxacin <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_8" data-med-id="8" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="9" data-medicine="Omeprazole 20mg" id="med_9" />
                                     <label for="med_9" style="margin: 0; cursor: pointer; flex: 1;">Omeprazole <strong>20mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_9" data-med-id="9" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="10" data-medicine="Loratadine 10mg" id="med_10" />
                                     <label for="med_10" style="margin: 0; cursor: pointer; flex: 1;">Loratadine <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_10" data-med-id="10" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="11" data-medicine="Lisinopril 10mg" id="med_11" />
                                     <label for="med_11" style="margin: 0; cursor: pointer; flex: 1;">Lisinopril <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_11" data-med-id="11" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="12" data-medicine="Amlodipine 5mg" id="med_12" />
                                     <label for="med_12" style="margin: 0; cursor: pointer; flex: 1;">Amlodipine <strong>5mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_12" data-med-id="12" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="13" data-medicine="Azithromycin 500mg" id="med_13" />
                                     <label for="med_13" style="margin: 0; cursor: pointer; flex: 1;">Azithromycin <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_13" data-med-id="13" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="14" data-medicine="Fluoxetine 20mg" id="med_14" />
                                     <label for="med_14" style="margin: 0; cursor: pointer; flex: 1;">Fluoxetine <strong>20mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_14" data-med-id="14" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="15" data-medicine="Sertraline 50mg" id="med_15" />
                                     <label for="med_15" style="margin: 0; cursor: pointer; flex: 1;">Sertraline <strong>50mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_15" data-med-id="15" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="16" data-medicine="Gabapentin 300mg" id="med_16" />
                                     <label for="med_16" style="margin: 0; cursor: pointer; flex: 1;">Gabapentin <strong>300mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_16" data-med-id="16" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="17" data-medicine="Albuterol Inhaler 90mcg" id="med_17" />
                                     <label for="med_17" style="margin: 0; cursor: pointer; flex: 1;">Albuterol Inhaler <strong>90mcg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_17" data-med-id="17" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="18" data-medicine="Fluticasone Nasal Spray 50mcg" id="med_18" />
                                     <label for="med_18" style="margin: 0; cursor: pointer; flex: 1;">Fluticasone Nasal Spray <strong>50mcg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_18" data-med-id="18" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="19" data-medicine="Vitamin D3 1000IU" id="med_19" />
                                     <label for="med_19" style="margin: 0; cursor: pointer; flex: 1;">Vitamin D3 <strong>1000IU</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_19" data-med-id="19" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                                     <input type="checkbox" name="medicine" value="20" data-medicine="Oxymetazoline Nasal Spray" id="med_20" />
                                     <label for="med_20" style="margin: 0; cursor: pointer; flex: 1;">Oxymetazoline Nasal Spray</label>
+                                    <input type="text" class="medicine-instr" id="med_instr_20" data-med-id="20" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                             </div>
                         </div>
@@ -598,6 +769,7 @@ if ($editVisit && $editVisitId) {
                                 <th>Visit Type</th>
                                 <th>ENT</th>
                                 <th>Chief Complaint</th>
+                                <th>Vitals</th>
                                 <th>Diagnosis</th>
                                 <th>Treatment</th>
                                 <th>Prescription</th>
@@ -607,17 +779,31 @@ if ($editVisit && $editVisitId) {
                         </thead>
                         <tbody>
                         <?php foreach ($visitsList as $visit): ?>
-                            <tr>
+                            <tr data-visit-id="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
                                 <td><?php echo formatDate(isset($visit['visit_date']) ? $visit['visit_date'] : '', true); ?></td>
                                 <td><?php echo e(isset($visit['visit_type']) ? $visit['visit_type'] : ''); ?></td>
-                                <td><?php echo e(isset($visit['ent_type']) ? ucfirst($visit['ent_type']) : ''); ?></td>
+                                <td><?php echo e(isset($visit['ent_type']) ? formatENTType($visit['ent_type']) : ''); ?></td>
                                 <td><?php echo isset($visit['chief_complaint']) ? nl2br(e($visit['chief_complaint'])) : ''; ?></td>
+                                <td>
+                                    <?php 
+                                    $vitals = [];
+                                    if (isset($visit['height']) && $visit['height']) $vitals[] = e($visit['height']) . ' cm';
+                                    if (isset($visit['weight']) && $visit['weight']) $vitals[] = e($visit['weight']) . ' kg';
+                                    if (isset($visit['blood_pressure']) && $visit['blood_pressure']) $vitals[] = e($visit['blood_pressure']);
+                                    if (isset($visit['temperature']) && $visit['temperature']) $vitals[] = e($visit['temperature']) . '°C';
+                                    echo !empty($vitals) ? implode('<br>', $vitals) : '<span style="color:#999;">—</span>';
+                                    if (isset($visit['vitals_notes']) && $visit['vitals_notes']) echo '<br><small style="color:#666;">' . e($visit['vitals_notes']) . '</small>';
+                                    ?>
+                                </td>
                                 <td><?php echo isset($visit['diagnosis']) ? nl2br(e($visit['diagnosis'])) : ''; ?></td>
                                 <td><?php echo isset($visit['treatment_plan']) ? nl2br(e($visit['treatment_plan'])) : ''; ?></td>
-                                <td><?php echo isset($visit['prescription']) ? nl2br(e($visit['prescription'])) : ''; ?></td>
+                                <td class="prescription-cell" data-visit-id="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
+                                    <?php echo isset($visit['prescription']) ? nl2br(e($visit['prescription'])) : ''; ?>
+                                </td>
                                 <td><?php echo isset($visit['notes']) ? nl2br(e($visit['notes'])) : ''; ?></td>
                                 <td>
                                     <div class="flex gap-1">
+                                        <?php if ($currentRole !== 'staff'): ?>
                                         <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=visit&visit_id=<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>" class="btn btn-sm btn-secondary btn-icon" title="Edit Visit"><i class="fas fa-edit"></i></a>
                                         <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline;" onsubmit="return confirm('Delete this visit?');">
                                             <input type="hidden" name="action" value="delete_visit">
@@ -625,6 +811,9 @@ if ($editVisit && $editVisitId) {
                                             <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
                                             <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
                                         </form>
+                                        <?php else: ?>
+                                        <!-- Staff cannot edit/delete visits from UI -->
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -967,6 +1156,34 @@ document.addEventListener('DOMContentLoaded', function() {
         openEditProfileModal();
     }
 
+    // Auto-calc BMI in edit profile modal when height or weight change
+    function calculateAndSetBMIForEdit() {
+        var heightEl = document.querySelector('#editProfileModal input[name="height"]');
+        var weightEl = document.querySelector('#editProfileModal input[name="weight"]');
+        var bmiEl = document.querySelector('#editProfileModal input[name="bmi"]') || document.querySelector('#editBmiField');
+        if (!heightEl || !weightEl || !bmiEl) return;
+        var h = parseFloat(heightEl.value);
+        var w = parseFloat(weightEl.value);
+        if (!isFinite(h) || !isFinite(w) || h <= 0) {
+            bmiEl.value = '';
+            return;
+        }
+        var meters = h / 100.0;
+        var bmi = w / (meters * meters);
+        if (isFinite(bmi)) {
+            bmiEl.value = bmi.toFixed(2);
+        } else {
+            bmiEl.value = '';
+        }
+    }
+
+    var editHeightInput = document.querySelector('#editProfileModal input[name="height"]');
+    var editWeightInput = document.querySelector('#editProfileModal input[name="weight"]');
+    if (editHeightInput) editHeightInput.addEventListener('input', calculateAndSetBMIForEdit);
+    if (editWeightInput) editWeightInput.addEventListener('input', calculateAndSetBMIForEdit);
+    // Calculate on load if values present
+    calculateAndSetBMIForEdit();
+
     // ==================== Prescription Panel Handlers (Side Panel) ====================
     const prescriptionPanel = document.getElementById('prescriptionPanel');
     const medicinesContainer = document.getElementById('medicinesContainer');
@@ -987,6 +1204,8 @@ document.addEventListener('DOMContentLoaded', function() {
         patientName: '<?php echo e($patient['first_name'] . ' ' . $patient['last_name']); ?>',
         patientAddress: '<?php echo e(isset($patient['address']) ? addslashes($patient['address']) : ''); ?>'
     };
+    // If we are editing a visit, expose its id so prescriptions can be attached to that visit
+    toBePrint.visitId = <?php echo $editVisitData && isset($editVisitData['id']) ? $editVisitData['id'] : 'null'; ?>;
 
     // Initialize medicines checkboxes
     function loadMedicines() {
@@ -999,14 +1218,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateSelectedMedicines() {
-        const selected = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(cb => cb.getAttribute('data-medicine'))
-            .join('; ');
-        medicinesSelectedInput.value = selected;
-        
-        // Update toBePrint dataset
-        toBePrint.medicines = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(cb => ({ name: cb.getAttribute('data-medicine'), id: cb.value }));
+        const checkedBoxes = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'));
+
+        const selectedNames = checkedBoxes.map(cb => cb.getAttribute('data-medicine')).join('; ');
+        medicinesSelectedInput.value = selectedNames;
+
+        // Update toBePrint dataset including per-medicine instructions
+        toBePrint.medicines = checkedBoxes.map(cb => {
+            const id = cb.value;
+            const name = cb.getAttribute('data-medicine');
+            const instrEl = medicinesContainer.querySelector(`#med_instr_${id}`);
+            const instruction = instrEl ? instrEl.value.trim() : '';
+            return { id: id, name: name, instruction: instruction };
+        });
     }
 
     function openPrescriptionPanel() {
@@ -1051,7 +1275,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             formData.set('patient_id', toBePrint.patientId);
-            formData.set('medicines_selected', medicinesSelectedInput.value);
+            // Send medicines as structured JSON (id, name, instruction)
+            formData.set('medicines_selected', JSON.stringify(toBePrint.medicines));
+            // Include visit id if present so prescription can be recorded on the timeline
+            formData.set('visit_id', (typeof toBePrint.visitId !== 'undefined' && toBePrint.visitId) ? toBePrint.visitId : '');
             formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
             formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
             formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
@@ -1099,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             formData.set('patient_id', toBePrint.patientId);
-            formData.set('medicines_selected', medicinesSelectedInput.value);
+            formData.set('medicines_selected', JSON.stringify(toBePrint.medicines));
             formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
             formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
             formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
@@ -1142,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSelectedMedicines();
 
         const meds = (toBePrint.medicines && toBePrint.medicines.length)
-            ? toBePrint.medicines.map(m => `<li>${m.name}</li>`).join('')
+            ? toBePrint.medicines.map(m => `<li>${m.name}${m.instruction ? ' — ' + m.instruction : ''}</li>`).join('')
             : '<li><em>No medicines selected</em></li>';
 
         const clinicHeader = `
@@ -1184,6 +1411,58 @@ document.addEventListener('DOMContentLoaded', function() {
     if (printPrescriptionBtn) {
         printPrescriptionBtn.addEventListener('click', printPrescriptionFn);
     }
+
+    // ==================== Timeline: Load saved prescription items and render ====================
+    function renderPrescriptionItemsIntoCell(cell, items) {
+        if (!cell) return;
+        if (!items || items.length === 0) return;
+        const list = document.createElement('div');
+        list.style.marginTop = '6px';
+        list.style.fontSize = '0.95rem';
+        const ul = document.createElement('ul');
+        ul.style.paddingLeft = '1rem';
+        ul.style.margin = '0';
+        items.forEach(it => {
+            const li = document.createElement('li');
+            const name = it.medicine_name || it.name || '';
+            const instr = it.instruction || '';
+            li.innerHTML = '<strong>' + escapeHtml(name) + '</strong>' + (instr ? ': ' + escapeHtml(instr) : '');
+            ul.appendChild(li);
+        });
+        list.appendChild(ul);
+        // Append after existing prescription text
+        cell.appendChild(list);
+    }
+
+    function escapeHtml(str) {
+        if (!str && str !== 0) return '';
+        return String(str).replace(/[&<>"'`]/g, function (s) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'})[s];
+        });
+    }
+
+    function fetchAndRenderPrescriptionItemsForVisit(visitId, cell) {
+        if (!visitId || !cell) return;
+        const url = '<?php echo baseUrl(); ?>/api.php?route=/api/prescription/items&visit_id=' + encodeURIComponent(visitId);
+        fetch(url, { method: 'GET', credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                // data may be { success: true, data: [...] } or raw array depending on API wrapper
+                const items = data && data.data ? data.data : (Array.isArray(data) ? data : []);
+                if (items && items.length) {
+                    renderPrescriptionItemsIntoCell(cell, items);
+                }
+            })
+            .catch(err => {
+                console.error('Failed to load prescription items for visit ' + visitId, err);
+            });
+    }
+
+    // Kick off loading for each prescription cell found on the page
+    document.querySelectorAll('.prescription-cell[data-visit-id]').forEach(function(cell) {
+        const vid = cell.getAttribute('data-visit-id');
+        if (vid) fetchAndRenderPrescriptionItemsForVisit(vid, cell);
+    });
 
 });
 </script>

@@ -104,13 +104,35 @@ $isEditing = $editId ? true : false;
                         <div class="form-group-name">
                             <div class="form-group">
                                 <label class="form-label">Height (cm)</label>
-                                <input type="text" name="height" class="form-control"
-                                    value="<?php echo e(isset($editPatient['height']) ? $editPatient['height'] : ''); ?>" />
+                                <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
+                                    placeholder="e.g., 170" value="<?php echo e(isset($editPatient['height']) && $editPatient['height'] ? $editPatient['height'] : ''); ?>" />
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Weight (kg)</label>
-                                <input type="text" name="weight" class="form-control"
-                                    value="<?php echo e(isset($editPatient['weight']) ? $editPatient['weight'] : ''); ?>" />
+                                <input type="number" name="weight" class="form-control" step="0.1" min="20" max="300"
+                                    placeholder="e.g., 70.5" value="<?php echo e(isset($editPatient['weight']) && $editPatient['weight'] ? $editPatient['weight'] : ''); ?>" />
+                            </div>
+                        </div>
+                        <div class="form-group-name">
+                            <div class="form-group">
+                                <label class="form-label">BMI (kg/m²)</label>
+                                <input type="number" name="bmi" id="bmiField" class="form-control" step="0.01" readonly
+                                    placeholder="Auto-calculated" value="<?php echo e(isset($editPatient['bmi']) && $editPatient['bmi'] ? $editPatient['bmi'] : ''); ?>" />
+                            </div>
+                            <div class="form-group" style="display:flex;align-items:flex-end;">
+                                <small style="color:#666;">BMI is calculated from Height &amp; Weight</small>
+                            </div>
+                        </div>
+                        <div class="form-group-name">
+                            <div class="form-group">
+                                <label class="form-label">Blood Pressure (mmHg)</label>
+                                <input type="text" name="blood_pressure" class="form-control" placeholder="e.g., 120/80"
+                                    value="<?php echo e(isset($editPatient['blood_pressure']) && $editPatient['blood_pressure'] ? $editPatient['blood_pressure'] : ''); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Temperature (°C)</label>
+                                <input type="number" name="temperature" class="form-control" step="0.1" min="35" max="42"
+                                    placeholder="e.g., 37.5" value="<?php echo e(isset($editPatient['temperature']) && $editPatient['temperature'] ? $editPatient['temperature'] : ''); ?>" />
                             </div>
                         </div>
                         <div class="form-group">
@@ -234,6 +256,21 @@ $isEditing = $editId ? true : false;
                                 value="<?php echo e(isset($editPatient['allergies']) ? $editPatient['allergies'] : ''); ?>" />
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Vaccine History (optional)</label>
+                            <input type="text" name="vaccine_history" class="form-control" placeholder="e.g., Flu, COVID-19, etc."
+                                value="<?php echo e(isset($editPatient['vaccine_history']) ? $editPatient['vaccine_history'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Insurance Provider (optional)</label>
+                            <input type="text" name="insurance_provider" class="form-control"
+                                value="<?php echo e(isset($editPatient['insurance_provider']) ? $editPatient['insurance_provider'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Insurance ID (optional)</label>
+                            <input type="text" name="insurance_id" class="form-control"
+                                value="<?php echo e(isset($editPatient['insurance_id']) ? $editPatient['insurance_id'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Emergency Contact Name</label>
                             <input type="text" name="emergency_contact_name" class="form-control"
                                 value="<?php echo e(isset($editPatient['emergency_contact_name']) ? $editPatient['emergency_contact_name'] : ''); ?>" />
@@ -244,11 +281,13 @@ $isEditing = $editId ? true : false;
                                 value="<?php echo e(isset($editPatient['emergency_contact_phone']) ? $editPatient['emergency_contact_phone'] : ''); ?>" />
                         </div>
                     </div>
+                    <?php if ($editId): ?>
                     <div class="form-group">
                         <label class="form-label">Medical History</label>
                         <textarea name="medical_history" class="form-control"
                             rows="3"><?php echo e(isset($editPatient['medical_history']) ? $editPatient['medical_history'] : ''); ?></textarea>
                     </div>
+                    <?php endif; ?>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-modal-dismiss="patientModal">Cancel</button>
@@ -421,6 +460,34 @@ $isEditing = $editId ? true : false;
                 if (first) first.focus();
             }, 50);
         }
+
+        // Auto-calc BMI in patient modal when height or weight change
+        function calculateAndSetBMI() {
+            var heightEl = document.querySelector('#patientModal input[name="height"]');
+            var weightEl = document.querySelector('#patientModal input[name="weight"]');
+            var bmiEl = document.querySelector('#patientModal input[name="bmi"]');
+            if (!heightEl || !weightEl || !bmiEl) return;
+            var h = parseFloat(heightEl.value);
+            var w = parseFloat(weightEl.value);
+            if (!isFinite(h) || !isFinite(w) || h <= 0) {
+                bmiEl.value = '';
+                return;
+            }
+            var meters = h / 100.0;
+            var bmi = w / (meters * meters);
+            if (isFinite(bmi)) {
+                bmiEl.value = bmi.toFixed(2);
+            } else {
+                bmiEl.value = '';
+            }
+        }
+
+        var heightInput = document.querySelector('#patientModal input[name="height"]');
+        var weightInput = document.querySelector('#patientModal input[name="weight"]');
+        if (heightInput) heightInput.addEventListener('input', calculateAndSetBMI);
+        if (weightInput) weightInput.addEventListener('input', calculateAndSetBMI);
+        // Calculate on load if values present
+        calculateAndSetBMI();
     });
 </script>
 <!-- Location selectors loader -->

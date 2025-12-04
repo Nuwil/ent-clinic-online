@@ -150,13 +150,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle visit actions
     if ($action === 'add_visit' || $action === 'update_visit') {
         $currentUser = $_SESSION['user'] ?? null;
-        // Only doctors and admins may create or update visits. Secretaries (staff) cannot.
-        $allowedRoles = ['admin', 'doctor'];
+
+        // For updates require admin/doctor. For creation allow secretary (staff) to add limited info.
+        if ($action === 'update_visit') {
+            $allowedRoles = ['admin', 'doctor'];
+        } else {
+            // add_visit
+            $allowedRoles = ['admin', 'doctor', 'staff'];
+        }
+
         if (!($currentUser && in_array($currentUser['role'] ?? '', $allowedRoles))) {
-            $_SESSION['message'] = 'Unauthorized: only doctors and admins may add or edit visits.';
+            $_SESSION['message'] = 'Unauthorized: insufficient permissions to add or edit visits.';
             $patientId = isset($_POST['patient_id']) ? $_POST['patient_id'] : '';
             redirect('/?page=patient-profile&id=' . $patientId);
         }
+
         // Normalize visit_date: interpret incoming datetime-local as Asia/Manila,
         // convert to UTC before sending to the API so stored datetimes are consistent.
         $rawVisitDate = isset($_POST['visit_date']) ? $_POST['visit_date'] : null;
@@ -173,26 +181,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $visitDateForApi = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
         }
 
-        $data = [
-            'patient_id' => isset($_POST['patient_id']) ? $_POST['patient_id'] : '',
-            'visit_date' => $visitDateForApi,
-            'visit_type' => isset($_POST['visit_type']) ? $_POST['visit_type'] : '',
-            'ent_type' => isset($_POST['ent_type']) ? $_POST['ent_type'] : 'ear',
-            'chief_complaint' => isset($_POST['chief_complaint']) ? $_POST['chief_complaint'] : '',
-            'diagnosis' => isset($_POST['diagnosis']) ? $_POST['diagnosis'] : '',
-            'treatment_plan' => isset($_POST['treatment_plan']) ? $_POST['treatment_plan'] : '',
-            'prescription' => isset($_POST['prescription']) ? $_POST['prescription'] : '',
-            'notes' => isset($_POST['notes']) ? $_POST['notes'] : ''
-        ];
-        
-        if ($action === 'add_visit') {
+        // Build data payload depending on role
+        $role = $currentUser['role'] ?? '';
+        if ($role === 'staff' && $action === 'add_visit') {
+            // Secretaries may only add basic visit with chief complaint and vitals
+            $data = [
+                'patient_id' => isset($_POST['patient_id']) ? $_POST['patient_id'] : '',
+                'visit_date' => $visitDateForApi,
+                'chief_complaint' => isset($_POST['chief_complaint']) ? $_POST['chief_complaint'] : '',
+                'height' => isset($_POST['height']) ? $_POST['height'] : null,
+                'weight' => isset($_POST['weight']) ? $_POST['weight'] : null,
+                'blood_pressure' => isset($_POST['blood_pressure']) ? $_POST['blood_pressure'] : null,
+                'temperature' => isset($_POST['temperature']) ? $_POST['temperature'] : null,
+                'vitals_notes' => isset($_POST['vitals_notes']) ? $_POST['vitals_notes'] : null
+            ];
             $result = apiCall('POST', '/api/visits', $data);
-            $_SESSION['message'] = $result ? 'Visit added successfully' : 'Failed to add visit';
+            $_SESSION['message'] = $result ? 'Visit (chief complaint) added successfully' : 'Failed to add visit';
         } else {
-            $id = isset($_POST['id']) ? $_POST['id'] : '';
-            $result = apiCall('PUT', '/api/visits/' . $id, $data);
-            $_SESSION['message'] = $result ? 'Visit updated successfully' : 'Failed to update visit';
+            // Admins/doctors (and staff shouldn't reach here for update) get full form
+            $data = [
+                'patient_id' => isset($_POST['patient_id']) ? $_POST['patient_id'] : '',
+                'visit_date' => $visitDateForApi,
+                'visit_type' => isset($_POST['visit_type']) ? $_POST['visit_type'] : '',
+                'ent_type' => isset($_POST['ent_type']) ? $_POST['ent_type'] : 'ear',
+                'chief_complaint' => isset($_POST['chief_complaint']) ? $_POST['chief_complaint'] : '',
+                'diagnosis' => isset($_POST['diagnosis']) ? $_POST['diagnosis'] : '',
+                'treatment_plan' => isset($_POST['treatment_plan']) ? $_POST['treatment_plan'] : '',
+                'prescription' => isset($_POST['prescription']) ? $_POST['prescription'] : '',
+                'notes' => isset($_POST['notes']) ? $_POST['notes'] : '',
+                'height' => isset($_POST['height']) ? $_POST['height'] : null,
+                'weight' => isset($_POST['weight']) ? $_POST['weight'] : null,
+                'blood_pressure' => isset($_POST['blood_pressure']) ? $_POST['blood_pressure'] : null,
+                'temperature' => isset($_POST['temperature']) ? $_POST['temperature'] : null,
+                'vitals_notes' => isset($_POST['vitals_notes']) ? $_POST['vitals_notes'] : null
+            ];
+
+            if ($action === 'add_visit') {
+                $result = apiCall('POST', '/api/visits', $data);
+                $_SESSION['message'] = $result ? 'Visit added successfully' : 'Failed to add visit';
+            } else {
+                $id = isset($_POST['id']) ? $_POST['id'] : '';
+                $result = apiCall('PUT', '/api/visits/' . $id, $data);
+                $_SESSION['message'] = $result ? 'Visit updated successfully' : 'Failed to update visit';
+            }
         }
+
         $patientId = isset($_POST['patient_id']) ? $_POST['patient_id'] : '';
         redirect('/?page=patient-profile&id=' . $patientId);
     }

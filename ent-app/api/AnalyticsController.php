@@ -104,7 +104,7 @@ class AnalyticsController extends Controller
                 'end_date' => $end,
                 'days' => $days,
                 'total_visits' => 0,
-                'ent_distribution' => ['ear' => 0, 'nose' => 0, 'throat' => 0],
+                'ent_distribution' => ['ear' => 0, 'nose' => 0, 'throat' => 0, 'head_neck_tumor' => 0, 'lifestyle_medicine' => 0, 'misc' => 0],
                 'daily_series' => [], // [{date, count}, ...]
                 'weekly_counts' => [], // dow=>count
             ];
@@ -130,14 +130,10 @@ class AnalyticsController extends Controller
                 $d = $r['d'];
                 $cnt = (int)$r['c'];
                 if (isset($dates[$d])) $dates[$d] += $cnt;
-
-                // Normalize ent_type to avoid mismatches due to casing or whitespace
-                $rawType = isset($r['ent_type']) ? $r['ent_type'] : '';
-                $type = trim(strtolower($rawType ?: 'ear'));
+                $type = $r['ent_type'] ?? 'ear';
                 if (isset($descriptive['ent_distribution'][$type])) {
                     $descriptive['ent_distribution'][$type] += $cnt;
                 }
-
                 $dow = (int)$r['dow'];
                 if ($dow >= 1 && $dow <= 7) $weeklyCounts[$dow] += $cnt;
             }
