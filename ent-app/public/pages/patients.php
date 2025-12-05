@@ -409,6 +409,8 @@ $isEditing = $editId ? true : false;
 
         function openModal() {
             modal.removeAttribute('hidden');
+            // Ensure modal is exposed to assistive tech when opened
+            modal.removeAttribute('aria-hidden');
             modal.classList.add('open');
             var main = document.querySelector('.main-content');
             if (main) main.setAttribute('aria-hidden', 'true');
@@ -421,6 +423,8 @@ $isEditing = $editId ? true : false;
         function closeModal() {
             modal.classList.remove('open');
             modal.setAttribute('hidden', '');
+            // Hide modal from assistive tech when closed
+            modal.setAttribute('aria-hidden', 'true');
             var main = document.querySelector('.main-content');
             if (main) main.removeAttribute('aria-hidden');
         }
@@ -454,6 +458,8 @@ $isEditing = $editId ? true : false;
 
         // If modal already visible on load (e.g., editing), ensure it's open and focused
         if (!modal.hasAttribute('hidden')) {
+            // If the modal is visible at load, make sure aria-hidden is not present
+            modal.removeAttribute('aria-hidden');
             modal.classList.add('open');
             setTimeout(function () {
                 var first = modal.querySelector('input[name="first_name"]');
