@@ -48,6 +48,13 @@ $currentUser = $_SESSION['user'] ?? null;
                     <span>Patients</span>
                 </a>
 
+                <?php if (hasRole(['admin', 'doctor'])): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=appointments" class="nav-item <?php echo $currentPage === 'appointments' ? 'active' : ''; ?>">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Appointments</span>
+                </a>
+                <?php endif; ?>
+
                 <!-- Print Medical Certificate hidden until feature is implemented -->
                 <?php /*
                 <a href="<?php echo baseUrl(); ?>/?page=medical-certificate" class="nav-item <?php echo $currentPage === 'medical-certificate' ? 'active' : ''; ?>">

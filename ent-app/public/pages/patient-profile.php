@@ -2,6 +2,9 @@
 /**
  * Patient Profile Page - Accessible by all authenticated users
  */
+if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/../includes/helpers.php';
+
 // Get patient ID
 $patientId = isset($_GET['id']) ? $_GET['id'] : null;
 
@@ -456,6 +459,67 @@ $currentRole = $currentUser['role'] ?? '';
                 </button>
             </div>
 
+            <!-- Add Appointment Modal -->
+            <div class="modal" id="visitRedirectModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="modal-backdrop" data-modal-dismiss="visitRedirectModal"></div>
+                <div class="modal-dialog form-modal" style="max-width:600px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">
+                            <i class="fas fa-calendar-plus"></i>
+                            Add Appointment
+                        </h3>
+                        <button type="button" class="modal-close" data-modal-dismiss="visitRedirectModal" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAppointmentForm">
+                            <input type="hidden" id="appointmentPatientId" value="<?php echo $patientId; ?>" />
+                            
+                            <div class="form-group">
+                                <label class="form-label">Patient *</label>
+                                <input type="text" class="form-control" value="<?php echo e($patient['first_name'] . ' ' . ($patient['last_name'] ?? '')); ?>" disabled />
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Appointment Type *</label>
+                                <select id="appointmentType" class="form-control" required>
+                                    <option value="">Select type</option>
+                                    <option value="new_patient">New Patient</option>
+                                    <option value="follow_up">Follow-up</option>
+                                    <option value="procedure">Procedure</option>
+                                    <option value="emergency">Emergency</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Date *</label>
+                                <input type="date" id="appointmentDate" class="form-control" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Time Slot *</label>
+                                <select id="appointmentSlot" class="form-control" required>
+                                    <option value="">Select a time slot</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Notes (optional)</label>
+                                <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Add any relevant notes"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-modal-dismiss="visitRedirectModal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="submitAppointmentForm()">
+                            <i class="fas fa-calendar-check"></i>
+                            Book Appointment
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Add Visit Modal -->
             <div class="modal" id="visitModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="modal-backdrop" data-modal-dismiss="visitModal"></div>
@@ -805,14 +869,8 @@ $currentRole = $currentUser['role'] ?? '';
                                     <div class="flex gap-1">
                                         <?php if ($currentRole !== 'staff'): ?>
                                         <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=visit&visit_id=<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>" class="btn btn-sm btn-secondary btn-icon" title="Edit Visit"><i class="fas fa-edit"></i></a>
-                                        <form method="POST" action="<?php echo baseUrl(); ?>/" style="display:inline;" onsubmit="return confirm('Delete this visit?');">
-                                            <input type="hidden" name="action" value="delete_visit">
-                                            <input type="hidden" name="id" value="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
-                                            <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
-                                            <button type="submit" class="btn btn-sm btn-danger btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
-                                        </form>
                                         <?php else: ?>
-                                        <!-- Staff cannot edit/delete visits from UI -->
+                                        <!-- Staff cannot edit visits from UI -->
                                         <?php endif; ?>
                                     </div>
                                 </td>
@@ -1016,6 +1074,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('addVisitBtn');
     const addFirstBtn = document.getElementById('addFirstVisitBtn');
     const modal = document.getElementById('visitModal');
+    const redirectModal = document.getElementById('visitRedirectModal');
+    
     function setupFocusTrap(el) {
         if (!el) return;
         const focusable = Array.from(el.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'));
@@ -1067,15 +1127,49 @@ document.addEventListener('DOMContentLoaded', function() {
         removeFocusTrap(modal);
     }
 
+    function openRedirectModal() {
+        if (!redirectModal) return;
+        redirectModal.removeAttribute('hidden');
+        redirectModal.classList.add('open');
+        const main = document.querySelector('.main-content');
+        if (main) main.setAttribute('aria-hidden', 'true');
+        setupFocusTrap(redirectModal);
+    }
+
+    function closeRedirectModal() {
+        if (!redirectModal) return;
+        redirectModal.classList.remove('open');
+        redirectModal.setAttribute('hidden', '');
+        const main = document.querySelector('.main-content');
+        if (main) main.removeAttribute('aria-hidden');
+        removeFocusTrap(redirectModal);
+    }
+
     if (addFirstBtn) {
         addFirstBtn.addEventListener('click', function() {
-            openVisitModal();
+            openRedirectModal();
         });
     }
 
     if (addBtn) {
         addBtn.addEventListener('click', function() {
-            openVisitModal();
+            openRedirectModal();
+        });
+    }
+
+    if (redirectModal) {
+        redirectModal.querySelectorAll('[data-modal-dismiss="visitRedirectModal"]').forEach(function(el) {
+            el.addEventListener('click', closeRedirectModal);
+        });
+        redirectModal.addEventListener('click', function(e) {
+            if (e.target === redirectModal) {
+                e.stopPropagation();
+            }
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && redirectModal.classList.contains('open')) {
+                closeRedirectModal();
+            }
         });
     }
 
@@ -1099,8 +1193,95 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Auto-open when requested via query param (?add=visit)
     if (<?php echo $showAddVisit ? 'true' : 'false'; ?>) {
-        openVisitModal();
+        openRedirectModal();
     }
+
+    // Appointment Form Handlers
+    document.getElementById('appointmentDate').addEventListener('change', function() {
+        const date = this.value;
+        if (!date) {
+            document.getElementById('appointmentSlot').innerHTML = '<option value="">Select a time slot</option>';
+            return;
+        }
+        
+        // Fetch available slots for the selected date
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/slots&date=' + date)
+            .then(r => r.json())
+            .then(j => {
+                const slots = j.slots || [];
+                const slotSelect = document.getElementById('appointmentSlot');
+                slotSelect.innerHTML = '<option value="">Select a time slot</option>';
+                
+                if (!slots || slots.length === 0) {
+                    slotSelect.innerHTML = '<option value="">No available slots</option>';
+                    return;
+                }
+                
+                slots.filter(s => !s.booked).forEach(s => {
+                    const startTime = new Date(s.start);
+                    const endTime = new Date(s.end);
+                    const label = startTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
+                                  endTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' (' + s.type + ')';
+                    const opt = document.createElement('option');
+                    opt.value = s.start + '|' + s.end;
+                    opt.textContent = label;
+                    slotSelect.appendChild(opt);
+                });
+            })
+            .catch(err => {
+                console.error('Error loading slots:', err);
+                document.getElementById('appointmentSlot').innerHTML = '<option value="">Error loading slots</option>';
+            });
+    });
+
+    window.submitAppointmentForm = async function() {
+        const patientId = document.getElementById('appointmentPatientId').value;
+        const appointmentType = document.getElementById('appointmentType').value;
+        const slotValue = document.getElementById('appointmentSlot').value;
+        const notes = document.getElementById('appointmentNotes').value;
+
+        // Validate
+        if (!appointmentType) {
+            alert('Please select an appointment type');
+            return;
+        }
+        if (!slotValue) {
+            alert('Please select a time slot');
+            return;
+        }
+
+        const [start_at, end_at] = slotValue.split('|');
+
+        try {
+            const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    patient_id: patientId, 
+                    type: appointmentType, 
+                    start_at, 
+                    end_at, 
+                    notes 
+                })
+            });
+
+            const j = await res.json();
+            if (j.success || res.ok) {
+                alert('Appointment booked successfully!');
+                document.getElementById('addAppointmentForm').reset();
+                const modal = document.getElementById('visitRedirectModal');
+                modal.classList.remove('open');
+                modal.setAttribute('hidden', '');
+                // Optional: Reload page or refresh timeline
+                window.location.reload();
+            } else {
+                alert(j.error || 'Failed to book appointment');
+            }
+        } catch (err) {
+            console.error('Error:', err);
+            alert('Error booking appointment');
+        }
+    };
 
     // Edit Profile Modal handlers
     const editProfileModal = document.getElementById('editProfileModal');

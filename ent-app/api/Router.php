@@ -13,28 +13,35 @@ class Router
     {
         $this->method = $_SERVER['REQUEST_METHOD'];
         $this->path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        // Remove the base path
-        $this->path = str_replace('/ENT-clinic-online/ent-app/public', '', $this->path);
+        // Remove the base path (case-insensitive)
+        $basePath = str_ireplace('\\', '/', __DIR__);
+        $basePath = str_ireplace(str_ireplace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'])), '', $basePath);
         
         // Handle different URL formats:
         // 1. Clean URLs (with mod_rewrite): /api/analytics
         // 2. Direct access: /api.php/api/analytics
         // 3. Fallback: /api.php with route parameter
         
-        if (strpos($this->path, '/api.php/') === 0) {
-            // Format: /api.php/api/analytics -> /api/analytics
-            $this->path = substr($this->path, 8); // Remove '/api.php/'
-        } elseif ($this->path === '/api.php') {
+        if (strpos($this->path, '/api.php/') !== false) {
+            // Format: .../api.php/api/analytics -> /api/analytics
+            $pos = strpos($this->path, '/api.php/');
+            $this->path = substr($this->path, $pos + 8); // Remove '.../api.php/'
+        } elseif (strpos($this->path, '/api.php') !== false && strpos($this->path, '/api.php') === strlen($this->path) - 8) {
             // Format: /api.php -> check for route parameter
             if (!empty($_GET['route'])) {
                 $this->path = $_GET['route'];
             } else {
                 $this->path = '/api';
             }
+            } else {
+                // Remove base path (for clean URLs)
+                if (strpos($this->path, $basePath) === 0) {
+                    $this->path = substr($this->path, strlen($basePath));
+                }
         }
         
         if ($this->path === '' || $this->path === '/api.php') {
-            $this->path = '/';
+            $this->path = '/api';
         }
         
         // Debug logging

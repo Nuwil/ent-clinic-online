@@ -13,6 +13,8 @@ require_once __DIR__ . '/../api/AnalyticsController.php';
 require_once __DIR__ . '/../api/AuthController.php';
 require_once __DIR__ . '/../api/MedicinesController.php';
 require_once __DIR__ . '/../api/PrescriptionController.php';
+require_once __DIR__ . '/../api/AppointmentsController.php';
+require_once __DIR__ . '/../api/WaitlistController.php';
 
 $router = new Router();
 
@@ -121,6 +123,52 @@ $router->get('/api/auth/me', function () {
         echo json_encode(['error' => 'Not authenticated']);
     }
     exit;
+});
+
+// Appointments endpoints
+$router->get('/api/appointments', function () {
+    (new AppointmentsController())->index();
+});
+
+$router->post('/api/appointments', function () {
+    (new AppointmentsController())->create();
+});
+
+$router->post('/api/appointments/:id/accept', function ($id) {
+    (new AppointmentsController())->accept($id);
+});
+
+$router->post('/api/appointments/:id/complete', function ($id) {
+    (new AppointmentsController())->complete($id);
+});
+
+$router->put('/api/appointments/:id/reschedule', function ($id) {
+    (new AppointmentsController())->reschedule($id);
+});
+
+$router->post('/api/appointments/:id/cancel', function ($id) {
+    (new AppointmentsController())->cancel($id);
+});
+
+$router->get('/api/appointments/slots', function () {
+    (new AppointmentsController())->slots();
+});
+
+// Waitlist endpoints
+$router->get('/api/waitlist', function () {
+    (new WaitlistController())->index();
+});
+
+$router->post('/api/waitlist', function () {
+    (new WaitlistController())->add();
+});
+
+$router->delete('/api/waitlist/:id', function ($id) {
+    (new WaitlistController())->remove($id);
+});
+
+$router->post('/api/waitlist/:id/notify', function ($id) {
+    (new WaitlistController())->notify($id);
 });
 
 $router->dispatch();

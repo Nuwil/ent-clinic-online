@@ -157,6 +157,7 @@ function getCurrentPage() {
     $allowedPages = [
         'patients',
         'patient-profile',
+        'appointments',
         'analytics',
         'settings',
         'admin',    // admin dashboard
@@ -409,8 +410,8 @@ function canAccessPage($page) {
     
     // Define page access rules
     $pageAccess = [
-        'admin' => ['admin', 'patients', 'patient-profile', 'analytics', 'settings', 'medical-certificate'],
-        'doctor' => ['doctor', 'patients', 'patient-profile', 'analytics', 'medical-certificate'],
+        'admin' => ['admin', 'patients', 'patient-profile', 'appointments', 'analytics', 'settings', 'medical-certificate'],
+        'doctor' => ['doctor', 'patients', 'patient-profile', 'appointments', 'analytics', 'medical-certificate'],
         'staff' => ['staff', 'patients', 'patient-profile', 'medical-certificate']
     ];
     
@@ -425,8 +426,8 @@ function getAllowedPages() {
     if (!$role) return [];
     
     $pageAccess = [
-        'admin' => ['admin', 'patients', 'patient-profile', 'analytics', 'settings'],
-        'doctor' => ['doctor', 'patients', 'patient-profile', 'analytics'],
+        'admin' => ['admin', 'patients', 'patient-profile', 'appointments', 'analytics', 'settings'],
+        'doctor' => ['doctor', 'patients', 'patient-profile', 'appointments', 'analytics'],
         'staff' => ['staff', 'patients', 'patient-profile']
     ];
     
