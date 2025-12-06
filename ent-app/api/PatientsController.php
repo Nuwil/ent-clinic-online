@@ -149,6 +149,20 @@ class PatientsController extends Controller
                 }
             }
 
+            // Ensure we only insert columns that actually exist in the patients table.
+            $existingCols = [];
+            $colStmt = $this->db->query("SHOW COLUMNS FROM patients");
+            $cols = $colStmt->fetchAll();
+            foreach ($cols as $c) {
+                if (isset($c['Field'])) $existingCols[] = $c['Field'];
+            }
+
+            $data = array_intersect_key($data, array_flip($existingCols));
+
+            if (empty($data)) {
+                $this->error('No valid patient fields provided for insert', 400);
+            }
+
             $columns = implode(',', array_keys($data));
             $placeholders = implode(',', array_fill(0, count($data), '?'));
             $sql = "INSERT INTO patients ($columns) VALUES ($placeholders)";
@@ -192,6 +206,15 @@ class PatientsController extends Controller
                     $data[$field] = $input[$field];
                 }
             }
+
+            // Filter update fields by actual patients table columns
+            $existingCols = [];
+            $colStmt = $this->db->query("SHOW COLUMNS FROM patients");
+            $cols = $colStmt->fetchAll();
+            foreach ($cols as $c) {
+                if (isset($c['Field'])) $existingCols[] = $c['Field'];
+            }
+            $data = array_intersect_key($data, array_flip($existingCols));
 
             // If height and weight provided compute BMI; also set vitals_updated_at if any vitals provided
             if ((isset($input['height']) && $input['height'] !== '') || (isset($input['weight']) && $input['weight'] !== '') ) {

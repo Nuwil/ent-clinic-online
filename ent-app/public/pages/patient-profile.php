@@ -1030,6 +1030,9 @@ $currentRole = $currentUser['role'] ?? '';
     }
 }
 
+/* TEMPORARY: hide appointment scheduling UI while using quick-duplicate behavior */
+#visitRedirectModal { display: none !important; }
+
 .timeline-header h4 {
     margin: 0;
     font-size: 1.125rem;
@@ -1145,15 +1148,69 @@ document.addEventListener('DOMContentLoaded', function() {
         removeFocusTrap(redirectModal);
     }
 
+    // Duplicate latest visit row and append to timeline (client-side only)
+    function duplicateLatestVisit() {
+        try {
+            const tbody = document.querySelector('.table-container table tbody');
+            // If there's no table (no visits yet), create a minimal table row area
+            if (!tbody) {
+                // fallback: open visit modal to let user add first visit
+                if (modal) openVisitModal();
+                return;
+            }
+
+            // Choose the first row as the latest visit (page renders latest first)
+            const firstRow = tbody.querySelector('tr');
+            let newRow;
+            if (firstRow) {
+                newRow = firstRow.cloneNode(true);
+                // clear any visit-specific ids so client won't try to fetch server data
+                newRow.querySelectorAll('[data-visit-id]').forEach(el => el.setAttribute('data-visit-id', ''));
+                // assign a temporary data attribute to mark it as a duplicated client-side row
+                newRow.setAttribute('data-visit-id', 'dup-' + Date.now());
+                // Update the first cell (Date & Time) to now
+                const dateCell = newRow.querySelector('td');
+                if (dateCell) dateCell.textContent = new Date().toLocaleString();
+            } else {
+                // no existing row — build a tiny placeholder row
+                newRow = document.createElement('tr');
+                newRow.setAttribute('data-visit-id', 'dup-' + Date.now());
+                const now = new Date().toLocaleString();
+                newRow.innerHTML = `
+                    <td>${now}</td>
+                    <td>Consultation</td>
+                    <td>-</td>
+                    <td>Duplicated visit</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td>—</td>
+                    <td class="prescription-cell" data-visit-id=""></td>
+                    <td>—</td>
+                    <td></td>
+                `;
+            }
+
+            // Append the new row to the top of the tbody so it appears as the latest
+            tbody.insertBefore(newRow, tbody.firstChild);
+            // Optionally, flash the row or scroll into view
+            newRow.style.background = '#fffbe6';
+            setTimeout(() => { newRow.style.background = ''; }, 1600);
+        } catch (err) {
+            console.error('Failed to duplicate latest visit:', err);
+        }
+    }
+
     if (addFirstBtn) {
         addFirstBtn.addEventListener('click', function() {
-            openRedirectModal();
+            // Open the Add Visit modal (chief complaint, diagnosis, prescription, etc.)
+            if (typeof openVisitModal === 'function') openVisitModal();
         });
     }
 
     if (addBtn) {
         addBtn.addEventListener('click', function() {
-            openRedirectModal();
+            // Open the Add Visit modal (chief complaint, diagnosis, prescription, etc.)
+            if (typeof openVisitModal === 'function') openVisitModal();
         });
     }
 
