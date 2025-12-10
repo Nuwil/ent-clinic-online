@@ -1,7 +1,10 @@
 <?php
-// Enhanced Appointments page - calendar/day view with drag-to-reschedule and waitlist management
+// Enhanced Appointments page - calendar/day view with drag-to-reschedule
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../includes/helpers.php';
+
+// Verify user is admin or doctor
+requireRole(['admin', 'doctor']);
 
 $userRole = getCurrentUserRole();
 $isDoctorOrAdmin = in_array($userRole, ['doctor', 'admin']);
@@ -12,7 +15,7 @@ $selected = $_GET['date'] ?? date('Y-m-d');
     <div class="flex flex-between mb-3">
         <div>
             <h2>Appointments & Schedule</h2>
-            <p class="text-muted">View and manage appointments, reschedule, and manage waitlist</p>
+            <p class="text-muted">View and manage appointments and reschedule</p>
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
             <button id="addAppointmentBtn" class="btn btn-primary" onclick="openBookModal()">
@@ -26,38 +29,25 @@ $selected = $_GET['date'] ?? date('Y-m-d');
         </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tabs" style="margin-bottom:20px; border-bottom:1px solid #ddd;">
-        <button class="tab-btn active" data-tab="calendar" style="padding:12px 20px; border:none; background:none; cursor:pointer; font-weight:600; border-bottom:3px solid #667eea;">Calendar/Day View</button>
-        <button class="tab-btn" data-tab="list" style="padding:12px 20px; border:none; background:none; cursor:pointer;">List View</button>
-        <button class="tab-btn" data-tab="waitlist" style="padding:12px 20px; border:none; background:none; cursor:pointer;">Waitlist</button>
-    </div>
+    <!-- Split View: Calendar on left, List on right -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 600px;">
+        <!-- Calendar/Day View (Left) -->
+        <div>
+            <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem;">Calendar View</h3>
+            <div id="dayViewContainer" style="background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:20px; min-height:550px;">
+                <div style="text-align:center; color:#999;">Loading schedule...</div>
+            </div>
+            <div id="dragHint" style="margin-top:12px; color:#666; font-size:0.9rem;">
+                <i class="fas fa-info-circle"></i> Click on available slots to book
+            </div>
+        </div>
 
-    <!-- Calendar/Day View Tab -->
-    <div id="calendar-tab" class="tab-content" style="display:block;">
-        <div id="dayViewContainer" style="background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:20px; min-height:600px;">
-            <div style="text-align:center; color:#999;">Loading schedule...</div>
-        </div>
-        <div id="dragHint" style="margin-top:12px; color:#666; font-size:0.9rem;">
-            <i class="fas fa-info-circle"></i> Click on available slots to book; click Reschedule to move scheduled appointments
-        </div>
-    </div>
-
-    <!-- List View Tab -->
-    <div id="list-tab" class="tab-content" style="display:none;">
-        <div id="listViewContainer" style="display:flex; flex-direction:column; gap:12px;">
-            <div style="text-align:center; color:#999;">Loading...</div>
-        </div>
-    </div>
-
-    <!-- Waitlist Tab -->
-    <div id="waitlist-tab" class="tab-content" style="display:none;">
-        <div style="margin-bottom:16px;">
-            <h3>Waitlist</h3>
-            <p class="text-muted">Patients waiting for appointments</p>
-        </div>
-        <div id="waitlistContainer" style="display:flex; flex-direction:column; gap:12px;">
-            <div style="text-align:center; color:#999;">Loading waitlist...</div>
+        <!-- List View (Right) -->
+        <div>
+            <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem;">Appointments List</h3>
+            <div id="listViewContainer" style="display:flex; flex-direction:column; gap:12px; max-height:600px; overflow-y:auto; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #f9f9f9;">
+                <div style="text-align:center; color:#999;">Loading appointments...</div>
+            </div>
         </div>
     </div>
 
@@ -125,13 +115,19 @@ $selected = $_GET['date'] ?? date('Y-m-d');
 
     <!-- Complete Appointment Modal (Doctor completes visit and creates visit record) -->
     <div id="completeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-        <div style="background:#fff; border-radius:8px; padding:24px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto;">
+        <div style="background:#fff; border-radius:8px; padding:24px; max-width:700px; width:90%; max-height:85vh; overflow-y:auto;">
             <h3>Complete Appointment & Record Visit</h3>
             <p style="color:#666; font-size:0.9rem;">This will mark the appointment as completed and create a visit record in the patient's timeline.</p>
             <form id="completeForm">
                 <input type="hidden" id="completeId" />
+                
                 <div class="form-group">
-                    <label>ENT Classification *</label>
+                    <label>Chief Complaint *</label>
+                    <textarea id="completeChiefComplaint" class="form-control" rows="2" required placeholder="What is the patient's main complaint?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Type of ENT *</label>
                     <select id="completeEntType" class="form-control" required>
                         <option value="">Select classification</option>
                         <option value="ear">Ear Issues</option>
@@ -142,18 +138,32 @@ $selected = $_GET['date'] ?? date('Y-m-d');
                         <option value="misc">Other/Misc</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label>Diagnosis *</label>
                     <textarea id="completeDiagnosis" class="form-control" rows="3" required placeholder="Enter diagnosis or findings"></textarea>
                 </div>
+
                 <div class="form-group">
                     <label>Treatment/Procedure *</label>
                     <textarea id="completeTreatment" class="form-control" rows="3" required placeholder="Enter treatment, procedure, or recommendations"></textarea>
                 </div>
+
+                <div class="form-group">
+                    <label>Plan *</label>
+                    <textarea id="completePlan" class="form-control" rows="2" required placeholder="Follow-up plan, next steps, or referrals"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Prescription (optional)</label>
+                    <textarea id="completePrescription" class="form-control" rows="3" placeholder="Medicine name | Dosage | Frequency | Duration&#10;e.g., Amoxicillin | 500mg | 3x daily | 7 days"></textarea>
+                </div>
+
                 <div class="form-group">
                     <label>Additional Notes (optional)</label>
                     <textarea id="completeNotes" class="form-control" rows="2" placeholder="Any additional notes or observations"></textarea>
                 </div>
+
                 <div style="display:flex; gap:8px; justify-content:flex-end;">
                     <button type="button" class="btn btn-secondary" onclick="closeCompleteModal()">Cancel</button>
                     <button type="submit" class="btn btn-success">Complete & Record Visit</button>
@@ -186,7 +196,6 @@ $selected = $_GET['date'] ?? date('Y-m-d');
 .appointment-slot.available { background: #4caf50; color: white; cursor: pointer; }
 
 .day-hour { font-weight: 600; color: #333; margin-top: 20px; margin-bottom: 8px; }
-.waitlist-item { padding: 12px; background: #f5f5f5; border-left: 4px solid #ff9800; border-radius: 4px; }
 </style>
 
 <script>
@@ -194,7 +203,6 @@ let currentDate = '<?php echo e($selected); ?>';
 const isDoctorOrAdmin = <?php echo $isDoctorOrAdmin ? 'true' : 'false'; ?>;
 let allSlots = [];
 let allAppointments = [];
-let allWaitlist = [];
 
 function loadPatients() {
     return fetch('<?php echo baseUrl(); ?>/api.php?route=/api/patients&limit=999')
@@ -233,16 +241,6 @@ function loadAppointments(date) {
             allAppointments = j.appointments || [];
             return allAppointments;
         });
-}
-
-function loadWaitlist() {
-    return fetch('<?php echo baseUrl(); ?>/api.php?route=/api/waitlist')
-        .then(r => r.json())
-        .then(j => {
-            allWaitlist = j.waitlist || [];
-            return allWaitlist;
-        })
-        .catch(() => { allWaitlist = []; return []; });
 }
 
 function renderDayView(date) {
@@ -285,17 +283,17 @@ function renderDayView(date) {
                         if (apt) {
                             let statusBadge = '<span style="font-size:0.8rem; margin-left:8px;">(' + apt.status + ')</span>';
                             let buttons = '';
-                            if (apt.status === 'scheduled') {
+                            if (apt.status === 'Pending') {
                                 buttons = ' <button type="button" class="btn btn-xs btn-primary" onclick="acceptAppointment(' + apt.id + ')">Accept</button>' +
                                          ' <button type="button" class="btn btn-xs" onclick="openRescheduleModal(' + apt.id + ')">Reschedule</button>' +
                                          ' <button type="button" class="btn btn-xs btn-danger" onclick="cancelAppt(' + apt.id + ')">Cancel</button>';
-                            } else if (apt.status === 'accepted') {
+                            } else if (apt.status === 'Accepted') {
                                 buttons = ' <button type="button" class="btn btn-xs btn-success" onclick="openCompleteModal(' + apt.id + ')">Complete</button>' +
                                          ' <button type="button" class="btn btn-xs" onclick="openRescheduleModal(' + apt.id + ')">Reschedule</button>' +
                                          ' <button type="button" class="btn btn-xs btn-danger" onclick="cancelAppt(' + apt.id + ')">Cancel</button>';
-                            } else if (apt.status === 'completed') {
+                            } else if (apt.status === 'Completed') {
                                 statusBadge = '<span style="font-size:0.8rem; margin-left:8px; color:#0f5132; font-weight:600;">✓ Completed</span>';
-                            } else if (apt.status === 'cancelled') {
+                            } else if (apt.status === 'Cancelled') {
                                 statusBadge = '<span style="font-size:0.8rem; margin-left:8px; color:#842029; font-weight:600;">✗ Cancelled</span>';
                             }
                             action = statusBadge + buttons;
@@ -328,40 +326,41 @@ function renderListView(date) {
             const timeStr = start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
                             end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-            // Status badge colors
+            // Status badge colors (case-insensitive)
             let statusBgColor = '#e0e0e0';
             let statusTextColor = '#333';
-            if (apt.status === 'scheduled') {
+            const st = (apt.status || 'Pending').toString().toLowerCase();
+            if (st === 'pending') {
                 statusBgColor = '#fff3cd';
                 statusTextColor = '#856404';
-            } else if (apt.status === 'accepted') {
+            } else if (st === 'accepted') {
                 statusBgColor = '#cfe2ff';
                 statusTextColor = '#084298';
-            } else if (apt.status === 'completed') {
+            } else if (st === 'completed') {
                 statusBgColor = '#d1e7dd';
                 statusTextColor = '#0f5132';
-            } else if (apt.status === 'cancelled') {
+            } else if (st === 'cancelled') {
                 statusBgColor = '#f8d7da';
                 statusTextColor = '#842029';
             }
 
-            // Build action buttons based on status
+            // Build action buttons based on status (case-insensitive)
             let actionButtons = '';
-            if (apt.status === 'scheduled') {
+            if (st === 'pending') {
                 actionButtons = `
                     <button class="btn btn-sm btn-primary" onclick="acceptAppointment(${apt.id})">Accept</button>
                     <button class="btn btn-sm" onclick="openRescheduleModal(${apt.id})">Reschedule</button>
                     <button class="btn btn-sm btn-danger" onclick="cancelAppt(${apt.id})">Cancel</button>
                 `;
-            } else if (apt.status === 'accepted') {
+            } else if (st === 'accepted') {
                 actionButtons = `
                     <button class="btn btn-sm btn-success" onclick="openCompleteModal(${apt.id})">Complete & Record</button>
                     <button class="btn btn-sm" onclick="openRescheduleModal(${apt.id})">Reschedule</button>
                     <button class="btn btn-sm btn-danger" onclick="cancelAppt(${apt.id})">Cancel</button>
                 `;
-            } else if (apt.status === 'completed') {
+            } else if (st === 'completed') {
                 actionButtons = '<span style="color:#0f5132; font-weight:600;">✓ Completed</span>';
-            } else if (apt.status === 'cancelled') {
+            } else if (st === 'cancelled') {
                 actionButtons = '<span style="color:#842029; font-weight:600;">✗ Cancelled</span>';
             }
 
@@ -374,32 +373,6 @@ function renderListView(date) {
                     </div>
                     <div style="display:flex; gap:8px;">
                         ${actionButtons}
-                    </div>
-                </div>
-            `;
-        });
-    });
-}
-
-function renderWaitlist() {
-    loadWaitlist().then(list => {
-        const container = document.getElementById('waitlistContainer');
-        container.innerHTML = '';
-
-        if (list.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#999;">Waitlist is empty.</p>';
-            return;
-        }
-
-        list.forEach((item, idx) => {
-            container.innerHTML += `
-                <div class="waitlist-item">
-                    <div><strong>#${idx+1} - Patient #${item.patient_id}</strong></div>
-                    <div style="color:#666; font-size:0.9rem;">${item.reason || 'No reason specified'}</div>
-                    <small style="color:#999;">${new Date(item.created_at).toLocaleDateString()}</small>
-                    <div style="margin-top:8px;">
-                        <button class="btn btn-sm" onclick="notifyWaitlistPatient(${item.patient_id})">Notify Patient</button>
-                        <button class="btn btn-sm btn-danger" onclick="removeFromWaitlist(${item.id})">Remove</button>
                     </div>
                 </div>
             `;
@@ -522,6 +495,25 @@ document.getElementById('bookForm').addEventListener('submit', async function(e)
     submitBtn.textContent = 'Book';
 });
 
+// Helper to format API error responses into readable strings
+function formatApiError(resp) {
+    if (!resp) return null;
+    if (resp.error) {
+        if (typeof resp.error === 'object') {
+            try {
+                if (Array.isArray(resp.error)) return resp.error.join('\n');
+                const values = Object.values(resp.error).flat();
+                return values.join('\n') || JSON.stringify(resp.error);
+            } catch (ex) {
+                return JSON.stringify(resp.error);
+            }
+        }
+        return String(resp.error);
+    }
+    if (resp.message) return String(resp.message);
+    try { return JSON.stringify(resp); } catch (ex) { return String(resp); }
+}
+
 document.getElementById('rescheduleForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const aptId = document.getElementById('rescheduleId').value;
@@ -540,7 +532,7 @@ document.getElementById('rescheduleForm').addEventListener('submit', async funct
         renderDayView(currentDate);
         renderListView(currentDate);
     } else {
-        alert(j.error || 'Reschedule failed');
+        alert(formatApiError(j) || 'Reschedule failed');
     }
 });
 
@@ -562,26 +554,39 @@ async function acceptAppointment(aptId) {
     });
     const j = await res.json();
     if (j.success || res.ok) {
-        alert('Appointment accepted!');
+        // Open the Visit Modal to record the visit
+        openCompleteModal(aptId);
         renderDayView(currentDate);
         renderListView(currentDate);
     } else {
-        alert(j.error || 'Failed to accept appointment');
+        alert(formatApiError(j) || 'Failed to accept appointment');
     }
 }
 
 document.getElementById('completeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const aptId = document.getElementById('completeId').value;
+    const chiefComplaint = document.getElementById('completeChiefComplaint').value;
     const ent_type = document.getElementById('completeEntType').value;
     const diagnosis = document.getElementById('completeDiagnosis').value;
     const treatment = document.getElementById('completeTreatment').value;
+    const plan = document.getElementById('completePlan').value;
+    const prescription = document.getElementById('completePrescription').value;
     const notes = document.getElementById('completeNotes').value;
 
     const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ent_type, diagnosis, treatment, prescription_items: [], notes })
+        body: JSON.stringify({ 
+            chief_complaint: chiefComplaint,
+            ent_type, 
+            diagnosis, 
+            treatment, 
+            plan,
+            prescription,
+            prescription_items: [], 
+            notes 
+        })
     });
     const j = await res.json();
     if (j.success || res.ok) {
@@ -590,7 +595,7 @@ document.getElementById('completeForm').addEventListener('submit', async functio
         renderDayView(currentDate);
         renderListView(currentDate);
     } else {
-        alert(j.error || 'Failed to complete appointment');
+        alert(formatApiError(j) || 'Failed to complete appointment');
     }
 });
 
@@ -605,39 +610,7 @@ async function cancelAppt(aptId) {
     }
 }
 
-async function notifyWaitlistPatient(patientId) {
-    const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/waitlist/' + patientId + '/notify', { method: 'POST' });
-    const j = await res.json();
-    if (j.success || res.ok) {
-        alert('Notification sent!');
-    } else {
-        alert(j.error || 'Failed to notify');
-    }
-}
-
-async function removeFromWaitlist(itemId) {
-    const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/waitlist/' + itemId, { method: 'DELETE' });
-    const j = await res.json();
-    if (j.success || res.ok) {
-        alert('Removed from waitlist');
-        renderWaitlist();
-    }
-}
-
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-        this.classList.add('active');
-        const tab = this.dataset.tab;
-        document.getElementById(tab + '-tab').style.display = 'block';
-        if (tab === 'list') renderListView(currentDate);
-        else if (tab === 'waitlist') renderWaitlist();
-    });
-});
-
-// Date navigation
+// Date navigation - Load both views when date changes
 document.getElementById('datePicker').addEventListener('change', function() {
     currentDate = this.value;
     renderDayView(currentDate);
@@ -786,5 +759,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // Set initial disabled state
     validateBookForm();
 });
+// Load both views on page load
 renderDayView(currentDate);
+renderListView(currentDate);
 </script>

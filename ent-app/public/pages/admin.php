@@ -87,22 +87,6 @@ $currentUser = getCurrentUser();
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">
-                    <i class="fas fa-chart-line"></i>
-                    Analytics & Forecasting
-                </h3>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">View comprehensive clinic analytics, visit trends, and predictive forecasting.</p>
-                <a href="<?php echo baseUrl(); ?>/?page=analytics" class="btn btn-primary">
-                    <i class="fas fa-arrow-right"></i>
-                    View Analytics
-                </a>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
                     <i class="fas fa-users"></i>
                     Patient Management
                 </h3>

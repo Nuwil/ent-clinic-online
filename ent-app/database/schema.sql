@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(150),
-    role ENUM('admin', 'doctor', 'staff') DEFAULT 'staff',
+    role ENUM('admin', 'doctor', 'staff', 'secretary') DEFAULT 'staff',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -91,8 +91,13 @@ CREATE TABLE IF NOT EXISTS appointments (
     appointment_date DATETIME NOT NULL,
     appointment_type VARCHAR(100),
     duration INT,
-    status ENUM('scheduled', 'completed', 'cancelled', 'no-show') DEFAULT 'scheduled',
+    status ENUM('Pending', 'Accepted', 'Completed', 'Cancelled', 'No-Show') DEFAULT 'Pending',
     notes TEXT,
+    blood_pressure VARCHAR(20),
+    temperature DECIMAL(4,1),
+    pulse_rate INT,
+    respiratory_rate INT,
+    oxygen_saturation INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
@@ -156,6 +161,7 @@ CREATE TABLE IF NOT EXISTS medicines (
 CREATE TABLE IF NOT EXISTS patient_visits (
     id INT PRIMARY KEY AUTO_INCREMENT,
     patient_id INT NOT NULL,
+    appointment_id INT,
     visit_date DATETIME NOT NULL,
     visit_type VARCHAR(100),
     ent_type ENUM('ear', 'nose', 'throat', 'head_neck_tumor', 'lifestyle_medicine', 'misc') DEFAULT 'ear',
@@ -168,13 +174,18 @@ CREATE TABLE IF NOT EXISTS patient_visits (
     weight DECIMAL(5,2),
     blood_pressure VARCHAR(20),
     temperature DECIMAL(4,1),
+    pulse_rate INT,
+    respiratory_rate INT,
+    oxygen_saturation INT,
     vitals_notes TEXT,
     doctor_id INT,
     doctor_name VARCHAR(150),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
     INDEX idx_patient_id (patient_id),
+    INDEX idx_appointment_id (appointment_id),
     INDEX idx_visit_date (visit_date)
 );
 
@@ -214,3 +225,51 @@ CREATE TABLE IF NOT EXISTS prescription_items (
     INDEX idx_patient_id_presc (patient_id),
     INDEX idx_visit_id_presc (visit_id)
 );
+
+-- ============================================================================
+-- MIGRATION: Waitlist & Appointment Types (from appointments_schema.sql)
+-- ============================================================================
+-- Support tables for appointment scheduling and waitlist management
+
+CREATE TABLE IF NOT EXISTS waitlist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    reason VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    INDEX idx_patient_id (patient_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Appointment types reference: defines appointment type options
+CREATE TABLE IF NOT EXISTS appointment_types (
+    `key` VARCHAR(50) PRIMARY KEY,
+    `label` VARCHAR(100) NOT NULL,
+    `duration_minutes` INT NOT NULL,
+    `buffer_minutes` INT NOT NULL,
+    `daily_max` INT DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Seed common appointment types
+INSERT IGNORE INTO `appointment_types` (`key`,`label`,`duration_minutes`,`buffer_minutes`,`daily_max`) VALUES
+('new_patient','New Patient',30,10,4),
+('follow_up','Follow-up',15,5,10),
+('procedure','Procedure',45,15,2),
+('emergency','Emergency',0,0,NULL);
+
+-- ============================================================================
+-- NOTES ON MIGRATIONS
+-- ============================================================================
+-- The following migrations have been integrated into the main schema above:
+--
+-- 1. add_vitals_to_appointments.sql
+--    The vitals columns (blood_pressure, temperature, pulse_rate, respiratory_rate,
+--    oxygen_saturation) are already included in the appointments and patient_visits
+--    table definitions.
+--
+-- 2. migrations_add_accepted_status.sql
+--    The appointments status ENUM already includes 'Accepted' status.
+--    Schema: ENUM('Pending', 'Accepted', 'Completed', 'Cancelled', 'No-Show')
+--
+-- 3. migrations/add_appointment_id_to_visits.sql
+--    The appointment_id foreign key is already included in the patient_visits
+--    table definition, linking visits to their originating appointments.

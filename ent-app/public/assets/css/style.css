@@ -306,7 +306,6 @@ body {
     width: min(960px, 96vw);
     background: #e5e7eb;
     border-radius: 10px;
-    padding: 1.5rem 1.75rem 1.5rem;
 }
 
 .modal-header {
@@ -344,6 +343,12 @@ body {
 .modal-body {
     padding: 1.25rem;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.modal-dialog.form-modal .modal-body {
+    padding: 1.5rem 1.75rem;
 }
 
 .modal-footer {
@@ -352,6 +357,10 @@ body {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
+}
+
+.modal-dialog.form-modal .modal-footer {
+    padding: 1rem 1.75rem;
 }
 
 /* Larger CTA buttons for modals */

@@ -48,7 +48,7 @@ $currentUser = $_SESSION['user'] ?? null;
                     <span>Patients</span>
                 </a>
 
-                <?php if (hasRole(['admin', 'doctor'])): ?>
+                <?php if (hasRole(['admin', 'doctor', 'secretary'])): ?>
                 <a href="<?php echo baseUrl(); ?>/?page=appointments" class="nav-item <?php echo $currentPage === 'appointments' ? 'active' : ''; ?>">
                     <i class="fas fa-calendar-check"></i>
                     <span>Appointments</span>
@@ -62,13 +62,6 @@ $currentUser = $_SESSION['user'] ?? null;
                     <span>Print Medical Certificate</span>
                 </a>
                 */ ?>
-                
-                <?php if (hasRole(['admin', 'doctor'])): ?>
-                <a href="<?php echo baseUrl(); ?>/?page=analytics" class="nav-item <?php echo $currentPage === 'analytics' ? 'active' : ''; ?>">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Analytics</span>
-                </a>
-                <?php endif; ?>
                 
                 <?php if (hasRole('admin')): ?>
                 <a href="<?php echo baseUrl(); ?>/?page=settings" class="nav-item <?php echo $currentPage === 'settings' ? 'active' : ''; ?>">

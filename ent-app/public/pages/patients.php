@@ -123,18 +123,7 @@ $isEditing = $editId ? true : false;
                                 <small style="color:#666;">BMI is calculated from Height &amp; Weight</small>
                             </div>
                         </div>
-                        <div class="form-group-name">
-                            <div class="form-group">
-                                <label class="form-label">Blood Pressure (mmHg)</label>
-                                <input type="text" name="blood_pressure" class="form-control" placeholder="e.g., 120/80"
-                                    value="<?php echo e(isset($editPatient['blood_pressure']) && $editPatient['blood_pressure'] ? $editPatient['blood_pressure'] : ''); ?>" />
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Temperature (°C)</label>
-                                <input type="number" name="temperature" class="form-control" step="0.1" min="35" max="42"
-                                    placeholder="e.g., 37.5" value="<?php echo e(isset($editPatient['temperature']) && $editPatient['temperature'] ? $editPatient['temperature'] : ''); ?>" />
-                            </div>
-                        </div>
+                        <!-- Blood Pressure and Temperature removed from Add Patient form; recorded only on Visits/Appointments -->
                         <div class="form-group">
                             <label class="form-label">Phone</label>
                             <input type="tel" name="phone" class="form-control"

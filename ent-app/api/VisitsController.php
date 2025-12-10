@@ -75,14 +75,14 @@ class VisitsController extends Controller
                     'patient_id' => 'required|numeric',
                     'visit_date' => 'required'
                 ];
-                $allowedFields = ['patient_id', 'visit_date', 'chief_complaint', 'height', 'weight', 'blood_pressure', 'temperature', 'vitals_notes'];
+                $allowedFields = ['patient_id', 'appointment_id', 'visit_date', 'chief_complaint', 'height', 'weight', 'blood_pressure', 'temperature', 'vitals_notes'];
             } else {
                 $rules = [
                     'patient_id' => 'required|numeric',
                     'visit_date' => 'required',
                     'visit_type' => 'required',
                 ];
-                $allowedFields = ['patient_id','visit_date','visit_type','ent_type','chief_complaint','diagnosis','treatment_plan','prescription','notes','height','weight','blood_pressure','temperature','vitals_notes','doctor_id'];
+                $allowedFields = ['patient_id','appointment_id','visit_date','visit_type','ent_type','chief_complaint','diagnosis','treatment_plan','prescription','notes','height','weight','blood_pressure','temperature','vitals_notes','doctor_id'];
             }
 
             $errors = $this->validate($input, $rules);

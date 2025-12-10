@@ -94,6 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'date_of_birth' => $_POST['date_of_birth'] ?? '',
             'medical_history' => $_POST['medical_history'] ?? '',
             'occupation' => $_POST['occupation'] ?? '',
+            'height' => isset($_POST['height']) ? $_POST['height'] : null,
+            'weight' => isset($_POST['weight']) ? $_POST['weight'] : null,
+            'bmi' => isset($_POST['bmi']) ? $_POST['bmi'] : null,
             'address' => $_POST['address'] ?? '',
             'city' => $_POST['city'] ?? '',
             'state' => $_POST['state'] ?? '',
@@ -183,10 +186,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Build data payload depending on role
         $role = $currentUser['role'] ?? '';
+        $appointmentId = isset($_POST['appointment_id']) && $_POST['appointment_id'] ? $_POST['appointment_id'] : null;
+        
         if ($role === 'staff' && $action === 'add_visit') {
             // Secretaries may only add basic visit with chief complaint and vitals
             $data = [
                 'patient_id' => isset($_POST['patient_id']) ? $_POST['patient_id'] : '',
+                'appointment_id' => $appointmentId,
                 'visit_date' => $visitDateForApi,
                 'chief_complaint' => isset($_POST['chief_complaint']) ? $_POST['chief_complaint'] : '',
                 'height' => isset($_POST['height']) ? $_POST['height'] : null,
@@ -196,11 +202,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'vitals_notes' => isset($_POST['vitals_notes']) ? $_POST['vitals_notes'] : null
             ];
             $result = apiCall('POST', '/api/visits', $data);
+            // Mark the appointment as Completed if visit was created successfully and appointment_id was provided
+            if ($result && $appointmentId) {
+                apiCall('POST', '/api/appointments/' . $appointmentId . '/complete', []);
+            }
             $_SESSION['message'] = $result ? 'Visit (chief complaint) added successfully' : 'Failed to add visit';
         } else {
             // Admins/doctors (and staff shouldn't reach here for update) get full form
             $data = [
                 'patient_id' => isset($_POST['patient_id']) ? $_POST['patient_id'] : '',
+                'appointment_id' => $appointmentId,
                 'visit_date' => $visitDateForApi,
                 'visit_type' => isset($_POST['visit_type']) ? $_POST['visit_type'] : '',
                 'ent_type' => isset($_POST['ent_type']) ? $_POST['ent_type'] : 'ear',
@@ -218,6 +229,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($action === 'add_visit') {
                 $result = apiCall('POST', '/api/visits', $data);
+                // Mark the appointment as Completed if visit was created successfully and appointment_id was provided
+                if ($result && $appointmentId) {
+                    apiCall('POST', '/api/appointments/' . $appointmentId . '/complete', []);
+                }
                 $_SESSION['message'] = $result ? 'Visit added successfully' : 'Failed to add visit';
             } else {
                 $id = isset($_POST['id']) ? $_POST['id'] : '';
@@ -254,7 +269,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'occupation' => isset($_POST['occupation']) ? $_POST['occupation'] : '',
             'date_of_birth' => isset($_POST['date_of_birth']) ? $_POST['date_of_birth'] : '',
             'gender' => isset($_POST['gender']) ? $_POST['gender'] : '',
-            'medical_history' => isset($_POST['medical_history']) ? $_POST['medical_history'] : ''
+            'medical_history' => isset($_POST['medical_history']) ? $_POST['medical_history'] : '',
+            'height' => isset($_POST['height']) ? $_POST['height'] : null,
+            'weight' => isset($_POST['weight']) ? $_POST['weight'] : null,
+            'bmi' => isset($_POST['bmi']) ? $_POST['bmi'] : null
         ];
         
         $id = isset($_POST['id']) ? $_POST['id'] : '';

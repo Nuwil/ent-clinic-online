@@ -212,109 +212,79 @@ $currentRole = $currentUser['role'] ?? '';
                     <h2 class="modal-title">Edit Patient Profile</h2>
                     <button type="button" class="modal-close" id="closeEditProfileModal" aria-label="Close modal">&times;</button>
                 </div>
-                <form id="editProfileForm" method="POST" action="<?php echo baseUrl(); ?>/">
-                    <div class="modal-body">
+                <div class="modal-body">
+                    <form id="editProfileForm" method="POST" action="<?php echo baseUrl(); ?>/">
                         <input type="hidden" name="action" value="update_patient_profile">
                         <input type="hidden" name="id" value="<?php echo $patientId; ?>">
                         
-                        <div class="form-group">
-                            <label class="form-label">First Name *</label>
-                            <input type="text" name="first_name" class="form-control" 
-                                   value="<?php echo e(isset($patient['first_name']) ? $patient['first_name'] : ''); ?>" required />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Last Name *</label>
-                            <input type="text" name="last_name" class="form-control" 
-                                   value="<?php echo e(isset($patient['last_name']) ? $patient['last_name'] : ''); ?>" required />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Date of Birth</label>
-                            <input type="date" name="date_of_birth" class="form-control" 
-                                   value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" required/>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Gender *</label>
-                            <select name="gender" class="form-control" required>
-                                <option value="">Select Gender</option>
-                                <option value="male" <?php echo (isset($patient['gender']) && $patient['gender'] === 'male') ? 'selected' : ''; ?>>Male</option>
-                                <option value="female" <?php echo (isset($patient['gender']) && $patient['gender'] === 'female') ? 'selected' : ''; ?>>Female</option>
-                                <option value="other" <?php echo (isset($patient['gender']) && $patient['gender'] === 'other') ? 'selected' : ''; ?>>Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Phone</label>
-                            <input type="tel" name="phone" class="form-control" 
-                                   value="<?php echo e(isset($patient['phone']) ? $patient['phone'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Occupation</label>
-                            <input type="text" name="occupation" class="form-control" 
-                                   value="<?php echo e(isset($patient['occupation']) ? $patient['occupation'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Address</label>
-                            <input type="text" name="address" class="form-control" 
-                                   value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
-                        </div>
                         <div class="grid grid-2">
-                            <div class="form-group">
-                                <label class="form-label">Height (cm)</label>
-                                <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
-                                       placeholder="e.g., 170" value="<?php echo e(isset($patient['height']) && $patient['height'] ? $patient['height'] : ''); ?>" />
+                            <div class="form-group-name">
+                                <div class="form-group">
+                                    <label class="form-label">First Name *</label>
+                                    <input type="text" name="first_name" class="form-control" 
+                                           value="<?php echo e(isset($patient['first_name']) ? $patient['first_name'] : ''); ?>" required />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name *</label>
+                                    <input type="text" name="last_name" class="form-control" 
+                                           value="<?php echo e(isset($patient['last_name']) ? $patient['last_name'] : ''); ?>" required />
+                                </div>
+                            </div>
+                            <div class="form-group-name">
+                                <div class="form-group">
+                                    <label class="form-label">Date of Birth</label>
+                                    <input type="date" name="date_of_birth" class="form-control" 
+                                           value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" required/>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Gender *</label>
+                                    <select name="gender" class="form-control" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="male" <?php echo (isset($patient['gender']) && $patient['gender'] === 'male') ? 'selected' : ''; ?>>Male</option>
+                                        <option value="female" <?php echo (isset($patient['gender']) && $patient['gender'] === 'female') ? 'selected' : ''; ?>>Female</option>
+                                        <option value="other" <?php echo (isset($patient['gender']) && $patient['gender'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group-name">
+                                <div class="form-group">
+                                    <label class="form-label">Height (cm)</label>
+                                    <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
+                                           placeholder="e.g., 170" value="<?php echo e(isset($patient['height']) && $patient['height'] ? $patient['height'] : ''); ?>" />
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Weight (kg)</label>
+                                    <input type="number" name="weight" class="form-control" step="0.1" min="20" max="300"
+                                           placeholder="e.g., 70.5" value="<?php echo e(isset($patient['weight']) && $patient['weight'] ? $patient['weight'] : ''); ?>" />
+                                </div>
+                            </div>
+                            <div class="form-group-name">
+                                <div class="form-group">
+                                    <label class="form-label">BMI (kg/m²)</label>
+                                    <input type="number" name="bmi" id="editBmiField" class="form-control" step="0.01" readonly
+                                           placeholder="Auto-calculated" value="<?php echo e(isset($patient['bmi']) && $patient['bmi'] ? $patient['bmi'] : ''); ?>" />
+                                </div>
+                                <div class="form-group" style="display:flex;align-items:flex-end;">
+                                    <small style="color:#666;">BMI is calculated from Height &amp; Weight</small>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Weight (kg)</label>
-                                <input type="number" name="weight" class="form-control" step="0.1" min="20" max="300"
-                                       placeholder="e.g., 70.5" value="<?php echo e(isset($patient['weight']) && $patient['weight'] ? $patient['weight'] : ''); ?>" />
-                            </div>
-                        </div>
-                        <div class="grid grid-2">
-                            <div class="form-group">
-                                <label class="form-label">BMI (kg/m²)</label>
-                                <input type="number" name="bmi" id="editBmiField" class="form-control" step="0.01" readonly
-                                       placeholder="Auto-calculated" value="<?php echo e(isset($patient['bmi']) && $patient['bmi'] ? $patient['bmi'] : ''); ?>" />
+                                <label class="form-label">Phone</label>
+                                <input type="tel" name="phone" class="form-control" 
+                                       value="<?php echo e(isset($patient['phone']) ? $patient['phone'] : ''); ?>" />
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Blood Pressure (mmHg)</label>
-                                <input type="text" name="blood_pressure" class="form-control" placeholder="e.g., 120/80"
-                                       value="<?php echo e(isset($patient['blood_pressure']) && $patient['blood_pressure'] ? $patient['blood_pressure'] : ''); ?>" />
+                                <label class="form-label">Occupation</label>
+                                <input type="text" name="occupation" class="form-control" 
+                                       value="<?php echo e(isset($patient['occupation']) ? $patient['occupation'] : ''); ?>" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Address</label>
+                                <input type="text" name="address" class="form-control" 
+                                       value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
                             </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Temperature (°C)</label>
-                            <input type="number" name="temperature" class="form-control" step="0.1" min="35" max="42"
-                                   placeholder="e.g., 37.5" value="<?php echo e(isset($patient['temperature']) && $patient['temperature'] ? $patient['temperature'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Allergies</label>
-                            <input type="text" name="allergies" class="form-control" placeholder="e.g., Penicillin"
-                                   value="<?php echo e(isset($patient['allergies']) ? $patient['allergies'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Vaccine History</label>
-                            <input type="text" name="vaccine_history" class="form-control" placeholder="e.g., Flu, COVID-19"
-                                   value="<?php echo e(isset($patient['vaccine_history']) ? $patient['vaccine_history'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Insurance Provider (optional)</label>
-                            <input type="text" name="insurance_provider" class="form-control"
-                                   value="<?php echo e(isset($patient['insurance_provider']) ? $patient['insurance_provider'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Insurance ID (optional)</label>
-                            <input type="text" name="insurance_id" class="form-control"
-                                   value="<?php echo e(isset($patient['insurance_id']) ? $patient['insurance_id'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Emergency Contact Name</label>
-                            <input type="text" name="emergency_contact_name" class="form-control"
-                                   value="<?php echo e(isset($patient['emergency_contact_name']) ? $patient['emergency_contact_name'] : ''); ?>" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Emergency Contact Phone</label>
-                            <input type="tel" name="emergency_contact_phone" class="form-control"
-                                   value="<?php echo e(isset($patient['emergency_contact_phone']) ? $patient['emergency_contact_phone'] : ''); ?>" />
-                        </div>
+
                         <div class="grid grid-2">
                             <div class="form-group">
                                 <label class="form-label">City</label>
@@ -324,95 +294,8 @@ $currentRole = $currentUser['role'] ?? '';
                             </div>
                             <div class="form-group">
                                 <label class="form-label">State/Province</label>
-                                <select name="state" id="stateSelect" class="form-control">
-                                    <option value=""><?php echo isset($patient['state']) ? $patient['state'] : 'Select Province'; ?></option>
-                                        <option value="Bataan" <?php echo (isset($patient['state']) && $patient['state'] === 'Bataan') ? 'selected' : ''; ?>>Bataan</option>
-                                        <option value="Bulacan" <?php echo (isset($patient['state']) && $patient['state'] === 'Bulacan') ? 'selected' : ''; ?>>Bulacan</option>
-                                        <option value="Nueva Ecija" <?php echo (isset($patient['state']) && $patient['state'] === 'Nueva Ecija') ? 'selected' : ''; ?>>Nueva Ecija</option>
-                                        <option value="Pampanga" <?php echo (isset($patient['state']) && $patient['state'] === 'Pampanga') ? 'selected' : ''; ?>>Pampanga</option>
-                                        <option value="Tarlac" <?php echo (isset($patient['state']) && $patient['state'] === 'Tarlac') ? 'selected' : ''; ?>>Tarlac</option>
-                                        <option value="Zambales" <?php echo (isset($patient['state']) && $patient['state'] === 'Zambales') ? 'selected' : ''; ?>>Zambales</option>
-                                    </optgroup>
-                                    <optgroup label="Calabarzon (Region IV-A)">
-                                        <option value="Batangas" <?php echo (isset($patient['state']) && $patient['state'] === 'Batangas') ? 'selected' : ''; ?>>Batangas</option>
-                                        <option value="Cavite" <?php echo (isset($patient['state']) && $patient['state'] === 'Cavite') ? 'selected' : ''; ?>>Cavite</option>
-                                        <option value="Laguna" <?php echo (isset($patient['state']) && $patient['state'] === 'Laguna') ? 'selected' : ''; ?>>Laguna</option>
-                                        <option value="Quezon" <?php echo (isset($patient['state']) && $patient['state'] === 'Quezon') ? 'selected' : ''; ?>>Quezon</option>
-                                        <option value="Rizal" <?php echo (isset($patient['state']) && $patient['state'] === 'Rizal') ? 'selected' : ''; ?>>Rizal</option>
-                                    </optgroup>
-                                    <optgroup label="Mimaropa (Region IV-B)">
-                                        <option value="Antique" <?php echo (isset($patient['state']) && $patient['state'] === 'Antique') ? 'selected' : ''; ?>>Antique</option>
-                                        <option value="Capiz" <?php echo (isset($patient['state']) && $patient['state'] === 'Capiz') ? 'selected' : ''; ?>>Capiz</option>
-                                        <option value="Marinduque" <?php echo (isset($patient['state']) && $patient['state'] === 'Marinduque') ? 'selected' : ''; ?>>Marinduque</option>
-                                        <option value="Occidental Mindoro" <?php echo (isset($patient['state']) && $patient['state'] === 'Occidental Mindoro') ? 'selected' : ''; ?>>Occidental Mindoro</option>
-                                        <option value="Oriental Mindoro" <?php echo (isset($patient['state']) && $patient['state'] === 'Oriental Mindoro') ? 'selected' : ''; ?>>Oriental Mindoro</option>
-                                        <option value="Palawan" <?php echo (isset($patient['state']) && $patient['state'] === 'Palawan') ? 'selected' : ''; ?>>Palawan</option>
-                                        <option value="Romblon" <?php echo (isset($patient['state']) && $patient['state'] === 'Romblon') ? 'selected' : ''; ?>>Romblon</option>
-                                    </optgroup>
-                                    <optgroup label="Bicol (Region V)">
-                                        <option value="Albay" <?php echo (isset($patient['state']) && $patient['state'] === 'Albay') ? 'selected' : ''; ?>>Albay</option>
-                                        <option value="Camarines Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Camarines Norte') ? 'selected' : ''; ?>>Camarines Norte</option>
-                                        <option value="Camarines Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Camarines Sur') ? 'selected' : ''; ?>>Camarines Sur</option>
-                                        <option value="Catanduanes" <?php echo (isset($patient['state']) && $patient['state'] === 'Catanduanes') ? 'selected' : ''; ?>>Catanduanes</option>
-                                        <option value="Masbate" <?php echo (isset($patient['state']) && $patient['state'] === 'Masbate') ? 'selected' : ''; ?>>Masbate</option>
-                                    </optgroup>
-                                    <optgroup label="Western Visayas (Region VI)">
-                                        <option value="Aklan" <?php echo (isset($patient['state']) && $patient['state'] === 'Aklan') ? 'selected' : ''; ?>>Aklan</option>
-                                        <option value="Capiz" <?php echo (isset($patient['state']) && $patient['state'] === 'Capiz') ? 'selected' : ''; ?>>Capiz</option>
-                                        <option value="Guimaras" <?php echo (isset($patient['state']) && $patient['state'] === 'Guimaras') ? 'selected' : ''; ?>>Guimaras</option>
-                                        <option value="Iloilo" <?php echo (isset($patient['state']) && $patient['state'] === 'Iloilo') ? 'selected' : ''; ?>>Iloilo</option>
-                                        <option value="Negros Occidental" <?php echo (isset($patient['state']) && $patient['state'] === 'Negros Occidental') ? 'selected' : ''; ?>>Negros Occidental</option>
-                                    </optgroup>
-                                    <optgroup label="Central Visayas (Region VII)">
-                                        <option value="Bohol" <?php echo (isset($patient['state']) && $patient['state'] === 'Bohol') ? 'selected' : ''; ?>>Bohol</option>
-                                        <option value="Cebu" <?php echo (isset($patient['state']) && $patient['state'] === 'Cebu') ? 'selected' : ''; ?>>Cebu</option>
-                                        <option value="Negros Oriental" <?php echo (isset($patient['state']) && $patient['state'] === 'Negros Oriental') ? 'selected' : ''; ?>>Negros Oriental</option>
-                                        <option value="Siquijor" <?php echo (isset($patient['state']) && $patient['state'] === 'Siquijor') ? 'selected' : ''; ?>>Siquijor</option>
-                                    </optgroup>
-                                    <optgroup label="Eastern Visayas (Region VIII)">
-                                        <option value="Biliran" <?php echo (isset($patient['state']) && $patient['state'] === 'Biliran') ? 'selected' : ''; ?>>Biliran</option>
-                                        <option value="Eastern Samar" <?php echo (isset($patient['state']) && $patient['state'] === 'Eastern Samar') ? 'selected' : ''; ?>>Eastern Samar</option>
-                                        <option value="Leyte" <?php echo (isset($patient['state']) && $patient['state'] === 'Leyte') ? 'selected' : ''; ?>>Leyte</option>
-                                        <option value="Northern Samar" <?php echo (isset($patient['state']) && $patient['state'] === 'Northern Samar') ? 'selected' : ''; ?>>Northern Samar</option>
-                                        <option value="Samar" <?php echo (isset($patient['state']) && $patient['state'] === 'Samar') ? 'selected' : ''; ?>>Samar</option>
-                                        <option value="Southern Leyte" <?php echo (isset($patient['state']) && $patient['state'] === 'Southern Leyte') ? 'selected' : ''; ?>>Southern Leyte</option>
-                                    </optgroup>
-                                    <optgroup label="Zamboanga Peninsula (Region IX)">
-                                        <option value="Zamboanga del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Zamboanga del Norte') ? 'selected' : ''; ?>>Zamboanga del Norte</option>
-                                        <option value="Zamboanga del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Zamboanga del Sur') ? 'selected' : ''; ?>>Zamboanga del Sur</option>
-                                        <option value="Zamboanga Sibugay" <?php echo (isset($patient['state']) && $patient['state'] === 'Zamboanga Sibugay') ? 'selected' : ''; ?>>Zamboanga Sibugay</option>
-                                    </optgroup>
-                                    <optgroup label="Northern Mindanao (Region X)">
-                                        <option value="Bukidnon" <?php echo (isset($patient['state']) && $patient['state'] === 'Bukidnon') ? 'selected' : ''; ?>>Bukidnon</option>
-                                        <option value="Camiguin" <?php echo (isset($patient['state']) && $patient['state'] === 'Camiguin') ? 'selected' : ''; ?>>Camiguin</option>
-                                        <option value="Lanao del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Lanao del Norte') ? 'selected' : ''; ?>>Lanao del Norte</option>
-                                        <option value="Misamis Oriental" <?php echo (isset($patient['state']) && $patient['state'] === 'Misamis Oriental') ? 'selected' : ''; ?>>Misamis Oriental</option>
-                                    </optgroup>
-                                    <optgroup label="Davao (Region XI)">
-                                        <option value="Davao del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Davao del Norte') ? 'selected' : ''; ?>>Davao del Norte</option>
-                                        <option value="Davao del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Davao del Sur') ? 'selected' : ''; ?>>Davao del Sur</option>
-                                        <option value="Davao Oriental" <?php echo (isset($patient['state']) && $patient['state'] === 'Davao Oriental') ? 'selected' : ''; ?>>Davao Oriental</option>
-                                    </optgroup>
-                                    <optgroup label="Soccsksargen (Region XII)">
-                                        <option value="Cotabato" <?php echo (isset($patient['state']) && $patient['state'] === 'Cotabato') ? 'selected' : ''; ?>>Cotabato</option>
-                                        <option value="Sarangani" <?php echo (isset($patient['state']) && $patient['state'] === 'Sarangani') ? 'selected' : ''; ?>>Sarangani</option>
-                                        <option value="South Cotabato" <?php echo (isset($patient['state']) && $patient['state'] === 'South Cotabato') ? 'selected' : ''; ?>>South Cotabato</option>
-                                        <option value="Sultan Kudarat" <?php echo (isset($patient['state']) && $patient['state'] === 'Sultan Kudarat') ? 'selected' : ''; ?>>Sultan Kudarat</option>
-                                    </optgroup>
-                                    <optgroup label="BARMM (Bangsamoro Autonomous Region in Muslim Mindanao)">
-                                        <option value="Basilan" <?php echo (isset($patient['state']) && $patient['state'] === 'Basilan') ? 'selected' : ''; ?>>Basilan</option>
-                                        <option value="Lanao del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Lanao del Sur') ? 'selected' : ''; ?>>Lanao del Sur</option>
-                                        <option value="Maguindanao" <?php echo (isset($patient['state']) && $patient['state'] === 'Maguindanao') ? 'selected' : ''; ?>>Maguindanao</option>
-                                        <option value="Sulu" <?php echo (isset($patient['state']) && $patient['state'] === 'Sulu') ? 'selected' : ''; ?>>Sulu</option>
-                                        <option value="Tawi-Tawi" <?php echo (isset($patient['state']) && $patient['state'] === 'Tawi-Tawi') ? 'selected' : ''; ?>>Tawi-Tawi</option>
-                                    </optgroup>
-                                    <optgroup label="Caraga (Region XIII)">
-                                        <option value="Agusan del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Agusan del Norte') ? 'selected' : ''; ?>>Agusan del Norte</option>
-                                        <option value="Agusan del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Agusan del Sur') ? 'selected' : ''; ?>>Agusan del Sur</option>
-                                        <option value="Dinagat Islands" <?php echo (isset($patient['state']) && $patient['state'] === 'Dinagat Islands') ? 'selected' : ''; ?>>Dinagat Islands</option>
-                                        <option value="Surigao del Norte" <?php echo (isset($patient['state']) && $patient['state'] === 'Surigao del Norte') ? 'selected' : ''; ?>>Surigao del Norte</option>
-                                        <option value="Surigao del Sur" <?php echo (isset($patient['state']) && $patient['state'] === 'Surigao del Sur') ? 'selected' : ''; ?>>Surigao del Sur</option>
-                                    </optgroup>
+                                <select name="state" id="stateSelect" class="form-control" data-selected="<?php echo e(isset($patient['state']) ? $patient['state'] : ''); ?>">
+                                    <option value=""><?php echo e(isset($patient['state']) ? $patient['state'] : '-- Select State/Province --'); ?></option>
                                 </select>
                             </div>
                         </div>
@@ -430,18 +313,48 @@ $currentRole = $currentUser['role'] ?? '';
                             </div>
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Allergies</label>
+                            <input type="text" name="allergies" class="form-control"
+                                value="<?php echo e(isset($patient['allergies']) ? $patient['allergies'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vaccine History (optional)</label>
+                            <input type="text" name="vaccine_history" class="form-control" placeholder="e.g., Flu, COVID-19, etc."
+                                value="<?php echo e(isset($patient['vaccine_history']) ? $patient['vaccine_history'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Insurance Provider (optional)</label>
+                            <input type="text" name="insurance_provider" class="form-control"
+                                value="<?php echo e(isset($patient['insurance_provider']) ? $patient['insurance_provider'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Insurance ID (optional)</label>
+                            <input type="text" name="insurance_id" class="form-control"
+                                value="<?php echo e(isset($patient['insurance_id']) ? $patient['insurance_id'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Name</label>
+                            <input type="text" name="emergency_contact_name" class="form-control"
+                                value="<?php echo e(isset($patient['emergency_contact_name']) ? $patient['emergency_contact_name'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact Phone</label>
+                            <input type="tel" name="emergency_contact_phone" class="form-control"
+                                value="<?php echo e(isset($patient['emergency_contact_phone']) ? $patient['emergency_contact_phone'] : ''); ?>" />
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Medical History</label>
                             <textarea name="medical_history" class="form-control" rows="4"><?php echo e(isset($patient['medical_history']) ? $patient['medical_history'] : ''); ?></textarea>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="cancelEditProfileBtn">Cancel</button>
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-save"></i>
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelEditProfileBtn">Cancel</button>
+                    <button type="submit" form="editProfileForm" class="btn btn-success btn-lg">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -505,8 +418,38 @@ $currentRole = $currentUser['role'] ?? '';
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Notes (optional)</label>
+                                <label class="form-label">Reason/Notes (optional)</label>
                                 <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Add any relevant notes"></textarea>
+                            </div>
+
+                            <!-- Vitals Section -->
+                            <div style="border-top: 1px solid #ddd; margin-top: 15px; padding-top: 15px;">
+                                <h5 style="margin-bottom: 12px;"><i class="fas fa-heartbeat"></i> Vitals (Optional)</h5>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Blood Pressure</label>
+                                    <input type="text" id="appointmentBP" class="form-control" placeholder="e.g., 120/80" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Temperature (°C)</label>
+                                    <input type="number" id="appointmentTemp" class="form-control" placeholder="36.5" step="0.1" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Pulse Rate (bpm)</label>
+                                    <input type="number" id="appointmentPulse" class="form-control" placeholder="72" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Respiratory Rate (breaths/min)</label>
+                                    <input type="number" id="appointmentRespRate" class="form-control" placeholder="16" />
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Oxygen Saturation (%)</label>
+                                    <input type="number" id="appointmentO2Sat" class="form-control" placeholder="98" min="0" max="100" />
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -537,6 +480,7 @@ $currentRole = $currentUser['role'] ?? '';
                     <form method="POST" action="<?php echo baseUrl(); ?>/">
                         <input type="hidden" name="action" value="<?php echo $editVisitData ? 'update_visit' : 'add_visit'; ?>">
                         <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
+                        <input type="hidden" name="appointment_id" value="">
                         <?php if ($editVisitData): ?>
                         <input type="hidden" name="id" value="<?php echo $editVisitData['id']; ?>">
                         <?php endif; ?>
@@ -608,7 +552,33 @@ $currentRole = $currentUser['role'] ?? '';
                         <?php endif; ?>
                         
                         <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                            <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Current Vitals</div>
+                            <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Vitals from Appointment</div>
+                            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                                <div style="padding:6px 0;">
+                                    <label class="form-label" style="margin-bottom:4px;">Blood Pressure</label>
+                                    <input type="text" name="blood_pressure" class="form-control" placeholder="e.g., 120/80" />
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <label class="form-label" style="margin-bottom:4px;">Temperature (°C)</label>
+                                    <input type="number" name="temperature" class="form-control" placeholder="36.5" step="0.1" />
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <label class="form-label" style="margin-bottom:4px;">Pulse Rate (bpm)</label>
+                                    <input type="number" name="pulse_rate" class="form-control" placeholder="72" />
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <label class="form-label" style="margin-bottom:4px;">Respiratory Rate</label>
+                                    <input type="number" name="respiratory_rate" class="form-control" placeholder="16" />
+                                </div>
+                                <div style="padding:6px 0;">
+                                    <label class="form-label" style="margin-bottom:4px;">O2 Saturation (%)</label>
+                                    <input type="number" name="oxygen_saturation" class="form-control" placeholder="98" min="0" max="100" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+                            <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Current Patient Vitals</div>
                             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
                                 <div style="padding:6px 0;">
                                     <strong>Height:</strong>
@@ -617,14 +587,6 @@ $currentRole = $currentUser['role'] ?? '';
                                 <div style="padding:6px 0;">
                                     <strong>Weight:</strong>
                                     <div><?php echo (isset($patient['weight']) && $patient['weight']) ? e($patient['weight']) . ' kg' : '<span style="color:#999;">—</span>'; ?></div>
-                                </div>
-                                <div style="padding:6px 0;">
-                                    <strong>Blood Pressure:</strong>
-                                    <div><?php echo (isset($patient['blood_pressure']) && $patient['blood_pressure']) ? e($patient['blood_pressure']) : '<span style="color:#999;">—</span>'; ?></div>
-                                </div>
-                                <div style="padding:6px 0;">
-                                    <strong>Temperature:</strong>
-                                    <div><?php echo (isset($patient['temperature']) && $patient['temperature']) ? e($patient['temperature']) . '°C' : '<span style="color:#999;">—</span>'; ?></div>
                                 </div>
                             </div>
                             <?php if (isset($patient['vitals_updated_at']) && $patient['vitals_updated_at']): ?>
@@ -821,6 +783,28 @@ $currentRole = $currentUser['role'] ?? '';
                             Print Prescription
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Appointments List Section -->
+            <div id="appointmentsDebug" style="display:none;margin-top:12px;padding:8px;background:#fffbe6;border:1px solid #ffe8a1;border-radius:6px;color:#7a5800;font-size:0.95rem;"></div>
+            <div id="appointmentsSection" style="display:none;margin-top:20px;">
+                <h4 style="margin:0 0 12px 0;">Appointments</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointmentsTbody">
+                            <tr><td colspan="5" style="text-align:center;padding:20px;">No appointments</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -1030,9 +1014,6 @@ $currentRole = $currentUser['role'] ?? '';
     }
 }
 
-/* TEMPORARY: hide appointment scheduling UI while using quick-duplicate behavior */
-#visitRedirectModal { display: none !important; }
-
 .timeline-header h4 {
     margin: 0;
     font-size: 1.125rem;
@@ -1078,6 +1059,241 @@ document.addEventListener('DOMContentLoaded', function() {
     const addFirstBtn = document.getElementById('addFirstVisitBtn');
     const modal = document.getElementById('visitModal');
     const redirectModal = document.getElementById('visitRedirectModal');
+    const patientId = <?php echo $patientId; ?>;
+
+    // Load and display all appointments with action buttons
+    function loadAppointments() {
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+            .then(r => r.json())
+            .then(data => {
+                console.log('Appointments data:', data); // DEBUG
+                // Visible debug banner for users who don't open DevTools
+                try {
+                    const dbg = document.getElementById('appointmentsDebug');
+                    if (dbg) {
+                        dbg.style.display = 'block';
+                        dbg.textContent = 'Fetched ' + ((data.appointments||[]).length) + ' appointments from API. Processing...';
+                    }
+                } catch (ex) { /* ignore */ }
+                const apts = (data.appointments || []).filter(a => {
+                    const s = (a.status || '').toString().toLowerCase();
+                    return s !== 'completed' && s !== 'cancelled' && s !== 'no-show';
+                });
+                console.log('Filtered appointments:', apts); // DEBUG
+                try {
+                    const dbg = document.getElementById('appointmentsDebug');
+                    if (dbg) {
+                        dbg.textContent = 'Fetched ' + ((data.appointments||[]).length) + ' appointments. Showing ' + apts.length + ' (pending/accepted).';
+                    }
+                } catch (ex) { }
+                const tbody = document.getElementById('appointmentsTbody');
+                const section = document.getElementById('appointmentsSection');
+                
+                if (apts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No upcoming appointments</td></tr>';
+                    section.style.display = 'none';
+                    return;
+                }
+                
+                section.style.display = 'block';
+                tbody.innerHTML = apts.map(apt => {
+                    const dt = new Date(apt.appointment_date);
+                    const formattedDt = dt.toLocaleString();
+                    
+                    // Status badge
+                    let statusBadge = '';
+                    const st = (apt.status || 'Pending').toString().toLowerCase();
+                    if (st === 'pending') {
+                        statusBadge = '<span style="background:#fff3cd;color:#856404;padding:4px 8px;border-radius:3px;font-size:0.85rem;">Pending</span>';
+                    } else if (st === 'accepted') {
+                        statusBadge = '<span style="background:#cfe2ff;color:#084298;padding:4px 8px;border-radius:3px;font-size:0.85rem;">Accepted</span>';
+                    }
+                    
+                    // Action buttons - with proper HTML
+                    let actionBtns = '';
+                    if (st === 'pending') {
+                        actionBtns = '<button class="btn btn-sm btn-success" onclick="acceptAppointmentAction(' + apt.id + ')" title="Accept appointment"><i class="fas fa-check"></i> Accept</button>' +
+                                    ' <button class="btn btn-sm btn-warning" onclick="openRescheduleModal(' + apt.id + ')" title="Reschedule appointment"><i class="fas fa-calendar"></i> Resched</button>' +
+                                    ' <button class="btn btn-sm btn-danger" onclick="cancelAppointmentAction(' + apt.id + ')" title="Cancel appointment"><i class="fas fa-times"></i> Cancel</button>';
+                    } else if (st === 'accepted') {
+                        actionBtns = '<button class="btn btn-sm btn-info" disabled title="Appointment accepted - pending visit creation"><i class="fas fa-clock"></i> Pending</button>';
+                    }
+                    
+                    return '<tr data-apt-id="' + apt.id + '">' +
+                           '<td>' + formattedDt + '</td>' +
+                           '<td>' + (apt.appointment_type || '-') + '</td>' +
+                           '<td>' + statusBadge + '</td>' +
+                           '<td>' + (apt.notes || '-') + '</td>' +
+                           '<td style="white-space:nowrap;">' + actionBtns + '</td>' +
+                           '</tr>';
+                }).join('');
+                console.log('Rendered tbody:', tbody.innerHTML); // DEBUG
+                try {
+                    const dbg = document.getElementById('appointmentsDebug');
+                    if (dbg) {
+                        dbg.textContent += ' Rendered ' + apts.length + ' rows.';
+                    }
+                } catch (ex) { }
+            })
+            .catch(err => console.error('Error loading appointments:', err));
+    }
+
+    // Helper to format API error responses into readable strings
+    function formatApiError(resp) {
+        if (!resp) return null;
+        if (resp.error) {
+            if (typeof resp.error === 'object') {
+                try {
+                    if (Array.isArray(resp.error)) return resp.error.join('\n');
+                    const values = Object.values(resp.error).flat();
+                    return values.join('\n') || JSON.stringify(resp.error);
+                } catch (ex) {
+                    return JSON.stringify(resp.error);
+                }
+            }
+            return String(resp.error);
+        }
+        if (resp.message) return String(resp.message);
+        try { return JSON.stringify(resp); } catch (ex) { return String(resp); }
+    }
+
+    window.acceptAppointmentAction = function(aptId) {
+        if (!confirm('Accept this appointment?')) return;
+        
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                // Fetch the appointment and open Visit Modal with pre-filled data
+                fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+                    .then(r => r.json())
+                    .then(apiData => {
+                        const apts = apiData.appointments || [];
+                        const apt = apts.find(a => a.id == aptId);
+                        if (apt) {
+                            // Pre-fill visit modal with appointment data
+                            const dt = new Date(apt.appointment_date);
+                            document.querySelector('input[name="visit_date"]').value = dt.toISOString().slice(0, 16);
+                            document.querySelector('input[name="appointment_id"]').value = apt.id;
+                            
+                            // Set vitals from appointment if available
+                            if (apt.blood_pressure) document.querySelector('input[name="blood_pressure"]').value = apt.blood_pressure;
+                            if (apt.temperature) document.querySelector('input[name="temperature"]').value = apt.temperature;
+                            if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
+                            if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
+                            if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
+                            
+                            loadAppointments(); // Reload appointments list
+                            openVisitModal();
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+            } else {
+                alert(formatApiError(data) || 'Error accepting appointment');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Error accepting appointment');
+        });
+    };
+
+    window.cancelAppointmentAction = function(aptId) {
+        if (!confirm('Cancel this appointment?')) return;
+        
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Appointment cancelled');
+                loadAppointments(); // Reload
+            } else {
+                alert(formatApiError(data) || 'Error cancelling appointment');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('Error cancelling appointment');
+        });
+    };
+
+    window.openRescheduleModal = function(aptId) {
+        // Fetch appointment details and show reschedule form
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+            .then(r => r.json())
+            .then(data => {
+                const apts = data.appointments || [];
+                const apt = apts.find(a => a.id == aptId);
+                if (!apt) return;
+                
+                // Show reschedule modal/form
+                const newDate = prompt('Enter new date (YYYY-MM-DD):', apt.appointment_date.split('T')[0]);
+                if (!newDate) return;
+                const newTime = prompt('Enter new time (HH:MM):', apt.appointment_date.split('T')[1]?.slice(0, 5) || '09:00');
+                if (!newTime) return;
+                
+                const newStart = newDate + 'T' + newTime;
+                const [h, m] = newTime.split(':');
+                const endDate = new Date(newDate + 'T' + newTime);
+                endDate.setHours(parseInt(h) + 1); // Assume 1-hour appointments
+                const newEnd = endDate.toISOString().slice(0, 16);
+                
+                fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/reschedule', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_at: newStart, end_at: newEnd })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Appointment rescheduled');
+                        loadAppointments();
+                    } else {
+                        alert(formatApiError(data) || 'Error rescheduling appointment');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Error rescheduling appointment');
+                });
+            })
+            .catch(err => console.error('Error:', err));
+    };
+
+    window.openVisitForAppt = function(aptId) {
+        // Fetch appointment details and pre-fill visit modal
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+            .then(r => r.json())
+            .then(data => {
+                const apts = data.appointments || [];
+                const apt = apts.find(a => a.id == aptId);
+                if (!apt) return;
+                
+                // Pre-fill visit modal with appointment data
+                const dt = new Date(apt.appointment_date);
+                document.querySelector('input[name="visit_date"]').value = dt.toISOString().slice(0, 16);
+                document.querySelector('input[name="appointment_id"]').value = apt.id; // Store apt ID
+                
+                // Set vitals from appointment if available
+                if (apt.blood_pressure) document.querySelector('input[name="blood_pressure"]').value = apt.blood_pressure;
+                if (apt.temperature) document.querySelector('input[name="temperature"]').value = apt.temperature;
+                if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
+                if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
+                if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
+                
+                openVisitModal();
+            })
+            .catch(err => console.error('Error:', err));
+    };
+
+    // Load appointments on page load
+    loadAppointments();
     
     function setupFocusTrap(el) {
         if (!el) return;
@@ -1148,69 +1364,17 @@ document.addEventListener('DOMContentLoaded', function() {
         removeFocusTrap(redirectModal);
     }
 
-    // Duplicate latest visit row and append to timeline (client-side only)
-    function duplicateLatestVisit() {
-        try {
-            const tbody = document.querySelector('.table-container table tbody');
-            // If there's no table (no visits yet), create a minimal table row area
-            if (!tbody) {
-                // fallback: open visit modal to let user add first visit
-                if (modal) openVisitModal();
-                return;
-            }
-
-            // Choose the first row as the latest visit (page renders latest first)
-            const firstRow = tbody.querySelector('tr');
-            let newRow;
-            if (firstRow) {
-                newRow = firstRow.cloneNode(true);
-                // clear any visit-specific ids so client won't try to fetch server data
-                newRow.querySelectorAll('[data-visit-id]').forEach(el => el.setAttribute('data-visit-id', ''));
-                // assign a temporary data attribute to mark it as a duplicated client-side row
-                newRow.setAttribute('data-visit-id', 'dup-' + Date.now());
-                // Update the first cell (Date & Time) to now
-                const dateCell = newRow.querySelector('td');
-                if (dateCell) dateCell.textContent = new Date().toLocaleString();
-            } else {
-                // no existing row — build a tiny placeholder row
-                newRow = document.createElement('tr');
-                newRow.setAttribute('data-visit-id', 'dup-' + Date.now());
-                const now = new Date().toLocaleString();
-                newRow.innerHTML = `
-                    <td>${now}</td>
-                    <td>Consultation</td>
-                    <td>-</td>
-                    <td>Duplicated visit</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td class="prescription-cell" data-visit-id=""></td>
-                    <td>—</td>
-                    <td></td>
-                `;
-            }
-
-            // Append the new row to the top of the tbody so it appears as the latest
-            tbody.insertBefore(newRow, tbody.firstChild);
-            // Optionally, flash the row or scroll into view
-            newRow.style.background = '#fffbe6';
-            setTimeout(() => { newRow.style.background = ''; }, 1600);
-        } catch (err) {
-            console.error('Failed to duplicate latest visit:', err);
-        }
-    }
-
     if (addFirstBtn) {
         addFirstBtn.addEventListener('click', function() {
-            // Open the Add Visit modal (chief complaint, diagnosis, prescription, etc.)
-            if (typeof openVisitModal === 'function') openVisitModal();
+            // Show appointment booking modal
+            if (typeof openRedirectModal === 'function') openRedirectModal();
         });
     }
 
     if (addBtn) {
         addBtn.addEventListener('click', function() {
-            // Open the Add Visit modal (chief complaint, diagnosis, prescription, etc.)
-            if (typeof openVisitModal === 'function') openVisitModal();
+            // Show appointment booking modal
+            if (typeof openRedirectModal === 'function') openRedirectModal();
         });
     }
 
@@ -1296,6 +1460,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const appointmentType = document.getElementById('appointmentType').value;
         const slotValue = document.getElementById('appointmentSlot').value;
         const notes = document.getElementById('appointmentNotes').value;
+        
+        // Collect vitals
+        const bloodPressure = document.getElementById('appointmentBP').value;
+        const temperature = document.getElementById('appointmentTemp').value;
+        const pulseRate = document.getElementById('appointmentPulse').value;
+        const respRate = document.getElementById('appointmentRespRate').value;
+        const o2Sat = document.getElementById('appointmentO2Sat').value;
 
         // Validate
         if (!appointmentType) {
@@ -1318,7 +1489,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     type: appointmentType, 
                     start_at, 
                     end_at, 
-                    notes 
+                    notes,
+                    blood_pressure: bloodPressure || null,
+                    temperature: temperature ? parseFloat(temperature) : null,
+                    pulse_rate: pulseRate ? parseInt(pulseRate) : null,
+                    respiratory_rate: respRate ? parseInt(respRate) : null,
+                    oxygen_saturation: o2Sat ? parseInt(o2Sat) : null
                 })
             });
 
@@ -1327,12 +1503,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Appointment booked successfully!');
                 document.getElementById('addAppointmentForm').reset();
                 const modal = document.getElementById('visitRedirectModal');
-                modal.classList.remove('open');
-                modal.setAttribute('hidden', '');
+                if (modal) {
+                    modal.classList.remove('open');
+                    modal.setAttribute('hidden', '');
+                }
                 // Optional: Reload page or refresh timeline
                 window.location.reload();
             } else {
-                alert(j.error || 'Failed to book appointment');
+                // Build a readable error message when API returns an object
+                let errMsg = 'Failed to book appointment';
+                if (j) {
+                    if (j.error) {
+                        if (typeof j.error === 'object') {
+                            try {
+                                // If it's an array or object of validation errors, join them
+                                if (Array.isArray(j.error)) {
+                                    errMsg = j.error.join('\n');
+                                } else {
+                                    const values = Object.values(j.error).flat();
+                                    errMsg = values.join('\n') || JSON.stringify(j.error);
+                                }
+                            } catch (ex) {
+                                errMsg = JSON.stringify(j.error);
+                            }
+                        } else {
+                            errMsg = String(j.error);
+                        }
+                    } else if (j.message) {
+                        errMsg = String(j.message);
+                    } else {
+                        errMsg = JSON.stringify(j);
+                    }
+                }
+                alert(errMsg);
             }
         } catch (err) {
             console.error('Error:', err);

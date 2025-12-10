@@ -9,7 +9,6 @@ require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../api/Router.php';
 require_once __DIR__ . '/../api/PatientsController.php';
 require_once __DIR__ . '/../api/VisitsController.php';
-require_once __DIR__ . '/../api/AnalyticsController.php';
 require_once __DIR__ . '/../api/AuthController.php';
 require_once __DIR__ . '/../api/MedicinesController.php';
 require_once __DIR__ . '/../api/PrescriptionController.php';
@@ -99,11 +98,6 @@ $router->get('/api/health', function () {
     }
 });
 
-// Analytics endpoint
-$router->get('/api/analytics', function () {
-    (new AnalyticsController())->index();
-});
-
 // Auth endpoints
 $router->post('/api/auth/login', function () {
     (new AuthController())->login();
@@ -152,6 +146,10 @@ $router->post('/api/appointments/:id/cancel', function ($id) {
 
 $router->get('/api/appointments/slots', function () {
     (new AppointmentsController())->slots();
+});
+
+$router->get('/api/doctors', function () {
+    (new AppointmentsController())->doctors();
 });
 
 // Waitlist endpoints
