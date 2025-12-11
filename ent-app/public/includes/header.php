@@ -48,8 +48,15 @@ $currentUser = $_SESSION['user'] ?? null;
                     <span>Patients</span>
                 </a>
 
-                <?php if (hasRole(['admin', 'doctor', 'secretary'])): ?>
+                <?php if (hasRole(['admin', 'doctor'])): ?>
                 <a href="<?php echo baseUrl(); ?>/?page=appointments" class="nav-item <?php echo $currentPage === 'appointments' ? 'active' : ''; ?>">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Appointments</span>
+                </a>
+                <?php endif; ?>
+
+                <?php if (hasRole(['secretary'])): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=secretary-appointments" class="nav-item <?php echo $currentPage === 'secretary-appointments' ? 'active' : ''; ?>">
                     <i class="fas fa-calendar-check"></i>
                     <span>Appointments</span>
                 </a>

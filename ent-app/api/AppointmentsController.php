@@ -180,16 +180,66 @@ class AppointmentsController extends Controller {
 
     // Mark appointment as completed (when a visit is created from this appointment)
     public function complete($id) {
-        $stmt = $this->db->prepare("SELECT * FROM appointments WHERE id = :id LIMIT 1");
-        $stmt->execute(['id' => $id]);
-        $apt = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$apt) return $this->error('Appointment not found', 404);
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM appointments WHERE id = :id LIMIT 1");
+            $stmt->execute(['id' => $id]);
+            $apt = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$apt) return $this->error('Appointment not found', 404);
 
-        // Mark appointment as completed
-        $stmt = $this->db->prepare("UPDATE appointments SET status = 'Completed' WHERE id = :id");
-        $stmt->execute(['id' => $id]);
-        
-        $this->success(['id' => $id], 'Appointment marked as completed');
+            $input = $this->getInput();
+            
+            // Create a visit record from the appointment completion data
+            // Only include columns that exist in the `patient_visits` table
+            $visitDate = null;
+            if (!empty($apt['appointment_date'])) {
+                // appointment_date may be stored as DATETIME or ISO string
+                $visitDate = $apt['appointment_date'];
+            } else {
+                $visitDate = date('Y-m-d H:i:s');
+            }
+
+            $currentUser = $_SESSION['user'] ?? null;
+            $doctorId = $currentUser['id'] ?? null;
+            $doctorName = isset($currentUser['full_name']) ? $currentUser['full_name'] : ($currentUser['username'] ?? null);
+
+            $visitData = [
+                'patient_id' => $apt['patient_id'],
+                'appointment_id' => $id,
+                'visit_date' => $visitDate,
+                'visit_type' => $input['visit_type'] ?? 'Consultation',
+                'ent_type' => $input['ent_type'] ?? 'misc',
+                'chief_complaint' => $input['chief_complaint'] ?? '',
+                'diagnosis' => $input['diagnosis'] ?? '',
+                'treatment_plan' => $input['treatment'] ?? '',
+                'prescription' => $input['prescription'] ?? null,
+                'notes' => $input['notes'] ?? null,
+                // vitals (optional) - only include if provided
+                'blood_pressure' => isset($input['blood_pressure']) && $input['blood_pressure'] !== '' ? $input['blood_pressure'] : null,
+                'temperature' => isset($input['temperature']) && $input['temperature'] !== '' ? $input['temperature'] : null,
+                'pulse_rate' => isset($input['pulse_rate']) && $input['pulse_rate'] !== '' ? (int)$input['pulse_rate'] : null,
+                'respiratory_rate' => isset($input['respiratory_rate']) && $input['respiratory_rate'] !== '' ? (int)$input['respiratory_rate'] : null,
+                'oxygen_saturation' => isset($input['oxygen_saturation']) && $input['oxygen_saturation'] !== '' ? (int)$input['oxygen_saturation'] : null,
+                'vitals_notes' => isset($input['vitals_notes']) ? $input['vitals_notes'] : null,
+                'doctor_id' => $doctorId,
+                'doctor_name' => $doctorName,
+            ];
+            
+            $columns = implode(',', array_keys($visitData));
+            $placeholders = implode(',', array_fill(0, count($visitData), '?'));
+            $sql = "INSERT INTO patient_visits ($columns) VALUES ($placeholders)";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute(array_values($visitData));
+            $visitId = $this->db->lastInsertId();
+
+            // Mark appointment as completed
+            $stmt = $this->db->prepare("UPDATE appointments SET status = 'Completed' WHERE id = :id");
+            $stmt->execute(['id' => $id]);
+            
+            $this->success(['id' => $id, 'visit_id' => $visitId], 'Appointment completed and visit record created');
+        } catch (Exception $e) {
+            $this->error($e->getMessage(), 500);
+        }
     }
 
     // Reschedule an appointment to a new time slot

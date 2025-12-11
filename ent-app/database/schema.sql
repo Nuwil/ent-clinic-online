@@ -166,6 +166,8 @@ CREATE TABLE IF NOT EXISTS patient_visits (
     visit_type VARCHAR(100),
     ent_type ENUM('ear', 'nose', 'throat', 'head_neck_tumor', 'lifestyle_medicine', 'misc') DEFAULT 'ear',
     chief_complaint TEXT,
+    history TEXT,
+    physical_exam TEXT,
     diagnosis TEXT,
     treatment_plan TEXT,
     prescription TEXT,

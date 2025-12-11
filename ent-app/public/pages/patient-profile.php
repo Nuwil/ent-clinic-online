@@ -30,6 +30,8 @@ if (!$visitsList && $visits === null) {
 // Check if editing profile or visit
 $editProfile = isset($_GET['edit']) && $_GET['edit'] === 'profile';
 $showAddVisit = isset($_GET['add']) && $_GET['add'] === 'visit';
+$showVisitModal = false;
+$acceptedApt = isset($_GET['accepted_apt']) ? $_GET['accepted_apt'] : null;
 $editVisit = isset($_GET['edit']) && $_GET['edit'] === 'visit';
 $editVisitId = isset($_GET['visit_id']) ? $_GET['visit_id'] : null;
 $editVisitData = null;
@@ -54,7 +56,8 @@ if ($editVisit && $editVisitId) {
         foreach ($allVisits['visits'] as $v) {
             if ($v['id'] == $editVisitId) {
                 $editVisitData = $v;
-                $showAddVisit = true; // Show the modal
+                // mark that we should show the Visit modal (editing an existing visit)
+                $showVisitModal = true;
                 break;
             }
         }
@@ -366,22 +369,32 @@ $currentRole = $currentUser['role'] ?? '';
                     <i class="fas fa-calendar-check"></i>
                     Visit Timeline
                 </h3>
-                <button type="button" id="addVisitBtn" class="btn btn-primary">
-                    <i class="fas fa-calendar-plus"></i>
-                    Add Visit
-                </button>
+                <div style="display:flex;gap:8px;">
+                    <button type="button" id="viewTimelineFullscreen" class="btn btn-outline" title="View timeline in fullscreen">
+                        <i class="fas fa-expand"></i>
+                        View Fullscreen
+                    </button>
+                    <button type="button" id="addAppointmentBtn" class="btn btn-primary">
+                        <i class="fas fa-calendar-plus"></i>
+                        Add Appointment
+                    </button>
+                    <button type="button" id="addVisitBtn" class="btn btn-primary">
+                        <i class="fas fa-stethoscope"></i>
+                        Add Visit
+                    </button>
+                </div>
             </div>
 
             <!-- Add Appointment Modal -->
-            <div class="modal" id="visitRedirectModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
-                <div class="modal-backdrop" data-modal-dismiss="visitRedirectModal"></div>
+            <div class="modal" id="appointmentModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="modal-backdrop" data-modal-dismiss="appointmentModal"></div>
                 <div class="modal-dialog form-modal" style="max-width:600px;">
                     <div class="modal-header">
                         <h3 class="modal-title">
                             <i class="fas fa-calendar-plus"></i>
                             Add Appointment
                         </h3>
-                        <button type="button" class="modal-close" data-modal-dismiss="visitRedirectModal" aria-label="Close">
+                        <button type="button" class="modal-close" data-modal-dismiss="appointmentModal" aria-label="Close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -411,8 +424,8 @@ $currentRole = $currentUser['role'] ?? '';
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label">Time Slot *</label>
-                                <select id="appointmentSlot" class="form-control" required>
+                                <label class="form-label">Time Slot (optional)</label>
+                                <select id="appointmentSlot" class="form-control">
                                     <option value="">Select a time slot</option>
                                 </select>
                             </div>
@@ -421,40 +434,10 @@ $currentRole = $currentUser['role'] ?? '';
                                 <label class="form-label">Reason/Notes (optional)</label>
                                 <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Add any relevant notes"></textarea>
                             </div>
-
-                            <!-- Vitals Section -->
-                            <div style="border-top: 1px solid #ddd; margin-top: 15px; padding-top: 15px;">
-                                <h5 style="margin-bottom: 12px;"><i class="fas fa-heartbeat"></i> Vitals (Optional)</h5>
-                                
-                                <div class="form-group">
-                                    <label class="form-label">Blood Pressure</label>
-                                    <input type="text" id="appointmentBP" class="form-control" placeholder="e.g., 120/80" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Temperature (°C)</label>
-                                    <input type="number" id="appointmentTemp" class="form-control" placeholder="36.5" step="0.1" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Pulse Rate (bpm)</label>
-                                    <input type="number" id="appointmentPulse" class="form-control" placeholder="72" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Respiratory Rate (breaths/min)</label>
-                                    <input type="number" id="appointmentRespRate" class="form-control" placeholder="16" />
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="form-label">Oxygen Saturation (%)</label>
-                                    <input type="number" id="appointmentO2Sat" class="form-control" placeholder="98" min="0" max="100" />
-                                </div>
-                            </div>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-modal-dismiss="visitRedirectModal">Cancel</button>
+                        <button type="button" class="btn btn-secondary" data-modal-dismiss="appointmentModal">Cancel</button>
                         <button type="button" class="btn btn-primary" onclick="submitAppointmentForm()">
                             <i class="fas fa-calendar-check"></i>
                             Book Appointment
@@ -463,7 +446,7 @@ $currentRole = $currentUser['role'] ?? '';
                 </div>
             </div>
 
-            <!-- Add Visit Modal -->
+            <!-- Add Walk-In Visit Modal -->
             <div class="modal" id="visitModal" hidden aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="modal-backdrop" data-modal-dismiss="visitModal"></div>
                 <div class="modal-dialog form-modal">
@@ -786,8 +769,26 @@ $currentRole = $currentUser['role'] ?? '';
                 </div>
             </div>
 
+            <!-- Fullscreen Timeline Modal -->
+            <div id="timelineModal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="modal-backdrop" data-modal-dismiss="timelineModal"></div>
+                <div class="modal-dialog" style="max-width:95%; max-height:95vh; overflow:auto; border-radius: 8px;">
+                    <div class="modal-header" style="position:sticky; top:0; background:#fff; z-index:10;">
+                        <h3 class="modal-title" style="margin:0;">
+                            <i class="fas fa-calendar-check"></i>
+                            Patient Visit Timeline - Fullscreen
+                        </h3>
+                        <button type="button" class="modal-close" data-modal-dismiss="timelineModal" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" id="timelineModalBody" style="padding:24px;overflow-y:auto;max-height:calc(95vh - 80px);">
+                        <!-- Timeline table will be cloned here -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Appointments List Section -->
-            <div id="appointmentsDebug" style="display:none;margin-top:12px;padding:8px;background:#fffbe6;border:1px solid #ffe8a1;border-radius:6px;color:#7a5800;font-size:0.95rem;"></div>
             <div id="appointmentsSection" style="display:none;margin-top:20px;">
                 <h4 style="margin:0 0 12px 0;">Appointments</h4>
                 <div class="table-container">
@@ -1055,10 +1056,11 @@ $currentRole = $currentUser['role'] ?? '';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const addBtn = document.getElementById('addVisitBtn');
+    const addAppointmentBtn = document.getElementById('addAppointmentBtn');
+    const addVisitBtn = document.getElementById('addVisitBtn');
     const addFirstBtn = document.getElementById('addFirstVisitBtn');
-    const modal = document.getElementById('visitModal');
-    const redirectModal = document.getElementById('visitRedirectModal');
+    const appointmentModal = document.getElementById('appointmentModal');
+    const visitModal = document.getElementById('visitModal');
     const patientId = <?php echo $patientId; ?>;
 
     // Load and display all appointments with action buttons
@@ -1067,25 +1069,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(data => {
                 console.log('Appointments data:', data); // DEBUG
-                // Visible debug banner for users who don't open DevTools
-                try {
-                    const dbg = document.getElementById('appointmentsDebug');
-                    if (dbg) {
-                        dbg.style.display = 'block';
-                        dbg.textContent = 'Fetched ' + ((data.appointments||[]).length) + ' appointments from API. Processing...';
-                    }
-                } catch (ex) { /* ignore */ }
                 const apts = (data.appointments || []).filter(a => {
                     const s = (a.status || '').toString().toLowerCase();
                     return s !== 'completed' && s !== 'cancelled' && s !== 'no-show';
                 });
                 console.log('Filtered appointments:', apts); // DEBUG
-                try {
-                    const dbg = document.getElementById('appointmentsDebug');
-                    if (dbg) {
-                        dbg.textContent = 'Fetched ' + ((data.appointments||[]).length) + ' appointments. Showing ' + apts.length + ' (pending/accepted).';
-                    }
-                } catch (ex) { }
                 const tbody = document.getElementById('appointmentsTbody');
                 const section = document.getElementById('appointmentsSection');
                 
@@ -1128,12 +1116,6 @@ document.addEventListener('DOMContentLoaded', function() {
                            '</tr>';
                 }).join('');
                 console.log('Rendered tbody:', tbody.innerHTML); // DEBUG
-                try {
-                    const dbg = document.getElementById('appointmentsDebug');
-                    if (dbg) {
-                        dbg.textContent += ' Rendered ' + apts.length + ' rows.';
-                    }
-                } catch (ex) { }
             })
             .catch(err => console.error('Error loading appointments:', err));
     }
@@ -1294,6 +1276,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load appointments on page load
     loadAppointments();
+
+    // If we arrived after accepting an appointment from the Appointments page,
+    // open the Visit modal prefilled with that appointment's data.
+    const acceptedApt = <?php echo $acceptedApt ? json_encode($acceptedApt) : 'null'; ?>;
+    if (acceptedApt) {
+        // Wait briefly for appointments to be loaded then open
+        setTimeout(function() { try { openVisitForAppt(acceptedApt); } catch (e) { console.error('Failed opening accepted appointment:', e); } }, 600);
+    }
     
     function setupFocusTrap(el) {
         if (!el) return;
@@ -1325,96 +1315,166 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function openVisitModal() {
-        if (!modal) return;
-        modal.removeAttribute('hidden');
-        modal.classList.add('open');
+        if (!visitModal) return;
+        visitModal.removeAttribute('hidden');
+        visitModal.classList.add('open');
         const main = document.querySelector('.main-content');
         if (main) main.setAttribute('aria-hidden', 'true');
-        setupFocusTrap(modal);
+        setupFocusTrap(visitModal);
         setTimeout(function() {
-            const firstField = modal.querySelector('input[name="visit_date"]');
+            const firstField = visitModal.querySelector('input[name="visit_date"]');
             if (firstField) firstField.focus();
         }, 50);
     }
 
     function closeVisitModal() {
-        if (!modal) return;
-        modal.classList.remove('open');
-        modal.setAttribute('hidden', '');
+        if (!visitModal) return;
+        visitModal.classList.remove('open');
+        visitModal.setAttribute('hidden', '');
         const main = document.querySelector('.main-content');
         if (main) main.removeAttribute('aria-hidden');
-        removeFocusTrap(modal);
+        removeFocusTrap(visitModal);
     }
 
-    function openRedirectModal() {
-        if (!redirectModal) return;
-        redirectModal.removeAttribute('hidden');
-        redirectModal.classList.add('open');
+    function openAppointmentModal() {
+        if (!appointmentModal) return;
+        appointmentModal.removeAttribute('hidden');
+        appointmentModal.classList.add('open');
         const main = document.querySelector('.main-content');
         if (main) main.setAttribute('aria-hidden', 'true');
-        setupFocusTrap(redirectModal);
+        setupFocusTrap(appointmentModal);
     }
 
-    function closeRedirectModal() {
-        if (!redirectModal) return;
-        redirectModal.classList.remove('open');
-        redirectModal.setAttribute('hidden', '');
+    function closeAppointmentModal() {
+        if (!appointmentModal) return;
+        appointmentModal.classList.remove('open');
+        appointmentModal.setAttribute('hidden', '');
         const main = document.querySelector('.main-content');
         if (main) main.removeAttribute('aria-hidden');
-        removeFocusTrap(redirectModal);
+        removeFocusTrap(appointmentModal);
     }
 
     if (addFirstBtn) {
         addFirstBtn.addEventListener('click', function() {
-            // Show appointment booking modal
-            if (typeof openRedirectModal === 'function') openRedirectModal();
+            openAppointmentModal();
         });
     }
 
-    if (addBtn) {
-        addBtn.addEventListener('click', function() {
-            // Show appointment booking modal
-            if (typeof openRedirectModal === 'function') openRedirectModal();
+    // Fullscreen Timeline Modal Handler
+    const viewTimelineFullscreenBtn = document.getElementById('viewTimelineFullscreen');
+    const timelineModal = document.getElementById('timelineModal');
+    
+    if (viewTimelineFullscreenBtn && timelineModal) {
+        viewTimelineFullscreenBtn.addEventListener('click', function() {
+            // Clone the timeline table and show in fullscreen modal
+            // Prefer the visits table (rows with data-visit-id). Fallback to the first table in the card.
+            const visitRow = document.querySelector('table tbody tr[data-visit-id]');
+            const timelineTable = visitRow ? visitRow.closest('table') : document.querySelector('.table-container table');
+            const timelineBody = document.getElementById('timelineModalBody');
+            
+            if (timelineTable) {
+                const clonedTable = timelineTable.cloneNode(true);
+                timelineBody.innerHTML = '';
+                timelineBody.appendChild(clonedTable);
+                
+                // Open the modal
+                timelineModal.removeAttribute('hidden');
+                timelineModal.classList.add('open');
+                const main = document.querySelector('.main-content');
+                if (main) main.setAttribute('aria-hidden', 'true');
+                setupFocusTrap(timelineModal);
+            } else {
+                alert('Timeline data not found');
+            }
+        });
+        
+        // Close fullscreen timeline modal on backdrop click
+        const backdrop = timelineModal.querySelector('.modal-backdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', function() {
+                closeTimelineModal();
+            });
+        }
+        
+        // Close on close button
+        const closeBtn = timelineModal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                closeTimelineModal();
+            });
+        }
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && timelineModal.classList.contains('open')) {
+                closeTimelineModal();
+            }
+        });
+    }
+    
+    function closeTimelineModal() {
+        if (!timelineModal) return;
+        timelineModal.classList.remove('open');
+        timelineModal.setAttribute('hidden', '');
+        const main = document.querySelector('.main-content');
+        if (main) main.removeAttribute('aria-hidden');
+        removeFocusTrap(timelineModal);
+    }
+
+    if (addAppointmentBtn) {
+        addAppointmentBtn.addEventListener('click', function() {
+            openAppointmentModal();
         });
     }
 
-    if (redirectModal) {
-        redirectModal.querySelectorAll('[data-modal-dismiss="visitRedirectModal"]').forEach(function(el) {
-            el.addEventListener('click', closeRedirectModal);
+    if (addVisitBtn) {
+        addVisitBtn.addEventListener('click', function() {
+            openVisitModal();
         });
-        redirectModal.addEventListener('click', function(e) {
-            if (e.target === redirectModal) {
+    }
+
+    if (appointmentModal) {
+        appointmentModal.querySelectorAll('[data-modal-dismiss="appointmentModal"]').forEach(function(el) {
+            el.addEventListener('click', closeAppointmentModal);
+        });
+        appointmentModal.addEventListener('click', function(e) {
+            if (e.target === appointmentModal) {
                 e.stopPropagation();
             }
         });
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && redirectModal.classList.contains('open')) {
-                closeRedirectModal();
+            if (e.key === 'Escape' && appointmentModal.classList.contains('open')) {
+                closeAppointmentModal();
             }
         });
     }
 
-    if (modal) {
-        modal.querySelectorAll('[data-modal-dismiss="visitModal"]').forEach(function(el) {
+    if (visitModal) {
+        visitModal.querySelectorAll('[data-modal-dismiss="visitModal"]').forEach(function(el) {
             el.addEventListener('click', closeVisitModal);
         });
         // prevent backdrop click from closing (enforce explicit close)
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
+        visitModal.addEventListener('click', function(e) {
+            if (e.target === visitModal) {
                 e.stopPropagation();
             }
         });
         // close on Escape
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && modal.classList.contains('open')) {
+            if (e.key === 'Escape' && visitModal.classList.contains('open')) {
                 closeVisitModal();
             }
         });
     }
 
-    // Auto-open when requested via query param (?add=visit)
+    // Auto-open appointment modal when requested via query param (?add=visit)
     if (<?php echo $showAddVisit ? 'true' : 'false'; ?>) {
-        openRedirectModal();
+        openAppointmentModal();
+    }
+
+    // Auto-open visit modal when editing a visit (?edit=visit&visit_id=...)
+    if (<?php echo $showVisitModal ? 'true' : 'false'; ?> || <?php echo ($editVisit && $editVisitId) ? 'true' : 'false'; ?>) {
+        openVisitModal();
     }
 
     // Appointment Form Handlers
@@ -1456,29 +1516,53 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     window.submitAppointmentForm = async function() {
-        const patientId = document.getElementById('appointmentPatientId').value;
-        const appointmentType = document.getElementById('appointmentType').value;
-        const slotValue = document.getElementById('appointmentSlot').value;
-        const notes = document.getElementById('appointmentNotes').value;
-        
-        // Collect vitals
-        const bloodPressure = document.getElementById('appointmentBP').value;
-        const temperature = document.getElementById('appointmentTemp').value;
-        const pulseRate = document.getElementById('appointmentPulse').value;
-        const respRate = document.getElementById('appointmentRespRate').value;
-        const o2Sat = document.getElementById('appointmentO2Sat').value;
+        const patientIdEl = document.getElementById('appointmentPatientId');
+        const appointmentTypeEl = document.getElementById('appointmentType');
+        const slotEl = document.getElementById('appointmentSlot');
+        const notesEl = document.getElementById('appointmentNotes');
+
+        const patientId = patientIdEl ? patientIdEl.value : null;
+        const appointmentType = appointmentTypeEl ? appointmentTypeEl.value : '';
+        const slotValue = slotEl ? slotEl.value : '';
+        const notes = notesEl ? notesEl.value : '';
+
+        // Collect vitals (may have been removed from appointment modal)
+        const bloodPressureEl = document.getElementById('appointmentBP');
+        const tempEl = document.getElementById('appointmentTemp');
+        const pulseEl = document.getElementById('appointmentPulse');
+        const respEl = document.getElementById('appointmentRespRate');
+        const o2El = document.getElementById('appointmentO2Sat');
+
+        const bloodPressure = bloodPressureEl ? bloodPressureEl.value : '';
+        const temperature = tempEl ? tempEl.value : '';
+        const pulseRate = pulseEl ? pulseEl.value : '';
+        const respRate = respEl ? respEl.value : '';
+        const o2Sat = o2El ? o2El.value : '';
 
         // Validate
         if (!appointmentType) {
             alert('Please select an appointment type');
             return;
         }
-        if (!slotValue) {
-            alert('Please select a time slot');
-            return;
-        }
 
-        const [start_at, end_at] = slotValue.split('|');
+        // If no time slot selected, create an unscheduled appointment for the chosen date
+        let start_at = null, end_at = null;
+        if (slotValue) {
+            try {
+                [start_at, end_at] = slotValue.split('|');
+            } catch (e) {
+                start_at = null; end_at = null;
+            }
+        }
+        if (!start_at) {
+            const dateVal = document.getElementById('appointmentDate').value;
+            if (!dateVal) { alert('Please select a date'); return; }
+            // default to 09:00-10:00 on the selected date when no time slot is provided (timezone-aware)
+            const localStart = new Date(dateVal + 'T09:00:00');
+            const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
+            start_at = localStart.toISOString();
+            end_at = localEnd.toISOString();
+        }
 
         try {
             const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
@@ -1502,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (j.success || res.ok) {
                 alert('Appointment booked successfully!');
                 document.getElementById('addAppointmentForm').reset();
-                const modal = document.getElementById('visitRedirectModal');
+                const modal = document.getElementById('appointmentModal');
                 if (modal) {
                     modal.classList.remove('open');
                     modal.setAttribute('hidden', '');
@@ -1672,6 +1756,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const instruction = instrEl ? instrEl.value.trim() : '';
             return { id: id, name: name, instruction: instruction };
         });
+        
+        // Auto-update Treatment Plan with selected medicines
+        const treatmentPlanField = document.querySelector('textarea[name="treatment_plan"]');
+        if (treatmentPlanField && toBePrint.medicines.length > 0) {
+            const medicinesList = toBePrint.medicines
+                .map(m => m.name + (m.instruction ? ' - ' + m.instruction : ''))
+                .join('\n');
+            const currentText = treatmentPlanField.value.trim();
+            
+            // If treatment plan is empty or just contains medications from before, replace it
+            // Otherwise, append the medicines
+            if (!currentText || currentText.toLowerCase().includes('medication') || currentText === selectedNames.replace(/; /g, '\n')) {
+                treatmentPlanField.value = medicinesList;
+            } else {
+                // Append medicines to existing plan
+                treatmentPlanField.value = currentText + '\n\nMedications:\n' + medicinesList;
+            }
+        } else if (treatmentPlanField && toBePrint.medicines.length === 0) {
+            // Optionally clear if no medicines selected, or leave as-is
+            // For now, we'll leave it as-is to avoid losing user input
+        }
     }
 
     function openPrescriptionPanel() {

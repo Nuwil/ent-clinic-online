@@ -3,7 +3,7 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../includes/helpers.php';
 
-// Verify user is admin or doctor
+// Verify user is admin or doctor (secretaries have their own page)
 requireRole(['admin', 'doctor']);
 
 $userRole = getCurrentUserRole();
@@ -70,7 +70,7 @@ $selected = $_GET['date'] ?? date('Y-m-d');
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Time Slot *</label>
+                    <label>Time Slot (optional)</label>
                     <div id="bookSlotContainer" style="display:flex; gap:8px; align-items:center;">
                         <select id="bookSlotSelect" class="form-control" style="display:none;">
                             <option value="">Select a time slot</option>
@@ -243,90 +243,178 @@ function loadAppointments(date) {
         });
 }
 
-function renderDayView(date) {
-    loadSlots(date).then(() => {
-        loadAppointments(date).then(() => {
-            const container = document.getElementById('dayViewContainer');
-            container.innerHTML = '';
-
-            const dateObj = new Date(date);
-            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-            container.innerHTML += '<h3 style="margin-top:0;">' + dayName + '</h3>';
-
-            // Group slots by hour
-            const byHour = {};
-            allSlots.forEach(s => {
-                const start = new Date(s.start);
-                const hour = start.getHours();
-                if (!byHour[hour]) byHour[hour] = [];
-                byHour[hour].push(s);
-            });
-
-            // Render hour blocks
-            Object.keys(byHour).sort((a,b) => a-b).forEach(hour => {
-                const h = parseInt(hour);
-                const timeStr = (h < 10 ? '0' : '') + h + ':00';
-                container.innerHTML += '<div class="day-hour">' + timeStr + '</div>';
-
-                byHour[hour].forEach(slot => {
-                    const start = new Date(slot.start);
-                    const end = new Date(slot.end);
-                    const label = start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
-                                  end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' (' + slot.type + ')';
-
-                    let css = 'appointment-slot';
-                    let action = '';
-
-                    if (slot.booked) {
-                        css += ' ' + (slot.type === 'procedure' ? 'procedure' : slot.type === 'emergency' ? 'emergency' : 'booked');
-                        const apt = allAppointments.find(a => a.start_at === slot.start && a.end_at === slot.end);
-                        if (apt) {
-                            let statusBadge = '<span style="font-size:0.8rem; margin-left:8px;">(' + apt.status + ')</span>';
-                            let buttons = '';
-                            if (apt.status === 'Pending') {
-                                buttons = ' <button type="button" class="btn btn-xs btn-primary" onclick="acceptAppointment(' + apt.id + ')">Accept</button>' +
-                                         ' <button type="button" class="btn btn-xs" onclick="openRescheduleModal(' + apt.id + ')">Reschedule</button>' +
-                                         ' <button type="button" class="btn btn-xs btn-danger" onclick="cancelAppt(' + apt.id + ')">Cancel</button>';
-                            } else if (apt.status === 'Accepted') {
-                                buttons = ' <button type="button" class="btn btn-xs btn-success" onclick="openCompleteModal(' + apt.id + ')">Complete</button>' +
-                                         ' <button type="button" class="btn btn-xs" onclick="openRescheduleModal(' + apt.id + ')">Reschedule</button>' +
-                                         ' <button type="button" class="btn btn-xs btn-danger" onclick="cancelAppt(' + apt.id + ')">Cancel</button>';
-                            } else if (apt.status === 'Completed') {
-                                statusBadge = '<span style="font-size:0.8rem; margin-left:8px; color:#0f5132; font-weight:600;">✓ Completed</span>';
-                            } else if (apt.status === 'Cancelled') {
-                                statusBadge = '<span style="font-size:0.8rem; margin-left:8px; color:#842029; font-weight:600;">✗ Cancelled</span>';
-                            }
-                            action = statusBadge + buttons;
-                        }
-                    } else {
-                        css += ' available';
-                        action = ' <button type="button" class="btn btn-xs" onclick="openBookModal(\'' + slot.start + '\', \'' + slot.end + '\')">Book</button>';
-                    }
-
-                    container.innerHTML += '<div class="' + css + '">' + label + action + '</div>';
-                });
-            });
+function loadAppointmentsRange(startDate, endDate) {
+    return fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&start=' + startDate + '&end=' + endDate)
+        .then(r => r.json())
+        .then(j => {
+            return j.appointments || [];
         });
+}
+
+function renderMonthView(date) {
+    // Render a month calendar grid and populate appointments
+    const container = document.getElementById('dayViewContainer');
+    container.innerHTML = '';
+
+    // parse date as YYYY-MM-DD
+    const parts = (date || currentDate).split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const firstOfMonth = new Date(year, month, 1);
+
+    // start at Sunday of the week containing the 1st
+    const start = new Date(firstOfMonth);
+    start.setDate(1 - start.getDay());
+
+    // build header
+    const monthName = firstOfMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.justifyContent = 'space-between';
+    header.style.alignItems = 'center';
+    header.style.marginBottom = '12px';
+    header.innerHTML = '<h3 style="margin:0;">' + monthName + '</h3>' +
+        '<div><button class="btn btn-sm btn-outline" id="prevMonthBtn">&larr; Prev</button> <button class="btn btn-sm btn-outline" id="nextMonthBtn">Next &rarr;</button></div>';
+    container.appendChild(header);
+
+    // calendar grid
+    const grid = document.createElement('div');
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
+    grid.style.gap = '8px';
+
+    // weekday headers
+    const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    weekdays.forEach(w => {
+        const el = document.createElement('div');
+        el.style.fontWeight = '600';
+        el.style.textAlign = 'center';
+        el.textContent = w;
+        grid.appendChild(el);
+    });
+
+    // create 6 weeks x 7 days = 42 cells
+    const cells = [];
+    const iter = new Date(start);
+    for (let i = 0; i < 42; i++) {
+        const cell = document.createElement('div');
+        cell.style.minHeight = '90px';
+        cell.style.border = '1px solid #e6e6e6';
+        cell.style.borderRadius = '6px';
+        cell.style.padding = '8px';
+        cell.style.background = '#fff';
+        cell.dataset.date = iter.toISOString().slice(0,10);
+        const dayNum = document.createElement('div');
+        dayNum.style.fontSize = '0.9rem';
+        dayNum.style.marginBottom = '6px';
+        dayNum.style.fontWeight = '600';
+        dayNum.textContent = iter.getDate();
+        cell.appendChild(dayNum);
+        const list = document.createElement('div');
+        list.className = 'day-appointments';
+        cell.appendChild(list);
+        // click on day to book
+        cell.addEventListener('click', function(e) {
+            // avoid click when clicking an appointment item
+            if (e.target.closest('.apt-item')) return;
+            const d = this.dataset.date;
+            document.getElementById('datePicker').value = d;
+            currentDate = d;
+            openBookModal();
+        });
+        grid.appendChild(cell);
+        cells.push(cell);
+        iter.setDate(iter.getDate() + 1);
+    }
+
+    container.appendChild(grid);
+
+    // fetch appointments for the visible range
+    const startDate = cells[0].dataset.date;
+    const endDate = cells[cells.length-1].dataset.date;
+    loadAppointmentsRange(startDate, endDate).then(apts => {
+        // clear previous
+        cells.forEach(c => c.querySelector('.day-appointments').innerHTML = '');
+        apts.forEach(apt => {
+            const aptDate = (apt.start_at || apt.appointment_date || '').slice(0,10);
+            const cell = document.querySelector('[data-date="' + aptDate + '"]');
+            if (!cell) return;
+            const list = cell.querySelector('.day-appointments');
+            const time = apt.start_at ? new Date(apt.start_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+            const div = document.createElement('div');
+            div.className = 'apt-item';
+            div.style.padding = '4px 6px';
+            div.style.marginBottom = '4px';
+            div.style.borderRadius = '4px';
+            div.style.background = apt.status && apt.status.toLowerCase() === 'pending' ? '#fff3cd' : '#cfe2ff';
+            div.style.cursor = 'pointer';
+            div.innerHTML = '<strong style="font-size:0.85rem;">' + (time ? time + ' ' : '') + (apt.type || '') + '</strong><div style="font-size:0.75rem; color:#333;">Patient #' + apt.patient_id + '</div>';
+            // clicking appointment opens actions
+            div.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                // show quick actions
+                const id = apt.id;
+                if ((apt.status || '').toLowerCase() === 'pending') {
+                    if (confirm('Accept this appointment?')) {
+                        acceptAndRedirect(id, apt.patient_id);
+                    }
+                } else if ((apt.status || '').toLowerCase() === 'accepted') {
+                    openCompleteModal(id);
+                }
+            });
+            list.appendChild(div);
+        });
+    });
+
+    // nav handlers
+    document.getElementById('prevMonthBtn').addEventListener('click', function() {
+        const d = new Date(currentDate);
+        d.setDate(1);
+        d.setMonth(d.getMonth() - 1);
+        const m = d.toISOString().slice(0,10);
+        currentDate = m;
+        document.getElementById('datePicker').value = currentDate;
+        renderMonthView(currentDate);
+        renderListView(currentDate);
+    });
+    document.getElementById('nextMonthBtn').addEventListener('click', function() {
+        const d = new Date(currentDate);
+        d.setDate(1);
+        d.setMonth(d.getMonth() + 1);
+        const m = d.toISOString().slice(0,10);
+        currentDate = m;
+        document.getElementById('datePicker').value = currentDate;
+        renderMonthView(currentDate);
+        renderListView(currentDate);
     });
 }
 
 function renderListView(date) {
-    loadAppointments(date).then(apts => {
+    // show appointments for the month of `date`
+    const parts = (date || currentDate).split('-');
+    const year = parseInt(parts[0],10);
+    const month = parseInt(parts[1],10) - 1;
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const startDate = first.toISOString().slice(0,10);
+    const endDate = last.toISOString().slice(0,10);
+
+    loadAppointmentsRange(startDate, endDate).then(apts => {
         const container = document.getElementById('listViewContainer');
         container.innerHTML = '';
 
-        if (apts.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#999;">No appointments scheduled for this date.</p>';
+        if (!apts || apts.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#999;">No appointments scheduled for this month.</p>';
             return;
         }
 
+        apts.sort((a,b) => new Date(a.start_at || a.appointment_date) - new Date(b.start_at || b.appointment_date));
         apts.forEach(apt => {
-            const start = new Date(apt.start_at);
-            const end = new Date(apt.end_at);
-            const timeStr = start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
+            const start = new Date(apt.start_at || apt.appointment_date);
+            const end = apt.end_at ? new Date(apt.end_at) : new Date(start.getTime() + 60*60*1000);
+            const timeStr = start.toLocaleDateString() + ' ' + start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
                             end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-            // Status badge colors (case-insensitive)
             let statusBgColor = '#e0e0e0';
             let statusTextColor = '#333';
             const st = (apt.status || 'Pending').toString().toLowerCase();
@@ -344,11 +432,10 @@ function renderListView(date) {
                 statusTextColor = '#842029';
             }
 
-            // Build action buttons based on status (case-insensitive)
             let actionButtons = '';
             if (st === 'pending') {
                 actionButtons = `
-                    <button class="btn btn-sm btn-primary" onclick="acceptAppointment(${apt.id})">Accept</button>
+                    <button class="btn btn-sm btn-success" onclick="acceptAndRedirect(${apt.id}, ${apt.patient_id})">Accept</button>
                     <button class="btn btn-sm" onclick="openRescheduleModal(${apt.id})">Reschedule</button>
                     <button class="btn btn-sm btn-danger" onclick="cancelAppt(${apt.id})">Cancel</button>
                 `;
@@ -432,27 +519,31 @@ document.getElementById('bookForm').addEventListener('submit', async function(e)
     // If no slot selected from click, try to get from dropdown
     if (!start_at && document.getElementById('bookSlotSelect').style.display !== 'none') {
         const slotValue = document.getElementById('bookSlotSelect').value;
-        if (!slotValue) {
-            alert('Please select a time slot');
-            return;
+        if (slotValue) {
+            try {
+                const [start, end] = slotValue.split('|');
+                start_at = start;
+                end_at = end;
+            } catch (e) {
+                alert('Invalid slot selection');
+                return;
+            }
         }
-        try {
-            const [start, end] = slotValue.split('|');
-            start_at = start;
-            end_at = end;
-        } catch (e) {
-            alert('Invalid slot selection');
-            return;
-        }
+        // If no slot selected, continue without time slot (optional)
     }
 
     const messageBox = document.getElementById('bookFormMessage');
     messageBox.innerHTML = '';
 
+    // If no time slot provided, use default time or mark as unscheduled
     if (!start_at || !end_at) {
-        messageBox.textContent = 'Please select a time slot';
-        messageBox.style.color = 'red';
-        return;
+        // Create unscheduled appointment with placeholder time (timezone-aware)
+        const dateInput = document.getElementById('datePicker');
+        const selectedDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+        const localStart = new Date(selectedDate + 'T09:00:00');
+        const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
+        start_at = localStart.toISOString();
+        end_at = localEnd.toISOString();
     }
 
     const submitBtn = this.querySelector('button[type="submit"]');
@@ -471,7 +562,7 @@ document.getElementById('bookForm').addEventListener('submit', async function(e)
         messageBox.style.color = 'green';
         messageBox.textContent = 'Appointment booked!';
         closeBookModal();
-        renderDayView(currentDate);
+        renderMonthView(currentDate);
         renderListView(currentDate);
     } else {
         // Show validation errors if provided
@@ -529,7 +620,7 @@ document.getElementById('rescheduleForm').addEventListener('submit', async funct
     if (j.success || res.ok) {
         alert('Appointment rescheduled!');
         closeRescheduleModal();
-        renderDayView(currentDate);
+        renderMonthView(currentDate);
         renderListView(currentDate);
     } else {
         alert(formatApiError(j) || 'Reschedule failed');
@@ -556,8 +647,25 @@ async function acceptAppointment(aptId) {
     if (j.success || res.ok) {
         // Open the Visit Modal to record the visit
         openCompleteModal(aptId);
-        renderDayView(currentDate);
+        renderMonthView(currentDate);
         renderListView(currentDate);
+    } else {
+        alert(formatApiError(j) || 'Failed to accept appointment');
+    }
+}
+
+// Accept appointment and redirect to patient's profile, opening the Visit modal there
+async function acceptAndRedirect(aptId, patientId) {
+    if (!confirm('Accept this appointment and open patient profile?')) return;
+    const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    });
+    let j = null;
+    try { j = await res.json(); } catch (e) { j = null; }
+    if (j && (j.success || res.ok)) {
+        // Redirect to patient profile and let patient-profile page open Visit modal for this appointment
+        window.location.href = '<?php echo baseUrl(); ?>/?page=patient-profile&id=' + encodeURIComponent(patientId) + '&accepted_apt=' + encodeURIComponent(aptId);
     } else {
         alert(formatApiError(j) || 'Failed to accept appointment');
     }
@@ -592,7 +700,7 @@ document.getElementById('completeForm').addEventListener('submit', async functio
     if (j.success || res.ok) {
         alert('Appointment completed and visit record created!');
         closeCompleteModal();
-        renderDayView(currentDate);
+        renderMonthView(currentDate);
         renderListView(currentDate);
     } else {
         alert(formatApiError(j) || 'Failed to complete appointment');
@@ -605,43 +713,52 @@ async function cancelAppt(aptId) {
     const j = await res.json();
     if (j.success || res.ok) {
         alert('Appointment cancelled');
-        renderDayView(currentDate);
+        renderMonthView(currentDate);
         renderListView(currentDate);
     }
 }
 
 // Date navigation - Load both views when date changes
+// Date navigation - switch months and reload views
 document.getElementById('datePicker').addEventListener('change', function() {
     currentDate = this.value;
-    renderDayView(currentDate);
+    // ensure datePicker reflects first of month for month navigation
+    const p = currentDate.split('-');
+    const d = new Date(p[0], parseInt(p[1],10)-1, 1);
+    currentDate = d.toISOString().slice(0,10);
+    document.getElementById('datePicker').value = currentDate;
+    renderMonthView(currentDate);
     renderListView(currentDate);
 });
 
 document.getElementById('todayBtn').addEventListener('click', function() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('datePicker').value = today;
-    currentDate = today;
-    renderDayView(currentDate);
+    const today = new Date();
+    const first = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+    document.getElementById('datePicker').value = first;
+    currentDate = first;
+    renderMonthView(currentDate);
     renderListView(currentDate);
 });
 
 document.getElementById('prevDayBtn').addEventListener('click', function() {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() - 1);
-    const prev = d.toISOString().split('T')[0];
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    const prev = d.toISOString().slice(0,10);
     document.getElementById('datePicker').value = prev;
     currentDate = prev;
-    renderDayView(currentDate);
+    renderMonthView(currentDate);
     renderListView(currentDate);
 });
 
 document.getElementById('nextDayBtn').addEventListener('click', function() {
     const d = new Date(currentDate);
-    d.setDate(d.getDate() + 1);
-    const next = d.toISOString().split('T')[0];
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+    const next = d.toISOString().slice(0,10);
     document.getElementById('datePicker').value = next;
     currentDate = next;
-    renderDayView(currentDate);
+    renderMonthView(currentDate);
     renderListView(currentDate);
 });
 
@@ -730,11 +847,9 @@ function validateBookForm() {
     const submitBtn = document.querySelector('#bookForm button[type="submit"]');
     const messageBox = document.getElementById('bookFormMessage');
     if (messageBox) messageBox.innerHTML = '';
-    let hasSlot = false;
-    if (slotSelect && slotSelect.style.display !== 'none' && slotSelect.value) hasSlot = true;
-    if (start) hasSlot = true;
+    // Time slot is now optional, only patient is required
     if (submitBtn) {
-        if (patient && hasSlot) submitBtn.disabled = false; else submitBtn.disabled = true;
+        if (patient) submitBtn.disabled = false; else submitBtn.disabled = true;
     }
 }
 
@@ -760,6 +875,6 @@ document.addEventListener('DOMContentLoaded', function(){
     validateBookForm();
 });
 // Load both views on page load
-renderDayView(currentDate);
+    renderMonthView(currentDate);
 renderListView(currentDate);
 </script>
