@@ -2,7 +2,8 @@
 /**
  * Patient Profile Page - Accessible by all authenticated users
  */
-if (session_status() === PHP_SESSION_NONE) session_start();
+if (session_status() === PHP_SESSION_NONE)
+    session_start();
 require_once __DIR__ . '/../includes/helpers.php';
 
 // Get patient ID
@@ -37,7 +38,8 @@ $editVisitId = isset($_GET['visit_id']) ? $_GET['visit_id'] : null;
 $editVisitData = null;
 
 // Function to format ENT type labels
-function formatENTType($type) {
+function formatENTType($type)
+{
     $map = [
         'ear' => 'Ear',
         'nose' => 'Nose',
@@ -92,19 +94,36 @@ $currentRole = $currentUser['role'] ?? '';
                 </p>
             </div>
             <div class="flex gap-2">
+
+                <a href="<?php echo baseUrl(); ?>/?page=medical-certificate&patient_id=<?php echo $patientId; ?>"
+                    class="btn btn-secondary" style="display: none;">
+                    <i class="fas fa-file-pdf"></i>
+                    Print Certificate
+                </a>
+                            <div style="display:flex;gap:8px;">
+                <button type="button" id="viewTimelineFullscreen" class="btn btn-outline"
+                    title="View timeline in fullscreen">
+                    <i class="fas fa-expand"></i>
+                    View Fullscreen
+                </button>
+                <button type="button" id="addAppointmentBtn" class="btn btn-primary">
+                    <i class="fas fa-calendar-plus"></i>
+                    Add Appointment
+                </button>
+                <button type="button" id="addVisitBtn" class="btn btn-primary">
+                    <i class="fas fa-stethoscope"></i>
+                    Add Visit
+                </button>                
                 <button type="button" id="openEditProfileBtn" class="btn btn-primary">
                     <i class="fas fa-edit"></i>
                     Edit Profile
                 </button>
-                <a href="<?php echo baseUrl(); ?>/?page=medical-certificate&patient_id=<?php echo $patientId; ?>" class="btn btn-secondary" style="display: none;">
-                    <i class="fas fa-file-pdf"></i>
-                    Print Certificate
-                </a>
+            </div>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-2">
+    <div class="grid grid-2" style="grid-template-columns: 1fr;">
         <!-- Patient Information -->
         <div class="card">
             <div class="card-header">
@@ -120,7 +139,7 @@ $currentRole = $currentUser['role'] ?? '';
                 $sections = [
                     'Demographics' => [
                         'Patient ID' => 'patient_id',
-                        'Name' => ['first_name','last_name'],
+                        'Name' => ['first_name', 'last_name'],
                         'Age' => 'age_calculated',
                         'Date of Birth' => 'date_of_birth',
                         'Gender' => 'gender',
@@ -134,7 +153,7 @@ $currentRole = $currentUser['role'] ?? '';
                         'State/Province' => 'state',
                         'Postal Code' => 'postal_code',
                         'Country' => 'country',
-                        'Emergency Contact' => ['emergency_contact_name','emergency_contact_phone']
+                        'Emergency Contact' => ['emergency_contact_name', 'emergency_contact_phone']
                     ],
                     'Health Information' => [
                         'Height' => 'height',
@@ -153,7 +172,8 @@ $currentRole = $currentUser['role'] ?? '';
 
                 foreach ($sections as $sectionName => $fields): ?>
                     <div style="padding: 1rem; border-bottom: 1px solid #e9ecef;">
-                        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; font-weight: 600; color: #667eea; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <h4
+                            style="margin: 0 0 0.75rem 0; font-size: 0.95rem; font-weight: 600; color: #667eea; text-transform: uppercase; letter-spacing: 0.5px;">
                             <?php echo e($sectionName); ?>
                         </h4>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -162,11 +182,13 @@ $currentRole = $currentUser['role'] ?? '';
                                 if (is_array($key)) {
                                     $parts = [];
                                     foreach ($key as $k) {
-                                        if (!empty($patient[$k])) $parts[] = $patient[$k];
+                                        if (!empty($patient[$k]))
+                                            $parts[] = $patient[$k];
                                     }
                                     $value = implode(' ', $parts);
                                 } else {
-                                    if (isset($patient[$key])) $value = $patient[$key];
+                                    if (isset($patient[$key]))
+                                        $value = $patient[$key];
                                 }
 
                                 if ($label === 'Date of Birth') {
@@ -228,31 +250,35 @@ $currentRole = $currentUser['role'] ?? '';
             <div class="modal-dialog form-modal">
                 <div class="modal-header">
                     <h2 class="modal-title">Edit Patient Profile</h2>
-                    <button type="button" class="modal-close" id="closeEditProfileModal" aria-label="Close modal">&times;</button>
+                    <button type="button" class="modal-close" id="closeEditProfileModal"
+                        aria-label="Close modal">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="editProfileForm" method="POST" action="<?php echo baseUrl(); ?>/">
                         <input type="hidden" name="action" value="update_patient_profile">
                         <input type="hidden" name="id" value="<?php echo $patientId; ?>">
-                        
+
                         <div class="grid grid-2">
                             <div class="form-group-name">
                                 <div class="form-group">
                                     <label class="form-label">First Name *</label>
-                                    <input type="text" name="first_name" class="form-control" 
-                                           value="<?php echo e(isset($patient['first_name']) ? $patient['first_name'] : ''); ?>" required />
+                                    <input type="text" name="first_name" class="form-control"
+                                        value="<?php echo e(isset($patient['first_name']) ? $patient['first_name'] : ''); ?>"
+                                        required />
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Last Name *</label>
-                                    <input type="text" name="last_name" class="form-control" 
-                                           value="<?php echo e(isset($patient['last_name']) ? $patient['last_name'] : ''); ?>" required />
+                                    <input type="text" name="last_name" class="form-control"
+                                        value="<?php echo e(isset($patient['last_name']) ? $patient['last_name'] : ''); ?>"
+                                        required />
                                 </div>
                             </div>
                             <div class="form-group-name">
                                 <div class="form-group">
                                     <label class="form-label">Date of Birth</label>
-                                    <input type="date" name="date_of_birth" class="form-control" 
-                                           value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" required/>
+                                    <input type="date" name="date_of_birth" class="form-control"
+                                        value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>"
+                                        required />
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Gender *</label>
@@ -267,20 +293,23 @@ $currentRole = $currentUser['role'] ?? '';
                             <div class="form-group-name">
                                 <div class="form-group">
                                     <label class="form-label">Height (cm)</label>
-                                    <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
-                                           placeholder="e.g., 170" value="<?php echo e(isset($patient['height']) && $patient['height'] ? $patient['height'] : ''); ?>" />
+                                    <input type="number" name="height" class="form-control" step="0.1" min="50"
+                                        max="250" placeholder="e.g., 170"
+                                        value="<?php echo e(isset($patient['height']) && $patient['height'] ? $patient['height'] : ''); ?>" />
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Weight (kg)</label>
-                                    <input type="number" name="weight" class="form-control" step="0.1" min="20" max="300"
-                                           placeholder="e.g., 70.5" value="<?php echo e(isset($patient['weight']) && $patient['weight'] ? $patient['weight'] : ''); ?>" />
+                                    <input type="number" name="weight" class="form-control" step="0.1" min="20"
+                                        max="300" placeholder="e.g., 70.5"
+                                        value="<?php echo e(isset($patient['weight']) && $patient['weight'] ? $patient['weight'] : ''); ?>" />
                                 </div>
                             </div>
                             <div class="form-group-name">
                                 <div class="form-group">
                                     <label class="form-label">BMI (kg/m²)</label>
-                                    <input type="number" name="bmi" id="editBmiField" class="form-control" step="0.01" readonly
-                                           placeholder="Auto-calculated" value="<?php echo e(isset($patient['bmi']) && $patient['bmi'] ? $patient['bmi'] : ''); ?>" />
+                                    <input type="number" name="bmi" id="editBmiField" class="form-control" step="0.01"
+                                        readonly placeholder="Auto-calculated"
+                                        value="<?php echo e(isset($patient['bmi']) && $patient['bmi'] ? $patient['bmi'] : ''); ?>" />
                                 </div>
                                 <div class="form-group" style="display:flex;align-items:flex-end;">
                                     <small style="color:#666;">BMI is calculated from Height &amp; Weight</small>
@@ -288,45 +317,54 @@ $currentRole = $currentUser['role'] ?? '';
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Phone</label>
-                                <input type="tel" name="phone" class="form-control" 
-                                       value="<?php echo e(isset($patient['phone']) ? $patient['phone'] : ''); ?>" />
+                                <input type="tel" name="phone" class="form-control"
+                                    value="<?php echo e(isset($patient['phone']) ? $patient['phone'] : ''); ?>" />
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Occupation</label>
-                                <input type="text" name="occupation" class="form-control" 
-                                       value="<?php echo e(isset($patient['occupation']) ? $patient['occupation'] : ''); ?>" />
+                                <input type="text" name="occupation" class="form-control"
+                                    value="<?php echo e(isset($patient['occupation']) ? $patient['occupation'] : ''); ?>" />
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Address</label>
-                                <input type="text" name="address" class="form-control" 
-                                       value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
+                                <input type="text" name="address" class="form-control"
+                                    value="<?php echo e(isset($patient['address']) ? $patient['address'] : ''); ?>" />
                             </div>
                         </div>
 
                         <div class="grid grid-2">
                             <div class="form-group">
                                 <label class="form-label">City</label>
-                                <select name="city" id="citySelect" class="form-control" data-selected="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>">
-                                    <option value=""><?php echo e(isset($patient['city']) ? $patient['city'] : '-- Select City --'); ?></option>
+                                <select name="city" id="citySelect" class="form-control"
+                                    data-selected="<?php echo e(isset($patient['city']) ? $patient['city'] : ''); ?>">
+                                    <option value="">
+                                        <?php echo e(isset($patient['city']) ? $patient['city'] : '-- Select City --'); ?>
+                                    </option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">State/Province</label>
-                                <select name="state" id="stateSelect" class="form-control" data-selected="<?php echo e(isset($patient['state']) ? $patient['state'] : ''); ?>">
-                                    <option value=""><?php echo e(isset($patient['state']) ? $patient['state'] : '-- Select State/Province --'); ?></option>
+                                <select name="state" id="stateSelect" class="form-control"
+                                    data-selected="<?php echo e(isset($patient['state']) ? $patient['state'] : ''); ?>">
+                                    <option value="">
+                                        <?php echo e(isset($patient['state']) ? $patient['state'] : '-- Select State/Province --'); ?>
+                                    </option>
                                 </select>
                             </div>
                         </div>
                         <div class="grid grid-2">
                             <div class="form-group">
                                 <label class="form-label">Postal Code</label>
-                                <input type="text" name="postal_code" class="form-control" 
-                                       value="<?php echo e(isset($patient['postal_code']) ? $patient['postal_code'] : ''); ?>" />
+                                <input type="text" name="postal_code" class="form-control"
+                                    value="<?php echo e(isset($patient['postal_code']) ? $patient['postal_code'] : ''); ?>" />
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Country</label>
-                                <select name="country" id="countrySelect" class="form-control" data-selected="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>">
-                                    <option value=""><?php echo e(isset($patient['country']) ? $patient['country'] : '-- Select Country --'); ?></option>
+                                <select name="country" id="countrySelect" class="form-control"
+                                    data-selected="<?php echo e(isset($patient['country']) ? $patient['country'] : ''); ?>">
+                                    <option value="">
+                                        <?php echo e(isset($patient['country']) ? $patient['country'] : '-- Select Country --'); ?>
+                                    </option>
                                 </select>
                             </div>
                         </div>
@@ -337,7 +375,8 @@ $currentRole = $currentUser['role'] ?? '';
                         </div>
                         <div class="form-group">
                             <label class="form-label">Vaccine History (optional)</label>
-                            <input type="text" name="vaccine_history" class="form-control" placeholder="e.g., Flu, COVID-19, etc."
+                            <input type="text" name="vaccine_history" class="form-control"
+                                placeholder="e.g., Flu, COVID-19, etc."
                                 value="<?php echo e(isset($patient['vaccine_history']) ? $patient['vaccine_history'] : ''); ?>" />
                         </div>
                         <div class="form-group">
@@ -362,7 +401,8 @@ $currentRole = $currentUser['role'] ?? '';
                         </div>
                         <div class="form-group">
                             <label class="form-label">Medical History</label>
-                            <textarea name="medical_history" class="form-control" rows="4"><?php echo e(isset($patient['medical_history']) ? $patient['medical_history'] : ''); ?></textarea>
+                            <textarea name="medical_history" class="form-control"
+                                rows="4"><?php echo e(isset($patient['medical_history']) ? $patient['medical_history'] : ''); ?></textarea>
                         </div>
                     </form>
                 </div>
@@ -380,13 +420,13 @@ $currentRole = $currentUser['role'] ?? '';
 
     <!-- Visit Timeline (Full Width - Below Grid) -->
     <?php if (hasRole(['admin', 'doctor', 'staff'])): ?>
-    <div class="card">
+        <div class="card">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <h3 class="card-title" style="margin:0;">
                     <i class="fas fa-calendar-check"></i>
                     Visit Timeline
                 </h3>
-                <div style="display:flex;gap:8px;">
+                <!-- <div style="display:flex;gap:8px;">
                     <button type="button" id="viewTimelineFullscreen" class="btn btn-outline" title="View timeline in fullscreen">
                         <i class="fas fa-expand"></i>
                         View Fullscreen
@@ -399,7 +439,7 @@ $currentRole = $currentUser['role'] ?? '';
                         <i class="fas fa-stethoscope"></i>
                         Add Visit
                     </button>
-                </div>
+                </div> -->
             </div>
 
             <!-- Add Appointment Modal -->
@@ -418,10 +458,12 @@ $currentRole = $currentUser['role'] ?? '';
                     <div class="modal-body">
                         <form id="addAppointmentForm">
                             <input type="hidden" id="appointmentPatientId" value="<?php echo $patientId; ?>" />
-                            
+
                             <div class="form-group">
                                 <label class="form-label">Patient *</label>
-                                <input type="text" class="form-control" value="<?php echo e($patient['first_name'] . ' ' . ($patient['last_name'] ?? '')); ?>" disabled />
+                                <input type="text" class="form-control"
+                                    value="<?php echo e($patient['first_name'] . ' ' . ($patient['last_name'] ?? '')); ?>"
+                                    disabled />
                             </div>
 
                             <div class="form-group">
@@ -449,12 +491,14 @@ $currentRole = $currentUser['role'] ?? '';
 
                             <div class="form-group">
                                 <label class="form-label">Reason/Notes (optional)</label>
-                                <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Add any relevant notes"></textarea>
+                                <textarea id="appointmentNotes" class="form-control" rows="3"
+                                    placeholder="Add any relevant notes"></textarea>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-modal-dismiss="appointmentModal">Cancel</button>
+                        <button type="button" class="btn btn-secondary"
+                            data-modal-dismiss="appointmentModal">Cancel</button>
                         <button type="button" class="btn btn-primary" onclick="submitAppointmentForm()">
                             <i class="fas fa-calendar-check"></i>
                             Book Appointment
@@ -477,21 +521,22 @@ $currentRole = $currentUser['role'] ?? '';
                         </button>
                     </div>
                     <div class="modal-body">
-                    <form method="POST" action="<?php echo baseUrl(); ?>/">
-                        <input type="hidden" name="action" value="<?php echo $editVisitData ? 'update_visit' : 'add_visit'; ?>">
-                        <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
-                        <input type="hidden" name="appointment_id" value="">
-                        <?php if ($editVisitData): ?>
-                        <input type="hidden" name="id" value="<?php echo $editVisitData['id']; ?>">
-                        <?php endif; ?>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Visit Date & Time *</label>
-                            <?php
+                        <form method="POST" action="<?php echo baseUrl(); ?>/">
+                            <input type="hidden" name="action"
+                                value="<?php echo $editVisitData ? 'update_visit' : 'add_visit'; ?>">
+                            <input type="hidden" name="patient_id" value="<?php echo $patientId; ?>">
+                            <input type="hidden" name="appointment_id" value="">
+                            <?php if ($editVisitData): ?>
+                                <input type="hidden" name="id" value="<?php echo $editVisitData['id']; ?>">
+                            <?php endif; ?>
+
+                            <div class="form-group">
+                                <label class="form-label">Visit Date & Time *</label>
+                                <?php
                                 // Default the datetime-local input to current time in Manila
                                 $manilaNow = new DateTime('now', new DateTimeZone('Asia/Manila'));
                                 $manilaValue = $manilaNow->format('Y-m-d\\TH:i');
-                                
+
                                 // If editing, convert stored UTC datetime to Manila for display
                                 if ($editVisitData) {
                                     try {
@@ -502,112 +547,135 @@ $currentRole = $currentUser['role'] ?? '';
                                         $manilaValue = substr($editVisitData['visit_date'], 0, 16);
                                     }
                                 }
-                            ?>
-                            <input type="datetime-local" name="visit_date" class="form-control" 
-                                   value="<?php echo e($manilaValue); ?>" required />
-                        </div>
-                        <?php if ($currentRole !== 'staff'): ?>
-                        <div class="form-group">
-                            <label class="form-label">Visit Type *</label>
-                            <select name="visit_type" class="form-control" required>
-                                <option value="">Select Visit Type</option>
-                                <option value="Consultation" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Consultation') ? 'selected' : ''; ?>>Consultation</option>
-                                <option value="Follow-up" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Follow-up') ? 'selected' : ''; ?>>Follow-up</option>
-                                <option value="Emergency" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
-                                <option value="Routine Check" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Routine Check') ? 'selected' : ''; ?>>Routine Check</option>
-                                <option value="Procedure" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Procedure') ? 'selected' : ''; ?>>Procedure</option>
-                                <option value="Misc/Others" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Misc/Others') ? 'selected' : ''; ?>>Misc/Others</option>
-                            </select>
-                        </div>
-                        <?php endif; ?>
-                        <?php if ($currentRole !== 'staff'): ?>
-                        <div class="form-group">
-                            <label class="form-label">ENT Classification *</label>
-                            <select name="ent_type" class="form-control" required>
-                                <option value="ear" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'ear') ? 'selected' : ''; ?>>Ear</option>
-                                <option value="nose" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'nose') ? 'selected' : ''; ?>>Nose</option>
-                                <option value="throat" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'throat') ? 'selected' : ''; ?>>Throat</option>
-                                <option value="head_neck_tumor" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'head_neck_tumor') ? 'selected' : ''; ?>>Head & Neck Tumors</option>
-                                <option value="lifestyle_medicine" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'lifestyle_medicine') ? 'selected' : ''; ?>>Lifestyle Medicine</option>
-                                <option value="misc" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'misc') ? 'selected' : ''; ?>>Misc/Others</option>
-                            </select>
-                        </div>
-                        <?php endif; ?>
-                        <!-- Visit Workflow: Chief Complaint → History → Physical Exam → Diagnosis → Treatment Plan -->
-                        <div class="form-group">
-                            <label class="form-label">Chief Complaint *</label>
-                            <textarea name="chief_complaint" class="form-control" rows="2" placeholder="Patient's primary complaint or reason for visit" required><?php echo $editVisitData ? e($editVisitData['chief_complaint']) : ''; ?></textarea>
-                        </div>
-                        
-                        <?php if ($currentRole !== 'staff'): ?>
-                        <div class="form-group">
-                            <label class="form-label">History of Present Illness</label>
-                            <textarea name="history" class="form-control" rows="2" placeholder="Onset, duration, associated symptoms, past treatments..."><?php echo $editVisitData && isset($editVisitData['history']) ? e($editVisitData['history']) : ''; ?></textarea>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="form-label">Physical Examination Findings</label>
-                            <textarea name="physical_exam" class="form-control" rows="2" placeholder="Otoscopy, rhinoscopy, palpation, other findings..."><?php echo $editVisitData && isset($editVisitData['physical_exam']) ? e($editVisitData['physical_exam']) : ''; ?></textarea>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                            <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Vitals from Appointment</div>
-                            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
-                                <div style="padding:6px 0;">
-                                    <label class="form-label" style="margin-bottom:4px;">Blood Pressure</label>
-                                    <input type="text" name="blood_pressure" class="form-control" placeholder="e.g., 120/80" />
-                                </div>
-                                <div style="padding:6px 0;">
-                                    <label class="form-label" style="margin-bottom:4px;">Temperature (°C)</label>
-                                    <input type="number" name="temperature" class="form-control" placeholder="36.5" step="0.1" />
-                                </div>
-                                <div style="padding:6px 0;">
-                                    <label class="form-label" style="margin-bottom:4px;">Pulse Rate (bpm)</label>
-                                    <input type="number" name="pulse_rate" class="form-control" placeholder="72" />
-                                </div>
-                                <div style="padding:6px 0;">
-                                    <label class="form-label" style="margin-bottom:4px;">Respiratory Rate</label>
-                                    <input type="number" name="respiratory_rate" class="form-control" placeholder="16" />
-                                </div>
-                                <div style="padding:6px 0;">
-                                    <label class="form-label" style="margin-bottom:4px;">O2 Saturation (%)</label>
-                                    <input type="number" name="oxygen_saturation" class="form-control" placeholder="98" min="0" max="100" />
-                                </div>
+                                ?>
+                                <input type="datetime-local" name="visit_date" class="form-control"
+                                    value="<?php echo e($manilaValue); ?>" required />
                             </div>
-                        </div>
-                        
-                        <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
-                            <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Current Patient Vitals</div>
-                            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
-                                <div style="padding:6px 0;">
-                                    <strong>Height:</strong>
-                                    <div><?php echo (isset($patient['height']) && $patient['height']) ? e($patient['height']) . ' cm' : '<span style="color:#999;">—</span>'; ?></div>
+                            <?php if ($currentRole !== 'staff'): ?>
+                                <div class="form-group">
+                                    <label class="form-label">Visit Type *</label>
+                                    <select name="visit_type" class="form-control" required>
+                                        <option value="">Select Visit Type</option>
+                                        <option value="Consultation" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Consultation') ? 'selected' : ''; ?>>Consultation
+                                        </option>
+                                        <option value="Follow-up" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Follow-up') ? 'selected' : ''; ?>>Follow-up</option>
+                                        <option value="Emergency" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
+                                        <option value="Routine Check" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Routine Check') ? 'selected' : ''; ?>>Routine Check
+                                        </option>
+                                        <option value="Procedure" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Procedure') ? 'selected' : ''; ?>>Procedure</option>
+                                        <option value="Misc/Others" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Misc/Others') ? 'selected' : ''; ?>>Misc/Others
+                                        </option>
+                                    </select>
                                 </div>
-                                <div style="padding:6px 0;">
-                                    <strong>Weight:</strong>
-                                    <div><?php echo (isset($patient['weight']) && $patient['weight']) ? e($patient['weight']) . ' kg' : '<span style="color:#999;">—</span>'; ?></div>
-                                </div>
-                            </div>
-                            <?php if (isset($patient['vitals_updated_at']) && $patient['vitals_updated_at']): ?>
-                                <div style="margin-top:8px;font-size:0.85rem;color:#666;">Last updated: <?php echo formatDate($patient['vitals_updated_at']); ?></div>
                             <?php endif; ?>
-                        </div>
-                        
-                        <?php if ($currentRole !== 'staff'): ?>
-                        <div class="form-group">
-                            <label class="form-label">Assessment & Diagnosis</label>
-                            <textarea name="diagnosis" class="form-control" rows="2" placeholder="Clinical assessment and diagnosis"><?php echo $editVisitData ? e($editVisitData['diagnosis']) : ''; ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Treatment Plan & Recommendations</label>
-                            <textarea name="treatment_plan" class="form-control" rows="2" placeholder="Treatment options, medications, follow-up actions"><?php echo $editVisitData ? e($editVisitData['treatment_plan']) : ''; ?></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Notes & Follow-up</label>
-                            <textarea name="notes" class="form-control" rows="2" placeholder="Additional notes, return visit timing, patient education"><?php echo $editVisitData ? e($editVisitData['notes']) : ''; ?></textarea>
-                        </div>
-                        <?php endif; ?>
+                            <?php if ($currentRole !== 'staff'): ?>
+                                <div class="form-group">
+                                    <label class="form-label">ENT Classification *</label>
+                                    <select name="ent_type" class="form-control" required>
+                                        <option value="ear" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'ear') ? 'selected' : ''; ?>>Ear</option>
+                                        <option value="nose" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'nose') ? 'selected' : ''; ?>>Nose</option>
+                                        <option value="throat" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'throat') ? 'selected' : ''; ?>>Throat</option>
+                                        <option value="head_neck_tumor" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'head_neck_tumor') ? 'selected' : ''; ?>>Head & Neck
+                                            Tumors</option>
+                                        <option value="lifestyle_medicine" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'lifestyle_medicine') ? 'selected' : ''; ?>>Lifestyle
+                                            Medicine</option>
+                                        <option value="misc" <?php echo ($editVisitData && $editVisitData['ent_type'] === 'misc') ? 'selected' : ''; ?>>Misc/Others</option>
+                                    </select>
+                                </div>
+                            <?php endif; ?>
+                            <!-- Visit Workflow: Chief Complaint → History → Physical Exam → Diagnosis → Treatment Plan -->
+                            <div class="form-group">
+                                <label class="form-label">Chief Complaint *</label>
+                                <textarea name="chief_complaint" class="form-control" rows="2"
+                                    placeholder="Patient's primary complaint or reason for visit"
+                                    required><?php echo $editVisitData ? e($editVisitData['chief_complaint']) : ''; ?></textarea>
+                            </div>
+
+                            <?php if ($currentRole !== 'staff'): ?>
+                                <div class="form-group">
+                                    <label class="form-label">History of Present Illness</label>
+                                    <textarea name="history" class="form-control" rows="2"
+                                        placeholder="Onset, duration, associated symptoms, past treatments..."><?php echo $editVisitData && isset($editVisitData['history']) ? e($editVisitData['history']) : ''; ?></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Physical Examination Findings</label>
+                                    <textarea name="physical_exam" class="form-control" rows="2"
+                                        placeholder="Otoscopy, rhinoscopy, palpation, other findings..."><?php echo $editVisitData && isset($editVisitData['physical_exam']) ? e($editVisitData['physical_exam']) : ''; ?></textarea>
+                                </div>
+                            <?php endif; ?>
+
+                            <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+                                <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Vitals from Appointment
+                                </div>
+                                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                                    <div style="padding:6px 0;">
+                                        <label class="form-label" style="margin-bottom:4px;">Blood Pressure</label>
+                                        <input type="text" name="blood_pressure" class="form-control"
+                                            placeholder="e.g., 120/80" />
+                                    </div>
+                                    <div style="padding:6px 0;">
+                                        <label class="form-label" style="margin-bottom:4px;">Temperature (°C)</label>
+                                        <input type="number" name="temperature" class="form-control" placeholder="36.5"
+                                            step="0.1" />
+                                    </div>
+                                    <div style="padding:6px 0;">
+                                        <label class="form-label" style="margin-bottom:4px;">Pulse Rate (bpm)</label>
+                                        <input type="number" name="pulse_rate" class="form-control" placeholder="72" />
+                                    </div>
+                                    <div style="padding:6px 0;">
+                                        <label class="form-label" style="margin-bottom:4px;">Respiratory Rate</label>
+                                        <input type="number" name="respiratory_rate" class="form-control"
+                                            placeholder="16" />
+                                    </div>
+                                    <div style="padding:6px 0;">
+                                        <label class="form-label" style="margin-bottom:4px;">O2 Saturation (%)</label>
+                                        <input type="number" name="oxygen_saturation" class="form-control" placeholder="98"
+                                            min="0" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;">
+                                <div style="font-weight:600;margin-bottom:10px;font-size:0.95rem;">Current Patient Vitals
+                                </div>
+                                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+                                    <div style="padding:6px 0;">
+                                        <strong>Height:</strong>
+                                        <div>
+                                            <?php echo (isset($patient['height']) && $patient['height']) ? e($patient['height']) . ' cm' : '<span style="color:#999;">—</span>'; ?>
+                                        </div>
+                                    </div>
+                                    <div style="padding:6px 0;">
+                                        <strong>Weight:</strong>
+                                        <div>
+                                            <?php echo (isset($patient['weight']) && $patient['weight']) ? e($patient['weight']) . ' kg' : '<span style="color:#999;">—</span>'; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php if (isset($patient['vitals_updated_at']) && $patient['vitals_updated_at']): ?>
+                                    <div style="margin-top:8px;font-size:0.85rem;color:#666;">Last updated:
+                                        <?php echo formatDate($patient['vitals_updated_at']); ?></div>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ($currentRole !== 'staff'): ?>
+                                <div class="form-group">
+                                    <label class="form-label">Assessment & Diagnosis</label>
+                                    <textarea name="diagnosis" class="form-control" rows="2"
+                                        placeholder="Clinical assessment and diagnosis"><?php echo $editVisitData ? e($editVisitData['diagnosis']) : ''; ?></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Treatment Plan & Recommendations</label>
+                                    <textarea name="treatment_plan" class="form-control" rows="2"
+                                        placeholder="Treatment options, medications, follow-up actions"><?php echo $editVisitData ? e($editVisitData['treatment_plan']) : ''; ?></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Notes & Follow-up</label>
+                                    <textarea name="notes" class="form-control" rows="2"
+                                        placeholder="Additional notes, return visit timing, patient education"><?php echo $editVisitData ? e($editVisitData['notes']) : ''; ?></textarea>
+                                </div>
+                            <?php endif; ?>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-success btn-lg">
@@ -631,7 +699,8 @@ $currentRole = $currentUser['role'] ?? '';
                             <i class="fas fa-prescription-bottle"></i>
                             Prescribe Meds
                         </h3>
-                        <button type="button" id="closePrescriptionPanel" class="modal-close" aria-label="Close prescription panel">
+                        <button type="button" id="closePrescriptionPanel" class="modal-close"
+                            aria-label="Close prescription panel">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -639,106 +708,187 @@ $currentRole = $currentUser['role'] ?? '';
                         <!-- Medicines Selection -->
                         <div class="form-group">
                             <label class="form-label">Select Medicines</label>
-                            <div id="medicinesContainer" style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 0.25rem; overflow-y: auto; background-color: var(--bg-secondary);">
+                            <div id="medicinesContainer"
+                                style="border: 1px solid var(--border-color); padding: 1rem; border-radius: 0.25rem; overflow-y: auto; background-color: var(--bg-secondary);">
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="1" data-medicine="Amoxicillin 500mg" id="med_1" />
-                                    <label for="med_1" style="margin: 0; cursor: pointer; flex: 1;">Amoxicillin <strong>500mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_1" data-med-id="1" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="1" data-medicine="Amoxicillin 500mg"
+                                        id="med_1" />
+                                    <label for="med_1" style="margin: 0; cursor: pointer; flex: 1;">Amoxicillin
+                                        <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_1" data-med-id="1"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="2" data-medicine="Aspirin 100mg" id="med_2" />
-                                    <label for="med_2" style="margin: 0; cursor: pointer; flex: 1;">Aspirin <strong>100mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_2" data-med-id="2" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="2" data-medicine="Aspirin 100mg"
+                                        id="med_2" />
+                                    <label for="med_2" style="margin: 0; cursor: pointer; flex: 1;">Aspirin
+                                        <strong>100mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_2" data-med-id="2"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="3" data-medicine="Atorvastatin 10mg" id="med_3" />
-                                    <label for="med_3" style="margin: 0; cursor: pointer; flex: 1;">Atorvastatin <strong>10mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_3" data-med-id="3" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="3" data-medicine="Atorvastatin 10mg"
+                                        id="med_3" />
+                                    <label for="med_3" style="margin: 0; cursor: pointer; flex: 1;">Atorvastatin
+                                        <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_3" data-med-id="3"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="4" data-medicine="Cetirizine 10mg" id="med_4" />
-                                    <label for="med_4" style="margin: 0; cursor: pointer; flex: 1;">Cetirizine <strong>10mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_4" data-med-id="4" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="4" data-medicine="Cetirizine 10mg"
+                                        id="med_4" />
+                                    <label for="med_4" style="margin: 0; cursor: pointer; flex: 1;">Cetirizine
+                                        <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_4" data-med-id="4"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="5" data-medicine="Metformin 500mg" id="med_5" />
-                                    <label for="med_5" style="margin: 0; cursor: pointer; flex: 1;">Metformin <strong>500mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_5" data-med-id="5" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="5" data-medicine="Metformin 500mg"
+                                        id="med_5" />
+                                    <label for="med_5" style="margin: 0; cursor: pointer; flex: 1;">Metformin
+                                        <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_5" data-med-id="5"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="6" data-medicine="Ibuprofen 400mg" id="med_6" />
-                                    <label for="med_6" style="margin: 0; cursor: pointer; flex: 1;">Ibuprofen <strong>400mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_6" data-med-id="6" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="6" data-medicine="Ibuprofen 400mg"
+                                        id="med_6" />
+                                    <label for="med_6" style="margin: 0; cursor: pointer; flex: 1;">Ibuprofen
+                                        <strong>400mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_6" data-med-id="6"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="7" data-medicine="Paracetamol 500mg" id="med_7" />
-                                    <label for="med_7" style="margin: 0; cursor: pointer; flex: 1;">Paracetamol <strong>500mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_7" data-med-id="7" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="7" data-medicine="Paracetamol 500mg"
+                                        id="med_7" />
+                                    <label for="med_7" style="margin: 0; cursor: pointer; flex: 1;">Paracetamol
+                                        <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_7" data-med-id="7"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="8" data-medicine="Ciprofloxacin 500mg" id="med_8" />
-                                    <label for="med_8" style="margin: 0; cursor: pointer; flex: 1;">Ciprofloxacin <strong>500mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_8" data-med-id="8" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="8" data-medicine="Ciprofloxacin 500mg"
+                                        id="med_8" />
+                                    <label for="med_8" style="margin: 0; cursor: pointer; flex: 1;">Ciprofloxacin
+                                        <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_8" data-med-id="8"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="9" data-medicine="Omeprazole 20mg" id="med_9" />
-                                    <label for="med_9" style="margin: 0; cursor: pointer; flex: 1;">Omeprazole <strong>20mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_9" data-med-id="9" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="9" data-medicine="Omeprazole 20mg"
+                                        id="med_9" />
+                                    <label for="med_9" style="margin: 0; cursor: pointer; flex: 1;">Omeprazole
+                                        <strong>20mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_9" data-med-id="9"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="10" data-medicine="Loratadine 10mg" id="med_10" />
-                                    <label for="med_10" style="margin: 0; cursor: pointer; flex: 1;">Loratadine <strong>10mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_10" data-med-id="10" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="10" data-medicine="Loratadine 10mg"
+                                        id="med_10" />
+                                    <label for="med_10" style="margin: 0; cursor: pointer; flex: 1;">Loratadine
+                                        <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_10" data-med-id="10"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="11" data-medicine="Lisinopril 10mg" id="med_11" />
-                                    <label for="med_11" style="margin: 0; cursor: pointer; flex: 1;">Lisinopril <strong>10mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_11" data-med-id="11" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="11" data-medicine="Lisinopril 10mg"
+                                        id="med_11" />
+                                    <label for="med_11" style="margin: 0; cursor: pointer; flex: 1;">Lisinopril
+                                        <strong>10mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_11" data-med-id="11"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="12" data-medicine="Amlodipine 5mg" id="med_12" />
-                                    <label for="med_12" style="margin: 0; cursor: pointer; flex: 1;">Amlodipine <strong>5mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_12" data-med-id="12" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="12" data-medicine="Amlodipine 5mg"
+                                        id="med_12" />
+                                    <label for="med_12" style="margin: 0; cursor: pointer; flex: 1;">Amlodipine
+                                        <strong>5mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_12" data-med-id="12"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="13" data-medicine="Azithromycin 500mg" id="med_13" />
-                                    <label for="med_13" style="margin: 0; cursor: pointer; flex: 1;">Azithromycin <strong>500mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_13" data-med-id="13" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="13" data-medicine="Azithromycin 500mg"
+                                        id="med_13" />
+                                    <label for="med_13" style="margin: 0; cursor: pointer; flex: 1;">Azithromycin
+                                        <strong>500mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_13" data-med-id="13"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="14" data-medicine="Fluoxetine 20mg" id="med_14" />
-                                    <label for="med_14" style="margin: 0; cursor: pointer; flex: 1;">Fluoxetine <strong>20mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_14" data-med-id="14" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="14" data-medicine="Fluoxetine 20mg"
+                                        id="med_14" />
+                                    <label for="med_14" style="margin: 0; cursor: pointer; flex: 1;">Fluoxetine
+                                        <strong>20mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_14" data-med-id="14"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="15" data-medicine="Sertraline 50mg" id="med_15" />
-                                    <label for="med_15" style="margin: 0; cursor: pointer; flex: 1;">Sertraline <strong>50mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_15" data-med-id="15" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="15" data-medicine="Sertraline 50mg"
+                                        id="med_15" />
+                                    <label for="med_15" style="margin: 0; cursor: pointer; flex: 1;">Sertraline
+                                        <strong>50mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_15" data-med-id="15"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="16" data-medicine="Gabapentin 300mg" id="med_16" />
-                                    <label for="med_16" style="margin: 0; cursor: pointer; flex: 1;">Gabapentin <strong>300mg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_16" data-med-id="16" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="16" data-medicine="Gabapentin 300mg"
+                                        id="med_16" />
+                                    <label for="med_16" style="margin: 0; cursor: pointer; flex: 1;">Gabapentin
+                                        <strong>300mg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_16" data-med-id="16"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="17" data-medicine="Albuterol Inhaler 90mcg" id="med_17" />
-                                    <label for="med_17" style="margin: 0; cursor: pointer; flex: 1;">Albuterol Inhaler <strong>90mcg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_17" data-med-id="17" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="17"
+                                        data-medicine="Albuterol Inhaler 90mcg" id="med_17" />
+                                    <label for="med_17" style="margin: 0; cursor: pointer; flex: 1;">Albuterol Inhaler
+                                        <strong>90mcg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_17" data-med-id="17"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="18" data-medicine="Fluticasone Nasal Spray 50mcg" id="med_18" />
-                                    <label for="med_18" style="margin: 0; cursor: pointer; flex: 1;">Fluticasone Nasal Spray <strong>50mcg</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_18" data-med-id="18" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="18"
+                                        data-medicine="Fluticasone Nasal Spray 50mcg" id="med_18" />
+                                    <label for="med_18" style="margin: 0; cursor: pointer; flex: 1;">Fluticasone Nasal Spray
+                                        <strong>50mcg</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_18" data-med-id="18"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="19" data-medicine="Vitamin D3 1000IU" id="med_19" />
-                                    <label for="med_19" style="margin: 0; cursor: pointer; flex: 1;">Vitamin D3 <strong>1000IU</strong></label>
-                                    <input type="text" class="medicine-instr" id="med_instr_19" data-med-id="19" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="19" data-medicine="Vitamin D3 1000IU"
+                                        id="med_19" />
+                                    <label for="med_19" style="margin: 0; cursor: pointer; flex: 1;">Vitamin D3
+                                        <strong>1000IU</strong></label>
+                                    <input type="text" class="medicine-instr" id="med_instr_19" data-med-id="19"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
-                                    <input type="checkbox" name="medicine" value="20" data-medicine="Oxymetazoline Nasal Spray" id="med_20" />
-                                    <label for="med_20" style="margin: 0; cursor: pointer; flex: 1;">Oxymetazoline Nasal Spray</label>
-                                    <input type="text" class="medicine-instr" id="med_instr_20" data-med-id="20" placeholder="Instruction (dose, freq)" style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
+                                    <input type="checkbox" name="medicine" value="20"
+                                        data-medicine="Oxymetazoline Nasal Spray" id="med_20" />
+                                    <label for="med_20" style="margin: 0; cursor: pointer; flex: 1;">Oxymetazoline Nasal
+                                        Spray</label>
+                                    <input type="text" class="medicine-instr" id="med_instr_20" data-med-id="20"
+                                        placeholder="Instruction (dose, freq)"
+                                        style="flex:0 0 220px;margin-left:8px;padding:6px;border:1px solid #ddd;border-radius:4px;" />
                                 </div>
                             </div>
                         </div>
@@ -789,8 +939,10 @@ $currentRole = $currentUser['role'] ?? '';
             <!-- Fullscreen Timeline Modal -->
             <div id="timelineModal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="modal-backdrop" data-modal-dismiss="timelineModal"></div>
-                <div class="modal-dialog" style="max-width:98%; max-height:98vh; overflow:auto; border-radius: 8px; margin: 1vh auto;">
-                    <div class="modal-header" style="position:sticky; top:0; background:#fff; z-index:10; padding: 20px 24px;">
+                <div class="modal-dialog"
+                    style="max-width:98%; max-height:98vh; overflow:auto; border-radius: 8px; margin: 1vh auto;">
+                    <div class="modal-header"
+                        style="position:sticky; top:0; background:#fff; z-index:10; padding: 20px 24px;">
                         <h3 class="modal-title" style="margin:0;">
                             <i class="fas fa-calendar-check"></i>
                             Patient Visit Timeline - Fullscreen
@@ -799,7 +951,8 @@ $currentRole = $currentUser['role'] ?? '';
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <div class="modal-body" id="timelineModalBody" style="padding:24px;overflow-y:auto;max-height:calc(98vh - 100px);">
+                    <div class="modal-body" id="timelineModalBody"
+                        style="padding:24px;overflow-y:auto;max-height:calc(98vh - 100px);">
                         <!-- Timeline table will be cloned here -->
                     </div>
                 </div>
@@ -820,7 +973,9 @@ $currentRole = $currentUser['role'] ?? '';
                             </tr>
                         </thead>
                         <tbody id="appointmentsTbody">
-                            <tr><td colspan="5" style="text-align:center;padding:20px;">No appointments</td></tr>
+                            <tr>
+                                <td colspan="5" style="text-align:center;padding:20px;">No appointments</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -845,40 +1000,51 @@ $currentRole = $currentUser['role'] ?? '';
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($visitsList as $visit): ?>
-                            <tr data-visit-id="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
-                                <td><?php echo formatDate(isset($visit['visit_date']) ? $visit['visit_date'] : '', true); ?></td>
-                                <td><?php echo e(isset($visit['visit_type']) ? $visit['visit_type'] : ''); ?></td>
-                                <td><?php echo e(isset($visit['ent_type']) ? formatENTType($visit['ent_type']) : ''); ?></td>
-                                <td><?php echo isset($visit['chief_complaint']) ? nl2br(e($visit['chief_complaint'])) : ''; ?></td>
-                                <td>
-                                    <?php 
-                                    $vitals = [];
-                                    if (isset($visit['height']) && $visit['height']) $vitals[] = e($visit['height']) . ' cm';
-                                    if (isset($visit['weight']) && $visit['weight']) $vitals[] = e($visit['weight']) . ' kg';
-                                    if (isset($visit['blood_pressure']) && $visit['blood_pressure']) $vitals[] = e($visit['blood_pressure']);
-                                    if (isset($visit['temperature']) && $visit['temperature']) $vitals[] = e($visit['temperature']) . '°C';
-                                    echo !empty($vitals) ? implode('<br>', $vitals) : '<span style="color:#999;">—</span>';
-                                    if (isset($visit['vitals_notes']) && $visit['vitals_notes']) echo '<br><small style="color:#666;">' . e($visit['vitals_notes']) . '</small>';
-                                    ?>
-                                </td>
-                                <td><?php echo isset($visit['diagnosis']) ? nl2br(e($visit['diagnosis'])) : ''; ?></td>
-                                <td><?php echo isset($visit['treatment_plan']) ? nl2br(e($visit['treatment_plan'])) : ''; ?></td>
-                                <td class="prescription-cell" data-visit-id="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
-                                    <?php echo isset($visit['prescription']) ? nl2br(e($visit['prescription'])) : ''; ?>
-                                </td>
-                                <td><?php echo isset($visit['notes']) ? nl2br(e($visit['notes'])) : ''; ?></td>
-                                <td>
-                                    <div class="flex gap-1">
-                                        <?php if ($currentRole !== 'staff'): ?>
-                                        <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=visit&visit_id=<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>" class="btn btn-sm btn-secondary btn-icon" title="Edit Visit"><i class="fas fa-edit"></i></a>
-                                        <?php else: ?>
-                                        <!-- Staff cannot edit visits from UI -->
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
+                            <?php foreach ($visitsList as $visit): ?>
+                                <tr data-visit-id="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
+                                    <td><?php echo formatDate(isset($visit['visit_date']) ? $visit['visit_date'] : '', true); ?>
+                                    </td>
+                                    <td><?php echo e(isset($visit['visit_type']) ? $visit['visit_type'] : ''); ?></td>
+                                    <td><?php echo e(isset($visit['ent_type']) ? formatENTType($visit['ent_type']) : ''); ?></td>
+                                    <td><?php echo isset($visit['chief_complaint']) ? nl2br(e($visit['chief_complaint'])) : ''; ?>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $vitals = [];
+                                        if (isset($visit['height']) && $visit['height'])
+                                            $vitals[] = e($visit['height']) . ' cm';
+                                        if (isset($visit['weight']) && $visit['weight'])
+                                            $vitals[] = e($visit['weight']) . ' kg';
+                                        if (isset($visit['blood_pressure']) && $visit['blood_pressure'])
+                                            $vitals[] = e($visit['blood_pressure']);
+                                        if (isset($visit['temperature']) && $visit['temperature'])
+                                            $vitals[] = e($visit['temperature']) . '°C';
+                                        echo !empty($vitals) ? implode('<br>', $vitals) : '<span style="color:#999;">—</span>';
+                                        if (isset($visit['vitals_notes']) && $visit['vitals_notes'])
+                                            echo '<br><small style="color:#666;">' . e($visit['vitals_notes']) . '</small>';
+                                        ?>
+                                    </td>
+                                    <td><?php echo isset($visit['diagnosis']) ? nl2br(e($visit['diagnosis'])) : ''; ?></td>
+                                    <td><?php echo isset($visit['treatment_plan']) ? nl2br(e($visit['treatment_plan'])) : ''; ?>
+                                    </td>
+                                    <td class="prescription-cell"
+                                        data-visit-id="<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>">
+                                        <?php echo isset($visit['prescription']) ? nl2br(e($visit['prescription'])) : ''; ?>
+                                    </td>
+                                    <td><?php echo isset($visit['notes']) ? nl2br(e($visit['notes'])) : ''; ?></td>
+                                    <td>
+                                        <div class="flex gap-1">
+                                            <?php if ($currentRole !== 'staff'): ?>
+                                                <a href="<?php echo baseUrl(); ?>/?page=patient-profile&id=<?php echo $patientId; ?>&edit=visit&visit_id=<?php echo isset($visit['id']) ? $visit['id'] : ''; ?>"
+                                                    class="btn btn-sm btn-secondary btn-icon" title="Edit Visit"><i
+                                                        class="fas fa-edit"></i></a>
+                                            <?php else: ?>
+                                                <!-- Staff cannot edit visits from UI -->
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -893,1082 +1059,1083 @@ $currentRole = $currentUser['role'] ?? '';
                 </div>
             <?php endif; ?>
         </div>
-        <?php else: ?>
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title"><i class="fas fa-calendar-check"></i> Visit Timeline</h3>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted">Visit timeline is not available for Secretary accounts.</p>
-                </div>
+    <?php else: ?>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-calendar-check"></i> Visit Timeline</h3>
             </div>
-        <?php endif; ?>
-    </div>
+            <div class="card-body">
+                <p class="text-muted">Visit timeline is not available for Secretary accounts.</p>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
 </div>
 
 <style>
-/* Full-Width Timeline Section */
-.patient-profile-page .card {
-    margin-bottom: 1.5rem;
-}
-
-.patient-profile-page > .card:has(> .card-header > .card-title:has(+ *) > .fa-calendar-check) {
-    width: 100%;
-}
-
-/* Timeline table improvements */
-.table-container table {
-    width: 100%;
-}
-
-.table-container table th {
-    background: #f5f5f5;
-    padding: 12px;
-    font-weight: 600;
-}
-
-.table-container table td {
-    padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.timeline {
-    position: relative;
-    padding-left: 2rem;
-}
-
-.timeline-item {
-    position: relative;
-    padding-bottom: 2rem;
-    border-left: 2px solid var(--border-color);
-    padding-left: 2rem;
-    margin-left: -2rem;
-}
-
-.timeline-item:last-child {
-    border-left: none;
-}
-
-.timeline-marker {
-    position: absolute;
-    left: -12px;
-    top: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.75rem;
-    box-shadow: var(--shadow);
-}
-
-.timeline-content {
-    background: var(--bg-primary);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-}
-
-.timeline-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-/* Prescription Panel Styling */
-.prescription-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 400px;
-    height: 100vh;
-    background: var(--bg-primary);
-    border-left: 1px solid var(--border-color);
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
-    z-index: 1040;
-    display: flex;
-    flex-direction: column;
-    animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
+    /* Full-Width Timeline Section */
+    .patient-profile-page .card {
+        margin-bottom: 1.5rem;
     }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
 
-.prescription-panel-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background: #fff;
-}
-
-.prescription-panel-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.prescription-panel-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.prescription-panel-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1.5rem;
-}
-
-.prescription-panel-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-}
-
-/* Adjust modal overlay when prescription panel is open */
-.modal.open ~ .prescription-panel {
-    display: flex;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .prescription-panel {
+    .patient-profile-page>.card:has(> .card-header > .card-title:has(+ *) > .fa-calendar-check) {
         width: 100%;
-        right: 0;
-        left: auto;
+    }
+
+    /* Timeline table improvements */
+    .table-container table {
+        width: 100%;
+    }
+
+    .table-container table th {
+        background: #f5f5f5;
+        padding: 12px;
+        font-weight: 600;
+    }
+
+    .table-container table td {
+        padding: 12px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 2rem;
+        border-left: 2px solid var(--border-color);
+        padding-left: 2rem;
+        margin-left: -2rem;
+    }
+
+    .timeline-item:last-child {
         border-left: none;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -12px;
+        top: 0;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.75rem;
+        box-shadow: var(--shadow);
+    }
+
+    .timeline-content {
+        background: var(--bg-primary);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    /* Prescription Panel Styling */
+    .prescription-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 400px;
+        height: 100vh;
+        background: var(--bg-primary);
+        border-left: 1px solid var(--border-color);
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+        z-index: 1040;
+        display: flex;
+        flex-direction: column;
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    .prescription-panel-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background: #fff;
+    }
+
+    .prescription-panel-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .prescription-panel-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .prescription-panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .prescription-panel-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        background: var(--bg-secondary);
+    }
+
+    /* Adjust modal overlay when prescription panel is open */
+    .modal.open~.prescription-panel {
+        display: flex;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .prescription-panel {
+            width: 100%;
+            right: 0;
+            left: auto;
+            border-left: none;
+            border-top: 1px solid var(--border-color);
+        }
+    }
+
+    .timeline-header h4 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .timeline-date {
+        font-size: 0.875rem;
+        color: var(--gray);
+        font-weight: 500;
+    }
+
+    .timeline-section {
+        margin-bottom: 1rem;
+    }
+
+    .timeline-section strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--dark);
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .timeline-section p {
+        margin: 0;
+        color: var(--gray);
+        line-height: 1.6;
+    }
+
+    .timeline-footer {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
         border-top: 1px solid var(--border-color);
     }
-}
-
-.timeline-header h4 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--dark);
-}
-
-.timeline-date {
-    font-size: 0.875rem;
-    color: var(--gray);
-    font-weight: 500;
-}
-
-.timeline-section {
-    margin-bottom: 1rem;
-}
-
-.timeline-section strong {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--dark);
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.timeline-section p {
-    margin: 0;
-    color: var(--gray);
-    line-height: 1.6;
-}
-
-.timeline-footer {
-    margin-top: 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border-color);
-}
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const addAppointmentBtn = document.getElementById('addAppointmentBtn');
-    const addVisitBtn = document.getElementById('addVisitBtn');
-    const addFirstBtn = document.getElementById('addFirstVisitBtn');
-    const appointmentModal = document.getElementById('appointmentModal');
-    const visitModal = document.getElementById('visitModal');
-    const patientId = <?php echo $patientId; ?>;
+    document.addEventListener('DOMContentLoaded', function () {
+        const addAppointmentBtn = document.getElementById('addAppointmentBtn');
+        const addVisitBtn = document.getElementById('addVisitBtn');
+        const addFirstBtn = document.getElementById('addFirstVisitBtn');
+        const appointmentModal = document.getElementById('appointmentModal');
+        const visitModal = document.getElementById('visitModal');
+        const patientId = <?php echo $patientId; ?>;
 
-    // Load and display all appointments with action buttons
-    function loadAppointments() {
-        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
-            .then(r => r.json())
-            .then(data => {
-                console.log('Appointments data:', data); // DEBUG
-                const apts = (data.appointments || []).filter(a => {
-                    const s = (a.status || '').toString().toLowerCase();
-                    return s !== 'completed' && s !== 'cancelled' && s !== 'no-show';
-                });
-                console.log('Filtered appointments:', apts); // DEBUG
-                const tbody = document.getElementById('appointmentsTbody');
-                const section = document.getElementById('appointmentsSection');
-                
-                if (apts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No upcoming appointments</td></tr>';
-                    section.style.display = 'none';
-                    return;
-                }
-                
-                section.style.display = 'block';
-                tbody.innerHTML = apts.map(apt => {
-                    const dt = new Date(apt.appointment_date);
-                    const formattedDt = dt.toLocaleString();
-                    
-                    // Status badge
-                    let statusBadge = '';
-                    const st = (apt.status || 'Pending').toString().toLowerCase();
-                    if (st === 'pending') {
-                        statusBadge = '<span style="background:#fff3cd;color:#856404;padding:4px 8px;border-radius:3px;font-size:0.85rem;">Pending</span>';
-                    } else if (st === 'accepted') {
-                        statusBadge = '<span style="background:#cfe2ff;color:#084298;padding:4px 8px;border-radius:3px;font-size:0.85rem;">Accepted</span>';
+        // Load and display all appointments with action buttons
+        function loadAppointments() {
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+                .then(r => r.json())
+                .then(data => {
+                    console.log('Appointments data:', data); // DEBUG
+                    const apts = (data.appointments || []).filter(a => {
+                        const s = (a.status || '').toString().toLowerCase();
+                        return s !== 'completed' && s !== 'cancelled' && s !== 'no-show';
+                    });
+                    console.log('Filtered appointments:', apts); // DEBUG
+                    const tbody = document.getElementById('appointmentsTbody');
+                    const section = document.getElementById('appointmentsSection');
+
+                    if (apts.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No upcoming appointments</td></tr>';
+                        section.style.display = 'none';
+                        return;
                     }
-                    
-                    // Action buttons - with proper HTML
-                    let actionBtns = '';
-                    if (st === 'pending') {
-                        actionBtns = '<button class="btn btn-sm btn-success" onclick="acceptAppointmentAction(' + apt.id + ')" title="Accept appointment"><i class="fas fa-check"></i> Accept</button>' +
-                                    ' <button class="btn btn-sm btn-warning" onclick="openRescheduleModal(' + apt.id + ')" title="Reschedule appointment"><i class="fas fa-calendar"></i> Resched</button>' +
-                                    ' <button class="btn btn-sm btn-danger" onclick="cancelAppointmentAction(' + apt.id + ')" title="Cancel appointment"><i class="fas fa-times"></i> Cancel</button>';
-                    } else if (st === 'accepted') {
-                        actionBtns = '<button class="btn btn-sm btn-info" disabled title="Appointment accepted - pending visit creation"><i class="fas fa-clock"></i> Pending</button>';
-                    }
-                    
-                    return '<tr data-apt-id="' + apt.id + '">' +
-                           '<td>' + formattedDt + '</td>' +
-                           '<td>' + (apt.appointment_type || '-') + '</td>' +
-                           '<td>' + statusBadge + '</td>' +
-                           '<td>' + (apt.notes || '-') + '</td>' +
-                           '<td style="white-space:nowrap;">' + actionBtns + '</td>' +
-                           '</tr>';
-                }).join('');
-                console.log('Rendered tbody:', tbody.innerHTML); // DEBUG
-            })
-            .catch(err => console.error('Error loading appointments:', err));
-    }
 
-    // Helper to format API error responses into readable strings
-    function formatApiError(resp) {
-        if (!resp) return null;
-        if (resp.error) {
-            if (typeof resp.error === 'object') {
-                try {
-                    if (Array.isArray(resp.error)) return resp.error.join('\n');
-                    const values = Object.values(resp.error).flat();
-                    return values.join('\n') || JSON.stringify(resp.error);
-                } catch (ex) {
-                    return JSON.stringify(resp.error);
-                }
-            }
-            return String(resp.error);
-        }
-        if (resp.message) return String(resp.message);
-        try { return JSON.stringify(resp); } catch (ex) { return String(resp); }
-    }
+                    section.style.display = 'block';
+                    tbody.innerHTML = apts.map(apt => {
+                        const dt = new Date(apt.appointment_date);
+                        const formattedDt = dt.toLocaleString();
 
-    window.acceptAppointmentAction = function(aptId) {
-        if (!confirm('Accept this appointment?')) return;
-        
-        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/accept', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                // Fetch the appointment and open Visit Modal with pre-filled data
-                fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
-                    .then(r => r.json())
-                    .then(apiData => {
-                        const apts = apiData.appointments || [];
-                        const apt = apts.find(a => a.id == aptId);
-                        if (apt) {
-                            // Pre-fill visit modal with appointment data
-                            const dt = new Date(apt.appointment_date);
-                            document.querySelector('input[name="visit_date"]').value = dt.toISOString().slice(0, 16);
-                            document.querySelector('input[name="appointment_id"]').value = apt.id;
-                            
-                            // Set vitals from appointment if available
-                            if (apt.blood_pressure) document.querySelector('input[name="blood_pressure"]').value = apt.blood_pressure;
-                            if (apt.temperature) document.querySelector('input[name="temperature"]').value = apt.temperature;
-                            if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
-                            if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
-                            if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
-                            
-                            loadAppointments(); // Reload appointments list
-                            openVisitModal();
+                        // Status badge
+                        let statusBadge = '';
+                        const st = (apt.status || 'Pending').toString().toLowerCase();
+                        if (st === 'pending') {
+                            statusBadge = '<span style="background:#fff3cd;color:#856404;padding:4px 8px;border-radius:3px;font-size:0.85rem;">Pending</span>';
+                        } else if (st === 'accepted') {
+                            statusBadge = '<span style="background:#cfe2ff;color:#084298;padding:4px 8px;border-radius:3px;font-size:0.85rem;">Accepted</span>';
                         }
-                    })
-                    .catch(err => console.error('Error:', err));
-            } else {
-                alert(formatApiError(data) || 'Error accepting appointment');
-            }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            alert('Error accepting appointment');
-        });
-    };
 
-    window.cancelAppointmentAction = function(aptId) {
-        if (!confirm('Cancel this appointment?')) return;
-        
-        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/cancel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                alert('Appointment cancelled');
-                loadAppointments(); // Reload
-            } else {
-                alert(formatApiError(data) || 'Error cancelling appointment');
-            }
-        })
-        .catch(err => {
-            console.error('Error:', err);
-            alert('Error cancelling appointment');
-        });
-    };
+                        // Action buttons - with proper HTML
+                        let actionBtns = '';
+                        if (st === 'pending') {
+                            actionBtns = '<button class="btn btn-sm btn-success" onclick="acceptAppointmentAction(' + apt.id + ')" title="Accept appointment"><i class="fas fa-check"></i> Accept</button>' +
+                                ' <button class="btn btn-sm btn-warning" onclick="openRescheduleModal(' + apt.id + ')" title="Reschedule appointment"><i class="fas fa-calendar"></i> Resched</button>' +
+                                ' <button class="btn btn-sm btn-danger" onclick="cancelAppointmentAction(' + apt.id + ')" title="Cancel appointment"><i class="fas fa-times"></i> Cancel</button>';
+                        } else if (st === 'accepted') {
+                            actionBtns = '<button class="btn btn-sm btn-info" disabled title="Appointment accepted - pending visit creation"><i class="fas fa-clock"></i> Pending</button>';
+                        }
 
-    window.openRescheduleModal = function(aptId) {
-        // Fetch appointment details and show reschedule form
-        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
-            .then(r => r.json())
-            .then(data => {
-                const apts = data.appointments || [];
-                const apt = apts.find(a => a.id == aptId);
-                if (!apt) return;
-                
-                // Show reschedule modal/form
-                const newDate = prompt('Enter new date (YYYY-MM-DD):', apt.appointment_date.split('T')[0]);
-                if (!newDate) return;
-                const newTime = prompt('Enter new time (HH:MM):', apt.appointment_date.split('T')[1]?.slice(0, 5) || '09:00');
-                if (!newTime) return;
-                
-                const newStart = newDate + 'T' + newTime;
-                const [h, m] = newTime.split(':');
-                const endDate = new Date(newDate + 'T' + newTime);
-                endDate.setHours(parseInt(h) + 1); // Assume 1-hour appointments
-                const newEnd = endDate.toISOString().slice(0, 16);
-                
-                fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/reschedule', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start_at: newStart, end_at: newEnd })
+                        return '<tr data-apt-id="' + apt.id + '">' +
+                            '<td>' + formattedDt + '</td>' +
+                            '<td>' + (apt.appointment_type || '-') + '</td>' +
+                            '<td>' + statusBadge + '</td>' +
+                            '<td>' + (apt.notes || '-') + '</td>' +
+                            '<td style="white-space:nowrap;">' + actionBtns + '</td>' +
+                            '</tr>';
+                    }).join('');
+                    console.log('Rendered tbody:', tbody.innerHTML); // DEBUG
                 })
+                .catch(err => console.error('Error loading appointments:', err));
+        }
+
+        // Helper to format API error responses into readable strings
+        function formatApiError(resp) {
+            if (!resp) return null;
+            if (resp.error) {
+                if (typeof resp.error === 'object') {
+                    try {
+                        if (Array.isArray(resp.error)) return resp.error.join('\n');
+                        const values = Object.values(resp.error).flat();
+                        return values.join('\n') || JSON.stringify(resp.error);
+                    } catch (ex) {
+                        return JSON.stringify(resp.error);
+                    }
+                }
+                return String(resp.error);
+            }
+            if (resp.message) return String(resp.message);
+            try { return JSON.stringify(resp); } catch (ex) { return String(resp); }
+        }
+
+        window.acceptAppointmentAction = function (aptId) {
+            if (!confirm('Accept this appointment?')) return;
+
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        alert('Appointment rescheduled');
-                        loadAppointments();
+                        // Fetch the appointment and open Visit Modal with pre-filled data
+                        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+                            .then(r => r.json())
+                            .then(apiData => {
+                                const apts = apiData.appointments || [];
+                                const apt = apts.find(a => a.id == aptId);
+                                if (apt) {
+                                    // Pre-fill visit modal with appointment data
+                                    const dt = new Date(apt.appointment_date);
+                                    document.querySelector('input[name="visit_date"]').value = dt.toISOString().slice(0, 16);
+                                    document.querySelector('input[name="appointment_id"]').value = apt.id;
+
+                                    // Set vitals from appointment if available
+                                    if (apt.blood_pressure) document.querySelector('input[name="blood_pressure"]').value = apt.blood_pressure;
+                                    if (apt.temperature) document.querySelector('input[name="temperature"]').value = apt.temperature;
+                                    if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
+                                    if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
+                                    if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
+
+                                    loadAppointments(); // Reload appointments list
+                                    openVisitModal();
+                                }
+                            })
+                            .catch(err => console.error('Error:', err));
                     } else {
-                        alert(formatApiError(data) || 'Error rescheduling appointment');
+                        alert(formatApiError(data) || 'Error accepting appointment');
                     }
                 })
                 .catch(err => {
                     console.error('Error:', err);
-                    alert('Error rescheduling appointment');
+                    alert('Error accepting appointment');
                 });
-            })
-            .catch(err => console.error('Error:', err));
-    };
-
-    window.openVisitForAppt = function(aptId) {
-        // Fetch appointment details and pre-fill visit modal
-        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
-            .then(r => r.json())
-            .then(data => {
-                const apts = data.appointments || [];
-                const apt = apts.find(a => a.id == aptId);
-                if (!apt) return;
-                
-                // Pre-fill visit modal with appointment data
-                const dt = new Date(apt.appointment_date);
-                document.querySelector('input[name="visit_date"]').value = dt.toISOString().slice(0, 16);
-                document.querySelector('input[name="appointment_id"]').value = apt.id; // Store apt ID
-                
-                // Set vitals from appointment if available
-                if (apt.blood_pressure) document.querySelector('input[name="blood_pressure"]').value = apt.blood_pressure;
-                if (apt.temperature) document.querySelector('input[name="temperature"]').value = apt.temperature;
-                if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
-                if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
-                if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
-                
-                openVisitModal();
-            })
-            .catch(err => console.error('Error:', err));
-    };
-
-    // Load appointments on page load
-    loadAppointments();
-
-    // If we arrived after accepting an appointment from the Appointments page,
-    // open the Visit modal prefilled with that appointment's data.
-    const acceptedApt = <?php echo $acceptedApt ? json_encode($acceptedApt) : 'null'; ?>;
-    if (acceptedApt) {
-        // Wait briefly for appointments to be loaded then open
-        setTimeout(function() { try { openVisitForAppt(acceptedApt); } catch (e) { console.error('Failed opening accepted appointment:', e); } }, 600);
-    }
-    
-    function setupFocusTrap(el) {
-        if (!el) return;
-        const focusable = Array.from(el.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'));
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        const handler = function(e) {
-            if (e.key !== 'Tab') return;
-            if (focusable.length === 0) { e.preventDefault(); return; }
-            if (e.shiftKey) {
-                if (document.activeElement === first) {
-                    e.preventDefault(); last.focus();
-                }
-            } else {
-                if (document.activeElement === last) {
-                    e.preventDefault(); first.focus();
-                }
-            }
         };
-        el._focusTrap = handler;
-        document.addEventListener('keydown', handler);
-    }
 
-    function removeFocusTrap(el) {
-        if (!el || !el._focusTrap) return;
-        document.removeEventListener('keydown', el._focusTrap);
-        delete el._focusTrap;
-    }
+        window.cancelAppointmentAction = function (aptId) {
+            if (!confirm('Cancel this appointment?')) return;
 
-    function openVisitModal() {
-        if (!visitModal) return;
-        visitModal.removeAttribute('hidden');
-        visitModal.classList.add('open');
-        const main = document.querySelector('.main-content');
-        if (main) main.setAttribute('aria-hidden', 'true');
-        setupFocusTrap(visitModal);
-        setTimeout(function() {
-            const firstField = visitModal.querySelector('input[name="visit_date"]');
-            if (firstField) firstField.focus();
-        }, 50);
-    }
-
-    function closeVisitModal() {
-        if (!visitModal) return;
-        visitModal.classList.remove('open');
-        visitModal.setAttribute('hidden', '');
-        const main = document.querySelector('.main-content');
-        if (main) main.removeAttribute('aria-hidden');
-        removeFocusTrap(visitModal);
-    }
-
-    function openAppointmentModal() {
-        if (!appointmentModal) return;
-        appointmentModal.removeAttribute('hidden');
-        appointmentModal.classList.add('open');
-        const main = document.querySelector('.main-content');
-        if (main) main.setAttribute('aria-hidden', 'true');
-        setupFocusTrap(appointmentModal);
-    }
-
-    function closeAppointmentModal() {
-        if (!appointmentModal) return;
-        appointmentModal.classList.remove('open');
-        appointmentModal.setAttribute('hidden', '');
-        const main = document.querySelector('.main-content');
-        if (main) main.removeAttribute('aria-hidden');
-        removeFocusTrap(appointmentModal);
-    }
-
-    if (addFirstBtn) {
-        addFirstBtn.addEventListener('click', function() {
-            openAppointmentModal();
-        });
-    }
-
-    // Fullscreen Timeline Modal Handler
-    const viewTimelineFullscreenBtn = document.getElementById('viewTimelineFullscreen');
-    const timelineModal = document.getElementById('timelineModal');
-    
-    if (viewTimelineFullscreenBtn && timelineModal) {
-        viewTimelineFullscreenBtn.addEventListener('click', function() {
-            // Clone the timeline table and show in fullscreen modal
-            // Prefer the visits table (rows with data-visit-id). Fallback to the first table in the card.
-            const visitRow = document.querySelector('table tbody tr[data-visit-id]');
-            const timelineTable = visitRow ? visitRow.closest('table') : document.querySelector('.table-container table');
-            const timelineBody = document.getElementById('timelineModalBody');
-            
-            if (timelineTable) {
-                const clonedTable = timelineTable.cloneNode(true);
-                timelineBody.innerHTML = '';
-                timelineBody.appendChild(clonedTable);
-                
-                // Open the modal
-                timelineModal.removeAttribute('hidden');
-                timelineModal.classList.add('open');
-                const main = document.querySelector('.main-content');
-                if (main) main.setAttribute('aria-hidden', 'true');
-                setupFocusTrap(timelineModal);
-            } else {
-                alert('Timeline data not found');
-            }
-        });
-        
-        // Close fullscreen timeline modal on backdrop click
-        const backdrop = timelineModal.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.addEventListener('click', function() {
-                closeTimelineModal();
-            });
-        }
-        
-        // Close on close button
-        const closeBtn = timelineModal.querySelector('.modal-close');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', function() {
-                closeTimelineModal();
-            });
-        }
-        
-        // Close on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && timelineModal.classList.contains('open')) {
-                closeTimelineModal();
-            }
-        });
-    }
-    
-    function closeTimelineModal() {
-        if (!timelineModal) return;
-        timelineModal.classList.remove('open');
-        timelineModal.setAttribute('hidden', '');
-        const main = document.querySelector('.main-content');
-        if (main) main.removeAttribute('aria-hidden');
-        removeFocusTrap(timelineModal);
-    }
-
-    if (addAppointmentBtn) {
-        addAppointmentBtn.addEventListener('click', function() {
-            openAppointmentModal();
-        });
-    }
-
-    if (addVisitBtn) {
-        addVisitBtn.addEventListener('click', function() {
-            openVisitModal();
-        });
-    }
-
-    if (appointmentModal) {
-        appointmentModal.querySelectorAll('[data-modal-dismiss="appointmentModal"]').forEach(function(el) {
-            el.addEventListener('click', closeAppointmentModal);
-        });
-        appointmentModal.addEventListener('click', function(e) {
-            if (e.target === appointmentModal) {
-                e.stopPropagation();
-            }
-        });
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && appointmentModal.classList.contains('open')) {
-                closeAppointmentModal();
-            }
-        });
-    }
-
-    if (visitModal) {
-        visitModal.querySelectorAll('[data-modal-dismiss="visitModal"]').forEach(function(el) {
-            el.addEventListener('click', closeVisitModal);
-        });
-        // prevent backdrop click from closing (enforce explicit close)
-        visitModal.addEventListener('click', function(e) {
-            if (e.target === visitModal) {
-                e.stopPropagation();
-            }
-        });
-        // close on Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && visitModal.classList.contains('open')) {
-                closeVisitModal();
-            }
-        });
-    }
-
-    // Auto-open appointment modal when requested via query param (?add=visit)
-    if (<?php echo $showAddVisit ? 'true' : 'false'; ?>) {
-        openAppointmentModal();
-    }
-
-    // Auto-open visit modal when editing a visit (?edit=visit&visit_id=...)
-    if (<?php echo $showVisitModal ? 'true' : 'false'; ?> || <?php echo ($editVisit && $editVisitId) ? 'true' : 'false'; ?>) {
-        openVisitModal();
-    }
-
-    // Appointment Form Handlers
-    document.getElementById('appointmentDate').addEventListener('change', function() {
-        const date = this.value;
-        if (!date) {
-            document.getElementById('appointmentSlot').innerHTML = '<option value="">Select a time slot</option>';
-            return;
-        }
-        
-        // Fetch available slots for the selected date
-        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/slots&date=' + date)
-            .then(r => r.json())
-            .then(j => {
-                const slots = j.slots || [];
-                const slotSelect = document.getElementById('appointmentSlot');
-                slotSelect.innerHTML = '<option value="">Select a time slot</option>';
-                
-                if (!slots || slots.length === 0) {
-                    slotSelect.innerHTML = '<option value="">No available slots</option>';
-                    return;
-                }
-                
-                slots.filter(s => !s.booked).forEach(s => {
-                    const startTime = new Date(s.start);
-                    const endTime = new Date(s.end);
-                    const label = startTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
-                                  endTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' (' + s.type + ')';
-                    const opt = document.createElement('option');
-                    opt.value = s.start + '|' + s.end;
-                    opt.textContent = label;
-                    slotSelect.appendChild(opt);
-                });
-            })
-            .catch(err => {
-                console.error('Error loading slots:', err);
-                document.getElementById('appointmentSlot').innerHTML = '<option value="">Error loading slots</option>';
-            });
-    });
-
-    window.submitAppointmentForm = async function() {
-        const patientIdEl = document.getElementById('appointmentPatientId');
-        const appointmentTypeEl = document.getElementById('appointmentType');
-        const slotEl = document.getElementById('appointmentSlot');
-        const notesEl = document.getElementById('appointmentNotes');
-
-        const patientId = patientIdEl ? patientIdEl.value : null;
-        const appointmentType = appointmentTypeEl ? appointmentTypeEl.value : '';
-        const slotValue = slotEl ? slotEl.value : '';
-        const notes = notesEl ? notesEl.value : '';
-
-        // Collect vitals (may have been removed from appointment modal)
-        const bloodPressureEl = document.getElementById('appointmentBP');
-        const tempEl = document.getElementById('appointmentTemp');
-        const pulseEl = document.getElementById('appointmentPulse');
-        const respEl = document.getElementById('appointmentRespRate');
-        const o2El = document.getElementById('appointmentO2Sat');
-
-        const bloodPressure = bloodPressureEl ? bloodPressureEl.value : '';
-        const temperature = tempEl ? tempEl.value : '';
-        const pulseRate = pulseEl ? pulseEl.value : '';
-        const respRate = respEl ? respEl.value : '';
-        const o2Sat = o2El ? o2El.value : '';
-
-        // Validate
-        if (!appointmentType) {
-            alert('Please select an appointment type');
-            return;
-        }
-
-        // If no time slot selected, create an unscheduled appointment for the chosen date
-        let start_at = null, end_at = null;
-        if (slotValue) {
-            try {
-                [start_at, end_at] = slotValue.split('|');
-            } catch (e) {
-                start_at = null; end_at = null;
-            }
-        }
-        if (!start_at) {
-            const dateVal = document.getElementById('appointmentDate').value;
-            if (!dateVal) { alert('Please select a date'); return; }
-            // default to 09:00-10:00 on the selected date when no time slot is provided (timezone-aware)
-            const localStart = new Date(dateVal + 'T09:00:00');
-            const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
-            start_at = localStart.toISOString();
-            end_at = localEnd.toISOString();
-        }
-
-        try {
-            const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/cancel', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    patient_id: patientId, 
-                    type: appointmentType, 
-                    start_at, 
-                    end_at, 
-                    notes,
-                    blood_pressure: bloodPressure || null,
-                    temperature: temperature ? parseFloat(temperature) : null,
-                    pulse_rate: pulseRate ? parseInt(pulseRate) : null,
-                    respiratory_rate: respRate ? parseInt(respRate) : null,
-                    oxygen_saturation: o2Sat ? parseInt(o2Sat) : null
-                })
-            });
-
-            const j = await res.json();
-            if (j.success || res.ok) {
-                alert('Appointment booked successfully!');
-                document.getElementById('addAppointmentForm').reset();
-                const modal = document.getElementById('appointmentModal');
-                if (modal) {
-                    modal.classList.remove('open');
-                    modal.setAttribute('hidden', '');
-                }
-                // Optional: Reload page or refresh timeline
-                window.location.reload();
-            } else {
-                // Build a readable error message when API returns an object
-                let errMsg = 'Failed to book appointment';
-                if (j) {
-                    if (j.error) {
-                        if (typeof j.error === 'object') {
-                            try {
-                                // If it's an array or object of validation errors, join them
-                                if (Array.isArray(j.error)) {
-                                    errMsg = j.error.join('\n');
-                                } else {
-                                    const values = Object.values(j.error).flat();
-                                    errMsg = values.join('\n') || JSON.stringify(j.error);
-                                }
-                            } catch (ex) {
-                                errMsg = JSON.stringify(j.error);
-                            }
-                        } else {
-                            errMsg = String(j.error);
-                        }
-                    } else if (j.message) {
-                        errMsg = String(j.message);
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Appointment cancelled');
+                        loadAppointments(); // Reload
                     } else {
-                        errMsg = JSON.stringify(j);
+                        alert(formatApiError(data) || 'Error cancelling appointment');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error:', err);
+                    alert('Error cancelling appointment');
+                });
+        };
+
+        window.openRescheduleModal = function (aptId) {
+            // Fetch appointment details and show reschedule form
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+                .then(r => r.json())
+                .then(data => {
+                    const apts = data.appointments || [];
+                    const apt = apts.find(a => a.id == aptId);
+                    if (!apt) return;
+
+                    // Show reschedule modal/form
+                    const newDate = prompt('Enter new date (YYYY-MM-DD):', apt.appointment_date.split('T')[0]);
+                    if (!newDate) return;
+                    const newTime = prompt('Enter new time (HH:MM):', apt.appointment_date.split('T')[1]?.slice(0, 5) || '09:00');
+                    if (!newTime) return;
+
+                    const newStart = newDate + 'T' + newTime;
+                    const [h, m] = newTime.split(':');
+                    const endDate = new Date(newDate + 'T' + newTime);
+                    endDate.setHours(parseInt(h) + 1); // Assume 1-hour appointments
+                    const newEnd = endDate.toISOString().slice(0, 16);
+
+                    fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/reschedule', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ start_at: newStart, end_at: newEnd })
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Appointment rescheduled');
+                                loadAppointments();
+                            } else {
+                                alert(formatApiError(data) || 'Error rescheduling appointment');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error:', err);
+                            alert('Error rescheduling appointment');
+                        });
+                })
+                .catch(err => console.error('Error:', err));
+        };
+
+        window.openVisitForAppt = function (aptId) {
+            // Fetch appointment details and pre-fill visit modal
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
+                .then(r => r.json())
+                .then(data => {
+                    const apts = data.appointments || [];
+                    const apt = apts.find(a => a.id == aptId);
+                    if (!apt) return;
+
+                    // Pre-fill visit modal with appointment data
+                    const dt = new Date(apt.appointment_date);
+                    document.querySelector('input[name="visit_date"]').value = dt.toISOString().slice(0, 16);
+                    document.querySelector('input[name="appointment_id"]').value = apt.id; // Store apt ID
+
+                    // Set vitals from appointment if available
+                    if (apt.blood_pressure) document.querySelector('input[name="blood_pressure"]').value = apt.blood_pressure;
+                    if (apt.temperature) document.querySelector('input[name="temperature"]').value = apt.temperature;
+                    if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
+                    if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
+                    if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
+
+                    openVisitModal();
+                })
+                .catch(err => console.error('Error:', err));
+        };
+
+        // Load appointments on page load
+        loadAppointments();
+
+        // If we arrived after accepting an appointment from the Appointments page,
+        // open the Visit modal prefilled with that appointment's data.
+        const acceptedApt = <?php echo $acceptedApt ? json_encode($acceptedApt) : 'null'; ?>;
+        if (acceptedApt) {
+            // Wait briefly for appointments to be loaded then open
+            setTimeout(function () { try { openVisitForAppt(acceptedApt); } catch (e) { console.error('Failed opening accepted appointment:', e); } }, 600);
+        }
+
+        function setupFocusTrap(el) {
+            if (!el) return;
+            const focusable = Array.from(el.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'));
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            const handler = function (e) {
+                if (e.key !== 'Tab') return;
+                if (focusable.length === 0) { e.preventDefault(); return; }
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault(); last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault(); first.focus();
                     }
                 }
-                alert(errMsg);
+            };
+            el._focusTrap = handler;
+            document.addEventListener('keydown', handler);
+        }
+
+        function removeFocusTrap(el) {
+            if (!el || !el._focusTrap) return;
+            document.removeEventListener('keydown', el._focusTrap);
+            delete el._focusTrap;
+        }
+
+        function openVisitModal() {
+            if (!visitModal) return;
+            visitModal.removeAttribute('hidden');
+            visitModal.classList.add('open');
+            const main = document.querySelector('.main-content');
+            if (main) main.setAttribute('aria-hidden', 'true');
+            setupFocusTrap(visitModal);
+            setTimeout(function () {
+                const firstField = visitModal.querySelector('input[name="visit_date"]');
+                if (firstField) firstField.focus();
+            }, 50);
+        }
+
+        function closeVisitModal() {
+            if (!visitModal) return;
+            visitModal.classList.remove('open');
+            visitModal.setAttribute('hidden', '');
+            const main = document.querySelector('.main-content');
+            if (main) main.removeAttribute('aria-hidden');
+            removeFocusTrap(visitModal);
+        }
+
+        function openAppointmentModal() {
+            if (!appointmentModal) return;
+            appointmentModal.removeAttribute('hidden');
+            appointmentModal.classList.add('open');
+            const main = document.querySelector('.main-content');
+            if (main) main.setAttribute('aria-hidden', 'true');
+            setupFocusTrap(appointmentModal);
+        }
+
+        function closeAppointmentModal() {
+            if (!appointmentModal) return;
+            appointmentModal.classList.remove('open');
+            appointmentModal.setAttribute('hidden', '');
+            const main = document.querySelector('.main-content');
+            if (main) main.removeAttribute('aria-hidden');
+            removeFocusTrap(appointmentModal);
+        }
+
+        if (addFirstBtn) {
+            addFirstBtn.addEventListener('click', function () {
+                openAppointmentModal();
+            });
+        }
+
+        // Fullscreen Timeline Modal Handler
+        const viewTimelineFullscreenBtn = document.getElementById('viewTimelineFullscreen');
+        const timelineModal = document.getElementById('timelineModal');
+
+        if (viewTimelineFullscreenBtn && timelineModal) {
+            viewTimelineFullscreenBtn.addEventListener('click', function () {
+                // Clone the timeline table and show in fullscreen modal
+                // Prefer the visits table (rows with data-visit-id). Fallback to the first table in the card.
+                const visitRow = document.querySelector('table tbody tr[data-visit-id]');
+                const timelineTable = visitRow ? visitRow.closest('table') : document.querySelector('.table-container table');
+                const timelineBody = document.getElementById('timelineModalBody');
+
+                if (timelineTable) {
+                    const clonedTable = timelineTable.cloneNode(true);
+                    timelineBody.innerHTML = '';
+                    timelineBody.appendChild(clonedTable);
+
+                    // Open the modal
+                    timelineModal.removeAttribute('hidden');
+                    timelineModal.classList.add('open');
+                    const main = document.querySelector('.main-content');
+                    if (main) main.setAttribute('aria-hidden', 'true');
+                    setupFocusTrap(timelineModal);
+                } else {
+                    alert('Timeline data not found');
+                }
+            });
+
+            // Close fullscreen timeline modal on backdrop click
+            const backdrop = timelineModal.querySelector('.modal-backdrop');
+            if (backdrop) {
+                backdrop.addEventListener('click', function () {
+                    closeTimelineModal();
+                });
             }
-        } catch (err) {
-            console.error('Error:', err);
-            alert('Error booking appointment');
-        }
-    };
 
-    // Edit Profile Modal handlers
-    const editProfileModal = document.getElementById('editProfileModal');
-    const openEditProfileBtn = document.getElementById('openEditProfileBtn');
-    const closeEditProfileModalBtn = document.getElementById('closeEditProfileModal');
-    const cancelEditProfileBtn = document.getElementById('cancelEditProfileBtn');
-    const editProfileForm = document.getElementById('editProfileForm');
-
-    function openEditProfileModal() {
-        if (!editProfileModal) return;
-        editProfileModal.removeAttribute('hidden');
-        editProfileModal.classList.add('open');
-        const main = document.querySelector('.main-content');
-        if (main) main.setAttribute('aria-hidden', 'true');
-        setupFocusTrap(editProfileModal);
-        setTimeout(function() {
-            const firstField = editProfileModal.querySelector('input[name="first_name"]');
-            if (firstField) firstField.focus();
-        }, 50);
-    }
-
-    function closeEditProfileModal() {
-        if (!editProfileModal) return;
-        editProfileModal.classList.remove('open');
-        editProfileModal.setAttribute('hidden', '');
-        const main = document.querySelector('.main-content');
-        if (main) main.removeAttribute('aria-hidden');
-        removeFocusTrap(editProfileModal);
-    }
-
-    if (openEditProfileBtn) {
-        openEditProfileBtn.addEventListener('click', openEditProfileModal);
-    }
-
-    if (closeEditProfileModalBtn) {
-        closeEditProfileModalBtn.addEventListener('click', closeEditProfileModal);
-    }
-
-    if (cancelEditProfileBtn) {
-        cancelEditProfileBtn.addEventListener('click', closeEditProfileModal);
-    }
-
-    if (editProfileModal) {
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && editProfileModal.classList.contains('open')) {
-                closeEditProfileModal();
+            // Close on close button
+            const closeBtn = timelineModal.querySelector('.modal-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () {
+                    closeTimelineModal();
+                });
             }
-        });
-    }
 
-    // Auto-open when requested via query param (?edit=profile)
-    if (<?php echo $editProfile ? 'true' : 'false'; ?>) {
-        openEditProfileModal();
-    }
-
-    // Auto-calc BMI in edit profile modal when height or weight change
-    function calculateAndSetBMIForEdit() {
-        var heightEl = document.querySelector('#editProfileModal input[name="height"]');
-        var weightEl = document.querySelector('#editProfileModal input[name="weight"]');
-        var bmiEl = document.querySelector('#editProfileModal input[name="bmi"]') || document.querySelector('#editBmiField');
-        if (!heightEl || !weightEl || !bmiEl) return;
-        var h = parseFloat(heightEl.value);
-        var w = parseFloat(weightEl.value);
-        if (!isFinite(h) || !isFinite(w) || h <= 0) {
-            bmiEl.value = '';
-            return;
+            // Close on Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && timelineModal.classList.contains('open')) {
+                    closeTimelineModal();
+                }
+            });
         }
-        var meters = h / 100.0;
-        var bmi = w / (meters * meters);
-        if (isFinite(bmi)) {
-            bmiEl.value = bmi.toFixed(2);
-        } else {
-            bmiEl.value = '';
+
+        function closeTimelineModal() {
+            if (!timelineModal) return;
+            timelineModal.classList.remove('open');
+            timelineModal.setAttribute('hidden', '');
+            const main = document.querySelector('.main-content');
+            if (main) main.removeAttribute('aria-hidden');
+            removeFocusTrap(timelineModal);
         }
-    }
 
-    var editHeightInput = document.querySelector('#editProfileModal input[name="height"]');
-    var editWeightInput = document.querySelector('#editProfileModal input[name="weight"]');
-    if (editHeightInput) editHeightInput.addEventListener('input', calculateAndSetBMIForEdit);
-    if (editWeightInput) editWeightInput.addEventListener('input', calculateAndSetBMIForEdit);
-    // Calculate on load if values present
-    calculateAndSetBMIForEdit();
+        if (addAppointmentBtn) {
+            addAppointmentBtn.addEventListener('click', function () {
+                openAppointmentModal();
+            });
+        }
 
-    // ==================== Prescription Panel Handlers (Side Panel) ====================
-    const prescriptionPanel = document.getElementById('prescriptionPanel');
-    const medicinesContainer = document.getElementById('medicinesContainer');
-    const medicinesSelectedInput = document.getElementById('medicinesSelected');
-    const prescriptionNotes = document.getElementById('prescriptionNotes');
-    const refillField = document.getElementById('refillField');
-    const labelCheckbox = document.getElementById('labelCheckbox');
-    const prescriptionDateField = document.getElementById('prescriptionDateField');
-    const signatureField = document.getElementById('signatureField');
-    const exportPrescriptionPDF = document.getElementById('exportPrescriptionPDF');
-    const exportPrescriptionWord = document.getElementById('exportPrescriptionWord');
-    const closePrescriptionPanel = document.getElementById('closePrescriptionPanel');
-    
-    // toBePrint object to track medicines for printing
-    let toBePrint = {
-        medicines: [],
-        patientId: <?php echo $patientId; ?>,
-        patientName: '<?php echo e($patient['first_name'] . ' ' . $patient['last_name']); ?>',
-        patientAddress: '<?php echo e(isset($patient['address']) ? addslashes($patient['address']) : ''); ?>'
-    };
-    // If we are editing a visit, expose its id so prescriptions can be attached to that visit
-    toBePrint.visitId = <?php echo $editVisitData && isset($editVisitData['id']) ? $editVisitData['id'] : 'null'; ?>;
+        if (addVisitBtn) {
+            addVisitBtn.addEventListener('click', function () {
+                openVisitModal();
+            });
+        }
 
-    // Initialize medicines checkboxes
-    function loadMedicines() {
-        if (!medicinesContainer) return;
-        
-        // Attach change listener to all medicine checkboxes
-        medicinesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', updateSelectedMedicines);
+        if (appointmentModal) {
+            appointmentModal.querySelectorAll('[data-modal-dismiss="appointmentModal"]').forEach(function (el) {
+                el.addEventListener('click', closeAppointmentModal);
+            });
+            appointmentModal.addEventListener('click', function (e) {
+                if (e.target === appointmentModal) {
+                    e.stopPropagation();
+                }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && appointmentModal.classList.contains('open')) {
+                    closeAppointmentModal();
+                }
+            });
+        }
+
+        if (visitModal) {
+            visitModal.querySelectorAll('[data-modal-dismiss="visitModal"]').forEach(function (el) {
+                el.addEventListener('click', closeVisitModal);
+            });
+            // prevent backdrop click from closing (enforce explicit close)
+            visitModal.addEventListener('click', function (e) {
+                if (e.target === visitModal) {
+                    e.stopPropagation();
+                }
+            });
+            // close on Escape
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && visitModal.classList.contains('open')) {
+                    closeVisitModal();
+                }
+            });
+        }
+
+        // Auto-open appointment modal when requested via query param (?add=visit)
+        if (<?php echo $showAddVisit ? 'true' : 'false'; ?>) {
+            openAppointmentModal();
+        }
+
+        // Auto-open visit modal when editing a visit (?edit=visit&visit_id=...)
+        if (<?php echo $showVisitModal ? 'true' : 'false'; ?> || <?php echo ($editVisit && $editVisitId) ? 'true' : 'false'; ?>) {
+            openVisitModal();
+        }
+
+        // Appointment Form Handlers
+        document.getElementById('appointmentDate').addEventListener('change', function () {
+            const date = this.value;
+            if (!date) {
+                document.getElementById('appointmentSlot').innerHTML = '<option value="">Select a time slot</option>';
+                return;
+            }
+
+            // Fetch available slots for the selected date
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/slots&date=' + date)
+                .then(r => r.json())
+                .then(j => {
+                    const slots = j.slots || [];
+                    const slotSelect = document.getElementById('appointmentSlot');
+                    slotSelect.innerHTML = '<option value="">Select a time slot</option>';
+
+                    if (!slots || slots.length === 0) {
+                        slotSelect.innerHTML = '<option value="">No available slots</option>';
+                        return;
+                    }
+
+                    slots.filter(s => !s.booked).forEach(s => {
+                        const startTime = new Date(s.start);
+                        const endTime = new Date(s.end);
+                        const label = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' +
+                            endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (' + s.type + ')';
+                        const opt = document.createElement('option');
+                        opt.value = s.start + '|' + s.end;
+                        opt.textContent = label;
+                        slotSelect.appendChild(opt);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error loading slots:', err);
+                    document.getElementById('appointmentSlot').innerHTML = '<option value="">Error loading slots</option>';
+                });
         });
-    }
 
-    function updateSelectedMedicines() {
-        const checkedBoxes = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'));
+        window.submitAppointmentForm = async function () {
+            const patientIdEl = document.getElementById('appointmentPatientId');
+            const appointmentTypeEl = document.getElementById('appointmentType');
+            const slotEl = document.getElementById('appointmentSlot');
+            const notesEl = document.getElementById('appointmentNotes');
 
-        const selectedNames = checkedBoxes.map(cb => cb.getAttribute('data-medicine')).join('; ');
-        medicinesSelectedInput.value = selectedNames;
+            const patientId = patientIdEl ? patientIdEl.value : null;
+            const appointmentType = appointmentTypeEl ? appointmentTypeEl.value : '';
+            const slotValue = slotEl ? slotEl.value : '';
+            const notes = notesEl ? notesEl.value : '';
 
-        // Update toBePrint dataset including per-medicine instructions
-        toBePrint.medicines = checkedBoxes.map(cb => {
-            const id = cb.value;
-            const name = cb.getAttribute('data-medicine');
-            const instrEl = medicinesContainer.querySelector(`#med_instr_${id}`);
-            const instruction = instrEl ? instrEl.value.trim() : '';
-            return { id: id, name: name, instruction: instruction };
-        });
-        
-        // Auto-update Treatment Plan with selected medicines
-        const treatmentPlanField = document.querySelector('textarea[name="treatment_plan"]');
-        if (treatmentPlanField && toBePrint.medicines.length > 0) {
-            const medicinesList = toBePrint.medicines
-                .map(m => m.name + (m.instruction ? ' - ' + m.instruction : ''))
-                .join('\n');
-            const currentText = treatmentPlanField.value.trim();
-            
-            // If treatment plan is empty or just contains medications from before, replace it
-            // Otherwise, append the medicines
-            if (!currentText || currentText.toLowerCase().includes('medication') || currentText === selectedNames.replace(/; /g, '\n')) {
-                treatmentPlanField.value = medicinesList;
+            // Collect vitals (may have been removed from appointment modal)
+            const bloodPressureEl = document.getElementById('appointmentBP');
+            const tempEl = document.getElementById('appointmentTemp');
+            const pulseEl = document.getElementById('appointmentPulse');
+            const respEl = document.getElementById('appointmentRespRate');
+            const o2El = document.getElementById('appointmentO2Sat');
+
+            const bloodPressure = bloodPressureEl ? bloodPressureEl.value : '';
+            const temperature = tempEl ? tempEl.value : '';
+            const pulseRate = pulseEl ? pulseEl.value : '';
+            const respRate = respEl ? respEl.value : '';
+            const o2Sat = o2El ? o2El.value : '';
+
+            // Validate
+            if (!appointmentType) {
+                alert('Please select an appointment type');
+                return;
+            }
+
+            // If no time slot selected, create an unscheduled appointment for the chosen date
+            let start_at = null, end_at = null;
+            if (slotValue) {
+                try {
+                    [start_at, end_at] = slotValue.split('|');
+                } catch (e) {
+                    start_at = null; end_at = null;
+                }
+            }
+            if (!start_at) {
+                const dateVal = document.getElementById('appointmentDate').value;
+                if (!dateVal) { alert('Please select a date'); return; }
+                // default to 09:00-10:00 on the selected date when no time slot is provided (timezone-aware)
+                const localStart = new Date(dateVal + 'T09:00:00');
+                const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
+                start_at = localStart.toISOString();
+                end_at = localEnd.toISOString();
+            }
+
+            try {
+                const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: patientId,
+                        type: appointmentType,
+                        start_at,
+                        end_at,
+                        notes,
+                        blood_pressure: bloodPressure || null,
+                        temperature: temperature ? parseFloat(temperature) : null,
+                        pulse_rate: pulseRate ? parseInt(pulseRate) : null,
+                        respiratory_rate: respRate ? parseInt(respRate) : null,
+                        oxygen_saturation: o2Sat ? parseInt(o2Sat) : null
+                    })
+                });
+
+                const j = await res.json();
+                if (j.success || res.ok) {
+                    alert('Appointment booked successfully!');
+                    document.getElementById('addAppointmentForm').reset();
+                    const modal = document.getElementById('appointmentModal');
+                    if (modal) {
+                        modal.classList.remove('open');
+                        modal.setAttribute('hidden', '');
+                    }
+                    // Optional: Reload page or refresh timeline
+                    window.location.reload();
+                } else {
+                    // Build a readable error message when API returns an object
+                    let errMsg = 'Failed to book appointment';
+                    if (j) {
+                        if (j.error) {
+                            if (typeof j.error === 'object') {
+                                try {
+                                    // If it's an array or object of validation errors, join them
+                                    if (Array.isArray(j.error)) {
+                                        errMsg = j.error.join('\n');
+                                    } else {
+                                        const values = Object.values(j.error).flat();
+                                        errMsg = values.join('\n') || JSON.stringify(j.error);
+                                    }
+                                } catch (ex) {
+                                    errMsg = JSON.stringify(j.error);
+                                }
+                            } else {
+                                errMsg = String(j.error);
+                            }
+                        } else if (j.message) {
+                            errMsg = String(j.message);
+                        } else {
+                            errMsg = JSON.stringify(j);
+                        }
+                    }
+                    alert(errMsg);
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Error booking appointment');
+            }
+        };
+
+        // Edit Profile Modal handlers
+        const editProfileModal = document.getElementById('editProfileModal');
+        const openEditProfileBtn = document.getElementById('openEditProfileBtn');
+        const closeEditProfileModalBtn = document.getElementById('closeEditProfileModal');
+        const cancelEditProfileBtn = document.getElementById('cancelEditProfileBtn');
+        const editProfileForm = document.getElementById('editProfileForm');
+
+        function openEditProfileModal() {
+            if (!editProfileModal) return;
+            editProfileModal.removeAttribute('hidden');
+            editProfileModal.classList.add('open');
+            const main = document.querySelector('.main-content');
+            if (main) main.setAttribute('aria-hidden', 'true');
+            setupFocusTrap(editProfileModal);
+            setTimeout(function () {
+                const firstField = editProfileModal.querySelector('input[name="first_name"]');
+                if (firstField) firstField.focus();
+            }, 50);
+        }
+
+        function closeEditProfileModal() {
+            if (!editProfileModal) return;
+            editProfileModal.classList.remove('open');
+            editProfileModal.setAttribute('hidden', '');
+            const main = document.querySelector('.main-content');
+            if (main) main.removeAttribute('aria-hidden');
+            removeFocusTrap(editProfileModal);
+        }
+
+        if (openEditProfileBtn) {
+            openEditProfileBtn.addEventListener('click', openEditProfileModal);
+        }
+
+        if (closeEditProfileModalBtn) {
+            closeEditProfileModalBtn.addEventListener('click', closeEditProfileModal);
+        }
+
+        if (cancelEditProfileBtn) {
+            cancelEditProfileBtn.addEventListener('click', closeEditProfileModal);
+        }
+
+        if (editProfileModal) {
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && editProfileModal.classList.contains('open')) {
+                    closeEditProfileModal();
+                }
+            });
+        }
+
+        // Auto-open when requested via query param (?edit=profile)
+        if (<?php echo $editProfile ? 'true' : 'false'; ?>) {
+            openEditProfileModal();
+        }
+
+        // Auto-calc BMI in edit profile modal when height or weight change
+        function calculateAndSetBMIForEdit() {
+            var heightEl = document.querySelector('#editProfileModal input[name="height"]');
+            var weightEl = document.querySelector('#editProfileModal input[name="weight"]');
+            var bmiEl = document.querySelector('#editProfileModal input[name="bmi"]') || document.querySelector('#editBmiField');
+            if (!heightEl || !weightEl || !bmiEl) return;
+            var h = parseFloat(heightEl.value);
+            var w = parseFloat(weightEl.value);
+            if (!isFinite(h) || !isFinite(w) || h <= 0) {
+                bmiEl.value = '';
+                return;
+            }
+            var meters = h / 100.0;
+            var bmi = w / (meters * meters);
+            if (isFinite(bmi)) {
+                bmiEl.value = bmi.toFixed(2);
             } else {
-                // Append medicines to existing plan
-                treatmentPlanField.value = currentText + '\n\nMedications:\n' + medicinesList;
+                bmiEl.value = '';
             }
-        } else if (treatmentPlanField && toBePrint.medicines.length === 0) {
-            // Optionally clear if no medicines selected, or leave as-is
-            // For now, we'll leave it as-is to avoid losing user input
         }
-    }
 
-    function openPrescriptionPanel() {
-        if (!prescriptionPanel) return;
-        prescriptionPanel.style.display = 'flex';
-        loadMedicines(); // Load medicines when panel opens
-    }
+        var editHeightInput = document.querySelector('#editProfileModal input[name="height"]');
+        var editWeightInput = document.querySelector('#editProfileModal input[name="weight"]');
+        if (editHeightInput) editHeightInput.addEventListener('input', calculateAndSetBMIForEdit);
+        if (editWeightInput) editWeightInput.addEventListener('input', calculateAndSetBMIForEdit);
+        // Calculate on load if values present
+        calculateAndSetBMIForEdit();
 
-    function closePrescriptionPanelFn() {
-        if (!prescriptionPanel) return;
-        prescriptionPanel.style.display = 'none';
-    }
+        // ==================== Prescription Panel Handlers (Side Panel) ====================
+        const prescriptionPanel = document.getElementById('prescriptionPanel');
+        const medicinesContainer = document.getElementById('medicinesContainer');
+        const medicinesSelectedInput = document.getElementById('medicinesSelected');
+        const prescriptionNotes = document.getElementById('prescriptionNotes');
+        const refillField = document.getElementById('refillField');
+        const labelCheckbox = document.getElementById('labelCheckbox');
+        const prescriptionDateField = document.getElementById('prescriptionDateField');
+        const signatureField = document.getElementById('signatureField');
+        const exportPrescriptionPDF = document.getElementById('exportPrescriptionPDF');
+        const exportPrescriptionWord = document.getElementById('exportPrescriptionWord');
+        const closePrescriptionPanel = document.getElementById('closePrescriptionPanel');
 
-    // Update openVisitModal to also show prescription panel
-    const originalOpenVisitModal = openVisitModal;
-    openVisitModal = function() {
-        originalOpenVisitModal();
-        openPrescriptionPanel(); // Show prescription panel when visit modal opens
-    };
+        // toBePrint object to track medicines for printing
+        let toBePrint = {
+            medicines: [],
+            patientId: <?php echo $patientId; ?>,
+            patientName: '<?php echo e($patient['first_name'] . ' ' . $patient['last_name']); ?>',
+            patientAddress: '<?php echo e(isset($patient['address']) ? addslashes($patient['address']) : ''); ?>'
+        };
+        // If we are editing a visit, expose its id so prescriptions can be attached to that visit
+        toBePrint.visitId = <?php echo $editVisitData && isset($editVisitData['id']) ? $editVisitData['id'] : 'null'; ?>;
 
-    // Update closeVisitModal to also hide prescription panel
-    const originalCloseVisitModal = closeVisitModal;
-    closeVisitModal = function() {
-        originalCloseVisitModal();
-        closePrescriptionPanelFn(); // Hide prescription panel when visit modal closes
-    };
+        // Initialize medicines checkboxes
+        function loadMedicines() {
+            if (!medicinesContainer) return;
 
-    // Close prescription panel button
-    if (closePrescriptionPanel) {
-        closePrescriptionPanel.addEventListener('click', closePrescriptionPanelFn);
-    }
-
-    // Export handlers for prescription panel
-    if (exportPrescriptionPDF) {
-        exportPrescriptionPDF.addEventListener('click', function() {
-            updateSelectedMedicines();
-            
-            if (toBePrint.medicines.length === 0) {
-                alert('Please select at least one medicine.');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.set('patient_id', toBePrint.patientId);
-            // Send medicines as structured JSON (id, name, instruction)
-            formData.set('medicines_selected', JSON.stringify(toBePrint.medicines));
-            // Include visit id if present so prescription can be recorded on the timeline
-            formData.set('visit_id', (typeof toBePrint.visitId !== 'undefined' && toBePrint.visitId) ? toBePrint.visitId : '');
-            formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
-            formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
-            formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
-            formData.set('prescription_date', (typeof prescriptionDateField !== 'undefined' && prescriptionDateField ? prescriptionDateField.value : ''));
-            formData.set('signature', (typeof signatureField !== 'undefined' && signatureField ? signatureField.value : ''));
-            formData.set('export_format', 'pdf');
-            formData.set('action', 'export_prescription');
-            
-            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/prescription/export', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                }
-                throw new Error('Failed to export PDF');
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'prescription_<?php echo $patientId; ?>_' + new Date().getTime() + '.pdf';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-                closePrescriptionPanelFn();
-            })
-            .catch(error => {
-                console.error('Error exporting PDF:', error);
-                alert('Error exporting PDF. Please try again.');
+            // Attach change listener to all medicine checkboxes
+            medicinesContainer.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedMedicines);
             });
-        });
-    }
+        }
 
-    if (exportPrescriptionWord) {
-        exportPrescriptionWord.addEventListener('click', function() {
-            updateSelectedMedicines();
-            
-            if (toBePrint.medicines.length === 0) {
-                alert('Please select at least one medicine.');
-                return;
-            }
+        function updateSelectedMedicines() {
+            const checkedBoxes = Array.from(medicinesContainer.querySelectorAll('input[type="checkbox"]:checked'));
 
-            const formData = new FormData();
-            formData.set('patient_id', toBePrint.patientId);
-            formData.set('medicines_selected', JSON.stringify(toBePrint.medicines));
-            formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
-            formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
-            formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
-            formData.set('prescription_date', (typeof prescriptionDateField !== 'undefined' && prescriptionDateField ? prescriptionDateField.value : ''));
-            formData.set('signature', (typeof signatureField !== 'undefined' && signatureField ? signatureField.value : ''));
-            formData.set('export_format', 'word');
-            formData.set('action', 'export_prescription');
-            
-            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/prescription/export', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                }
-                throw new Error('Failed to export Word');
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'prescription_<?php echo $patientId; ?>_' + new Date().getTime() + '.docx';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-                closePrescriptionPanelFn();
-            })
-            .catch(error => {
-                console.error('Error exporting Word:', error);
-                alert('Error exporting Word document. Please try again.');
+            const selectedNames = checkedBoxes.map(cb => cb.getAttribute('data-medicine')).join('; ');
+            medicinesSelectedInput.value = selectedNames;
+
+            // Update toBePrint dataset including per-medicine instructions
+            toBePrint.medicines = checkedBoxes.map(cb => {
+                const id = cb.value;
+                const name = cb.getAttribute('data-medicine');
+                const instrEl = medicinesContainer.querySelector(`#med_instr_${id}`);
+                const instruction = instrEl ? instrEl.value.trim() : '';
+                return { id: id, name: name, instruction: instruction };
             });
-        });
-    }
 
-    // Print handler - open a printable window containing selected medicines and clinic header
-    const printPrescriptionBtn = document.getElementById('printPrescription');
-    function printPrescriptionFn() {
-        updateSelectedMedicines();
+            // Auto-update Treatment Plan with selected medicines
+            const treatmentPlanField = document.querySelector('textarea[name="treatment_plan"]');
+            if (treatmentPlanField && toBePrint.medicines.length > 0) {
+                const medicinesList = toBePrint.medicines
+                    .map(m => m.name + (m.instruction ? ' - ' + m.instruction : ''))
+                    .join('\n');
+                const currentText = treatmentPlanField.value.trim();
 
-        const meds = (toBePrint.medicines && toBePrint.medicines.length)
-            ? toBePrint.medicines.map(m => `<li>${m.name}${m.instruction ? ' — ' + m.instruction : ''}</li>`).join('')
-            : '<li><em>No medicines selected</em></li>';
+                // If treatment plan is empty or just contains medications from before, replace it
+                // Otherwise, append the medicines
+                if (!currentText || currentText.toLowerCase().includes('medication') || currentText === selectedNames.replace(/; /g, '\n')) {
+                    treatmentPlanField.value = medicinesList;
+                } else {
+                    // Append medicines to existing plan
+                    treatmentPlanField.value = currentText + '\n\nMedications:\n' + medicinesList;
+                }
+            } else if (treatmentPlanField && toBePrint.medicines.length === 0) {
+                // Optionally clear if no medicines selected, or leave as-is
+                // For now, we'll leave it as-is to avoid losing user input
+            }
+        }
 
-        const clinicHeader = `
+        function openPrescriptionPanel() {
+            if (!prescriptionPanel) return;
+            prescriptionPanel.style.display = 'flex';
+            loadMedicines(); // Load medicines when panel opens
+        }
+
+        function closePrescriptionPanelFn() {
+            if (!prescriptionPanel) return;
+            prescriptionPanel.style.display = 'none';
+        }
+
+        // Update openVisitModal to also show prescription panel
+        const originalOpenVisitModal = openVisitModal;
+        openVisitModal = function () {
+            originalOpenVisitModal();
+            openPrescriptionPanel(); // Show prescription panel when visit modal opens
+        };
+
+        // Update closeVisitModal to also hide prescription panel
+        const originalCloseVisitModal = closeVisitModal;
+        closeVisitModal = function () {
+            originalCloseVisitModal();
+            closePrescriptionPanelFn(); // Hide prescription panel when visit modal closes
+        };
+
+        // Close prescription panel button
+        if (closePrescriptionPanel) {
+            closePrescriptionPanel.addEventListener('click', closePrescriptionPanelFn);
+        }
+
+        // Export handlers for prescription panel
+        if (exportPrescriptionPDF) {
+            exportPrescriptionPDF.addEventListener('click', function () {
+                updateSelectedMedicines();
+
+                if (toBePrint.medicines.length === 0) {
+                    alert('Please select at least one medicine.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.set('patient_id', toBePrint.patientId);
+                // Send medicines as structured JSON (id, name, instruction)
+                formData.set('medicines_selected', JSON.stringify(toBePrint.medicines));
+                // Include visit id if present so prescription can be recorded on the timeline
+                formData.set('visit_id', (typeof toBePrint.visitId !== 'undefined' && toBePrint.visitId) ? toBePrint.visitId : '');
+                formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
+                formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
+                formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
+                formData.set('prescription_date', (typeof prescriptionDateField !== 'undefined' && prescriptionDateField ? prescriptionDateField.value : ''));
+                formData.set('signature', (typeof signatureField !== 'undefined' && signatureField ? signatureField.value : ''));
+                formData.set('export_format', 'pdf');
+                formData.set('action', 'export_prescription');
+
+                fetch('<?php echo baseUrl(); ?>/api.php?route=/api/prescription/export', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.blob();
+                        }
+                        throw new Error('Failed to export PDF');
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'prescription_<?php echo $patientId; ?>_' + new Date().getTime() + '.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
+                        closePrescriptionPanelFn();
+                    })
+                    .catch(error => {
+                        console.error('Error exporting PDF:', error);
+                        alert('Error exporting PDF. Please try again.');
+                    });
+            });
+        }
+
+        if (exportPrescriptionWord) {
+            exportPrescriptionWord.addEventListener('click', function () {
+                updateSelectedMedicines();
+
+                if (toBePrint.medicines.length === 0) {
+                    alert('Please select at least one medicine.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.set('patient_id', toBePrint.patientId);
+                formData.set('medicines_selected', JSON.stringify(toBePrint.medicines));
+                formData.set('prescription_notes', (typeof prescriptionNotes !== 'undefined' && prescriptionNotes ? prescriptionNotes.value : ''));
+                formData.set('refill', (typeof refillField !== 'undefined' && refillField ? refillField.value : ''));
+                formData.set('label_checkbox', (typeof labelCheckbox !== 'undefined' && labelCheckbox ? (labelCheckbox.checked ? '1' : '0') : '0'));
+                formData.set('prescription_date', (typeof prescriptionDateField !== 'undefined' && prescriptionDateField ? prescriptionDateField.value : ''));
+                formData.set('signature', (typeof signatureField !== 'undefined' && signatureField ? signatureField.value : ''));
+                formData.set('export_format', 'word');
+                formData.set('action', 'export_prescription');
+
+                fetch('<?php echo baseUrl(); ?>/api.php?route=/api/prescription/export', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.blob();
+                        }
+                        throw new Error('Failed to export Word');
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'prescription_<?php echo $patientId; ?>_' + new Date().getTime() + '.docx';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
+                        closePrescriptionPanelFn();
+                    })
+                    .catch(error => {
+                        console.error('Error exporting Word:', error);
+                        alert('Error exporting Word document. Please try again.');
+                    });
+            });
+        }
+
+        // Print handler - open a printable window containing selected medicines and clinic header
+        const printPrescriptionBtn = document.getElementById('printPrescription');
+        function printPrescriptionFn() {
+            updateSelectedMedicines();
+
+            const meds = (toBePrint.medicines && toBePrint.medicines.length)
+                ? toBePrint.medicines.map(m => `<li>${m.name}${m.instruction ? ' — ' + m.instruction : ''}</li>`).join('')
+                : '<li><em>No medicines selected</em></li>';
+
+            const clinicHeader = `
             <div style="text-align:center; margin-bottom:12px;">
                 <h2 style="margin:0;">Clinic</h2>
                 <div style="font-size:0.9rem;">Address / Contact</div>
                 <hr style="margin-top:12px;" />
             </div>`;
 
-        const printable = `
+            const printable = `
             <html>
             <head>
                 <title>Prescription - ${toBePrint.patientName}</title>
@@ -1985,75 +2152,75 @@ document.addEventListener('DOMContentLoaded', function() {
             </body>
             </html>`;
 
-        const w = window.open('', '_blank');
-        if (!w) {
-            alert('Pop-up blocked. Please allow pop-ups to print.');
-            return;
+            const w = window.open('', '_blank');
+            if (!w) {
+                alert('Pop-up blocked. Please allow pop-ups to print.');
+                return;
+            }
+            w.document.open();
+            w.document.write(printable);
+            w.document.close();
+            w.focus();
+            w.print();
         }
-        w.document.open();
-        w.document.write(printable);
-        w.document.close();
-        w.focus();
-        w.print();
-    }
 
-    if (printPrescriptionBtn) {
-        printPrescriptionBtn.addEventListener('click', printPrescriptionFn);
-    }
+        if (printPrescriptionBtn) {
+            printPrescriptionBtn.addEventListener('click', printPrescriptionFn);
+        }
 
-    // ==================== Timeline: Load saved prescription items and render ====================
-    function renderPrescriptionItemsIntoCell(cell, items) {
-        if (!cell) return;
-        if (!items || items.length === 0) return;
-        const list = document.createElement('div');
-        list.style.marginTop = '6px';
-        list.style.fontSize = '0.95rem';
-        const ul = document.createElement('ul');
-        ul.style.paddingLeft = '1rem';
-        ul.style.margin = '0';
-        items.forEach(it => {
-            const li = document.createElement('li');
-            const name = it.medicine_name || it.name || '';
-            const instr = it.instruction || '';
-            li.innerHTML = '<strong>' + escapeHtml(name) + '</strong>' + (instr ? ': ' + escapeHtml(instr) : '');
-            ul.appendChild(li);
-        });
-        list.appendChild(ul);
-        // Append after existing prescription text
-        cell.appendChild(list);
-    }
-
-    function escapeHtml(str) {
-        if (!str && str !== 0) return '';
-        return String(str).replace(/[&<>"'`]/g, function (s) {
-            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','`':'&#96;'})[s];
-        });
-    }
-
-    function fetchAndRenderPrescriptionItemsForVisit(visitId, cell) {
-        if (!visitId || !cell) return;
-        const url = '<?php echo baseUrl(); ?>/api.php?route=/api/prescription/items&visit_id=' + encodeURIComponent(visitId);
-        fetch(url, { method: 'GET', credentials: 'same-origin' })
-            .then(r => r.json())
-            .then(data => {
-                // data may be { success: true, data: [...] } or raw array depending on API wrapper
-                const items = data && data.data ? data.data : (Array.isArray(data) ? data : []);
-                if (items && items.length) {
-                    renderPrescriptionItemsIntoCell(cell, items);
-                }
-            })
-            .catch(err => {
-                console.error('Failed to load prescription items for visit ' + visitId, err);
+        // ==================== Timeline: Load saved prescription items and render ====================
+        function renderPrescriptionItemsIntoCell(cell, items) {
+            if (!cell) return;
+            if (!items || items.length === 0) return;
+            const list = document.createElement('div');
+            list.style.marginTop = '6px';
+            list.style.fontSize = '0.95rem';
+            const ul = document.createElement('ul');
+            ul.style.paddingLeft = '1rem';
+            ul.style.margin = '0';
+            items.forEach(it => {
+                const li = document.createElement('li');
+                const name = it.medicine_name || it.name || '';
+                const instr = it.instruction || '';
+                li.innerHTML = '<strong>' + escapeHtml(name) + '</strong>' + (instr ? ': ' + escapeHtml(instr) : '');
+                ul.appendChild(li);
             });
-    }
+            list.appendChild(ul);
+            // Append after existing prescription text
+            cell.appendChild(list);
+        }
 
-    // Kick off loading for each prescription cell found on the page
-    document.querySelectorAll('.prescription-cell[data-visit-id]').forEach(function(cell) {
-        const vid = cell.getAttribute('data-visit-id');
-        if (vid) fetchAndRenderPrescriptionItemsForVisit(vid, cell);
+        function escapeHtml(str) {
+            if (!str && str !== 0) return '';
+            return String(str).replace(/[&<>"'`]/g, function (s) {
+                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' })[s];
+            });
+        }
+
+        function fetchAndRenderPrescriptionItemsForVisit(visitId, cell) {
+            if (!visitId || !cell) return;
+            const url = '<?php echo baseUrl(); ?>/api.php?route=/api/prescription/items&visit_id=' + encodeURIComponent(visitId);
+            fetch(url, { method: 'GET', credentials: 'same-origin' })
+                .then(r => r.json())
+                .then(data => {
+                    // data may be { success: true, data: [...] } or raw array depending on API wrapper
+                    const items = data && data.data ? data.data : (Array.isArray(data) ? data : []);
+                    if (items && items.length) {
+                        renderPrescriptionItemsIntoCell(cell, items);
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load prescription items for visit ' + visitId, err);
+                });
+        }
+
+        // Kick off loading for each prescription cell found on the page
+        document.querySelectorAll('.prescription-cell[data-visit-id]').forEach(function (cell) {
+            const vid = cell.getAttribute('data-visit-id');
+            if (vid) fetchAndRenderPrescriptionItemsForVisit(vid, cell);
+        });
+
     });
-
-});
 </script>
 <!-- Location data loader (using lightweight location-loader) -->
 <script src="<?php echo baseUrl(); ?>/js/location-loader.js"></script>
@@ -2064,4 +2231,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 </script>
-

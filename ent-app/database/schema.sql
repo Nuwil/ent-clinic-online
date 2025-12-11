@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS patients (
     vaccine_history TEXT,
     insurance_provider VARCHAR(100),
     insurance_id VARCHAR(100),
+    emergency_contact_name VARCHAR(150),
+    emergency_contact_phone VARCHAR(20),
     height DECIMAL(5,2) COMMENT 'Height in cm',
     weight DECIMAL(5,2) COMMENT 'Weight in kg',
     bmi DECIMAL(5,2) COMMENT 'Body Mass Index (kg/m2)',
