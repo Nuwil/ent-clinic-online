@@ -114,96 +114,111 @@ $currentRole = $currentUser['role'] ?? '';
                 </h3>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="display: flex; flex-direction: column; gap: 0;">
                 <?php
-                // Fields to display in Patient Information (label => key)
-                $fields = [
-                    'Patient ID' => 'patient_id',
-                    'Name' => ['first_name','last_name'],
-                    'Age' => 'age_calculated',
-                    'Date of Birth' => 'date_of_birth',
-                    'Gender' => 'gender',
-                    'Email' => 'email',
-                    'Phone' => 'phone',
-                    'Height' => 'height',
-                    'Weight' => 'weight',
-                    'BMI' => 'bmi',
-                    'Occupation' => 'occupation',
-                    'Blood Type' => 'blood_type',
-                    'Marital Status' => 'marital_status',
-                    'Allergies' => 'allergies',
-                    'Vaccine History' => 'vaccine_history',
-                    'Insurance Provider' => 'insurance_provider',
-                    'Insurance ID' => 'insurance_id',
-                    'Postal Code' => 'postal_code',
-                    'Country' => 'country',
-                    'State/Province' => 'state',
-                    'City' => 'city',
-                    'Address' => 'address',
-                    'Emergency Contact' => ['emergency_contact_name','emergency_contact_phone'],
-                    'Medical History' => 'medical_history',
-                    'Notes' => 'notes'
+                // Organized sections for better UX
+                $sections = [
+                    'Demographics' => [
+                        'Patient ID' => 'patient_id',
+                        'Name' => ['first_name','last_name'],
+                        'Age' => 'age_calculated',
+                        'Date of Birth' => 'date_of_birth',
+                        'Gender' => 'gender',
+                        'Occupation' => 'occupation'
+                    ],
+                    'Contact Information' => [
+                        'Email' => 'email',
+                        'Phone' => 'phone',
+                        'Address' => 'address',
+                        'City' => 'city',
+                        'State/Province' => 'state',
+                        'Postal Code' => 'postal_code',
+                        'Country' => 'country',
+                        'Emergency Contact' => ['emergency_contact_name','emergency_contact_phone']
+                    ],
+                    'Health Information' => [
+                        'Height' => 'height',
+                        'Weight' => 'weight',
+                        'BMI' => 'bmi',
+                        'Blood Type' => 'blood_type',
+                        'Allergies' => 'allergies',
+                        'Vaccine History' => 'vaccine_history'
+                    ],
+                    'Insurance & History' => [
+                        'Insurance Provider' => 'insurance_provider',
+                        'Insurance ID' => 'insurance_id',
+                        'Medical History' => 'medical_history'
+                    ]
                 ];
 
-                foreach ($fields as $label => $key) {
-                    $value = '';
-                    if (is_array($key)) {
-                        // Combine multiple keys
-                        $parts = [];
-                        foreach ($key as $k) {
-                            if (!empty($patient[$k])) $parts[] = $patient[$k];
-                        }
-                        $value = implode(' ', $parts);
-                    } else {
-                        if (isset($patient[$key])) $value = $patient[$key];
-                    }
-
-                    if ($label === 'Date of Birth') {
-                        $value = $value ? formatDate($value) : '';
-                    }
-                    if ($label === 'Age') {
-                        if (!empty($patient['date_of_birth'])) {
-                            try {
-                                $dob = new DateTime($patient['date_of_birth']);
-                                $today = new DateTime();
-                                $age = $today->diff($dob)->y;
-                                $value = $age . ' years';
-                            } catch (Exception $e) {
+                foreach ($sections as $sectionName => $fields): ?>
+                    <div style="padding: 1rem; border-bottom: 1px solid #e9ecef;">
+                        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; font-weight: 600; color: #667eea; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <?php echo e($sectionName); ?>
+                        </h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <?php foreach ($fields as $label => $key):
                                 $value = '';
-                            }
-                        }
-                    }
-                    if ($label === 'Gender') {
-                        $value = $value ? ucfirst($value) : '';
-                    }
-                    if ($label === 'Address') {
-                        $addressParts = array_filter([
-                            $patient['address'] ?? '',
-                            $patient['city'] ?? '',
-                            $patient['state'] ?? '',
-                            $patient['postal_code'] ?? '',
-                            $patient['country'] ?? ''
-                        ]);
-                        $value = implode(', ', $addressParts);
-                    }
+                                if (is_array($key)) {
+                                    $parts = [];
+                                    foreach ($key as $k) {
+                                        if (!empty($patient[$k])) $parts[] = $patient[$k];
+                                    }
+                                    $value = implode(' ', $parts);
+                                } else {
+                                    if (isset($patient[$key])) $value = $patient[$key];
+                                }
 
-                    // Skip empty values except for Medical History (show N/A)
-                    if ($label === 'Medical History') {
-                        echo '<div style="padding:0.5rem 0; border-bottom:1px solid var(--border-color);">';
-                        echo '<span class="text-muted" style="display:block;margin-bottom:0.25rem;">' . e($label) . ':</span>';
-                        echo '<div>' . ($value ? nl2br(e($value)) : '<em>N/A</em>') . '</div>';
-                        echo '</div>'; 
-                        continue;
-                    }
+                                if ($label === 'Date of Birth') {
+                                    $value = $value ? formatDate($value) : '';
+                                }
+                                if ($label === 'Age') {
+                                    if (!empty($patient['date_of_birth'])) {
+                                        try {
+                                            $dob = new DateTime($patient['date_of_birth']);
+                                            $today = new DateTime();
+                                            $age = $today->diff($dob)->y;
+                                            $value = $age . ' years';
+                                        } catch (Exception $e) {
+                                            $value = '';
+                                        }
+                                    }
+                                }
+                                if ($label === 'Gender') {
+                                    $value = $value ? ucfirst($value) : '';
+                                }
+                                if ($label === 'Address') {
+                                    $addressParts = array_filter([
+                                        $patient['address'] ?? '',
+                                        $patient['city'] ?? '',
+                                        $patient['state'] ?? '',
+                                        $patient['postal_code'] ?? '',
+                                        $patient['country'] ?? ''
+                                    ]);
+                                    $value = implode(', ', $addressParts);
+                                    // Skip individual address fields if we combined them
+                                    if (in_array($label, ['City', 'State/Province', 'Postal Code', 'Country'])) {
+                                        continue;
+                                    }
+                                }
 
-                    if ($value === '' || $value === null) continue;
+                                if ($label === 'Medical History') {
+                                    echo '<div style="grid-column: 1 / -1;">';
+                                    echo '<span class="text-muted" style="display:block;margin-bottom:0.25rem;font-weight:600;">' . e($label) . ':</span>';
+                                    echo '<div style="padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.9rem;">' . ($value ? nl2br(e($value)) : '<em style="color:#999;">Not provided</em>') . '</div>';
+                                    echo '</div>';
+                                    continue;
+                                }
 
-                    echo '<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--border-color);">';
-                    echo '<span class="text-muted">' . e($label) . ':</span>';
-                    echo '<strong style="text-align:right;">' . e($value) . '</strong>';
-                    echo '</div>';
-                }
-                ?>
+                                if ($value === '' || $value === null) {
+                                    echo '<div><span class="text-muted" style="font-size:0.9rem;">' . e($label) . ':</span><br><span style="color:#999;"><em>—</em></span></div>';
+                                } else {
+                                    echo '<div><span class="text-muted" style="font-size:0.9rem;display:block;margin-bottom:0.25rem;">' . e($label) . ':</span><strong style="font-size:0.95rem;">' . e($value) . '</strong></div>';
+                                }
+                            endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
 

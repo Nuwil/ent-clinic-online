@@ -248,13 +248,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Create local datetime and convert to ISO to avoid date off-by-one errors
+        const localStart = new Date(date + 'T09:00:00');
+        const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
+        const start_at = localStart.toISOString();
+        const end_at = localEnd.toISOString();
+
         fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 patient_id: parseInt(patientId),
-                appointment_type: type,
-                appointment_date: date + 'T09:00:00',
+                type: type,
+                start_at: start_at,
+                end_at: end_at,
                 notes: notes
             })
         })
