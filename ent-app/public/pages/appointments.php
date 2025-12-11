@@ -29,12 +29,12 @@ $selected = $_GET['date'] ?? date('Y-m-d');
         </div>
     </div>
 
-    <!-- Split View: Calendar on left, List on right -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 600px;">
-        <!-- Calendar/Day View (Left) -->
+    <!-- Stacked Layout: Calendar on top, List below -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Calendar/Day View (Top) -->
         <div>
             <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem;">Calendar View</h3>
-            <div id="dayViewContainer" style="background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:20px; min-height:550px;">
+            <div id="dayViewContainer" style="background:#f9f9f9; border:1px solid #ddd; border-radius:8px; padding:20px; min-height:500px;">
                 <div style="text-align:center; color:#999;">Loading schedule...</div>
             </div>
             <div id="dragHint" style="margin-top:12px; color:#666; font-size:0.9rem;">
@@ -42,10 +42,10 @@ $selected = $_GET['date'] ?? date('Y-m-d');
             </div>
         </div>
 
-        <!-- List View (Right) -->
+        <!-- List View (Below) -->
         <div>
             <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 1.1rem;">Appointments List</h3>
-            <div id="listViewContainer" style="display:flex; flex-direction:column; gap:12px; max-height:600px; overflow-y:auto; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #f9f9f9;">
+            <div id="listViewContainer" style="display:flex; flex-direction:column; gap:12px; max-height:400px; overflow-y:auto; border: 1px solid #ddd; border-radius: 8px; padding: 15px; background: #f9f9f9;">
                 <div style="text-align:center; color:#999;">Loading appointments...</div>
             </div>
         </div>
