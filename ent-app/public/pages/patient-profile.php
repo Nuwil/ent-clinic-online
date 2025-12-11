@@ -361,9 +361,11 @@ $currentRole = $currentUser['role'] ?? '';
             </div>
         </div>
 
-        <!-- Visit Timeline -->
-        <?php if (hasRole(['admin', 'doctor', 'staff'])): ?>
-        <div class="card">
+    </div>
+
+    <!-- Visit Timeline (Full Width - Below Grid) -->
+    <?php if (hasRole(['admin', 'doctor', 'staff'])): ?>
+    <div class="card">
             <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
                 <h3 class="card-title" style="margin:0;">
                     <i class="fas fa-calendar-check"></i>
@@ -772,8 +774,8 @@ $currentRole = $currentUser['role'] ?? '';
             <!-- Fullscreen Timeline Modal -->
             <div id="timelineModal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="modal-backdrop" data-modal-dismiss="timelineModal"></div>
-                <div class="modal-dialog" style="max-width:95%; max-height:95vh; overflow:auto; border-radius: 8px;">
-                    <div class="modal-header" style="position:sticky; top:0; background:#fff; z-index:10;">
+                <div class="modal-dialog" style="max-width:98%; max-height:98vh; overflow:auto; border-radius: 8px; margin: 1vh auto;">
+                    <div class="modal-header" style="position:sticky; top:0; background:#fff; z-index:10; padding: 20px 24px;">
                         <h3 class="modal-title" style="margin:0;">
                             <i class="fas fa-calendar-check"></i>
                             Patient Visit Timeline - Fullscreen
@@ -782,15 +784,15 @@ $currentRole = $currentUser['role'] ?? '';
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <div class="modal-body" id="timelineModalBody" style="padding:24px;overflow-y:auto;max-height:calc(95vh - 80px);">
+                    <div class="modal-body" id="timelineModalBody" style="padding:24px;overflow-y:auto;max-height:calc(98vh - 100px);">
                         <!-- Timeline table will be cloned here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Appointments List Section -->
+            <!-- Upcoming Appointments Section (Separate from Timeline) -->
             <div id="appointmentsSection" style="display:none;margin-top:20px;">
-                <h4 style="margin:0 0 12px 0;">Appointments</h4>
+                <h4 style="margin:0 0 12px 0; font-size: 1rem; font-weight: 600; color: #333;">Upcoming Appointments</h4>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -810,6 +812,7 @@ $currentRole = $currentUser['role'] ?? '';
             </div>
 
             <?php if (!empty($visitsList)): ?>
+                <h4 style="margin:20px 0 12px 0; font-size: 1rem; font-weight: 600; color: #333;">Visit Timeline</h4>
                 <div class="table-container">
                     <table>
                         <thead>
@@ -889,6 +892,31 @@ $currentRole = $currentUser['role'] ?? '';
 </div>
 
 <style>
+/* Full-Width Timeline Section */
+.patient-profile-page .card {
+    margin-bottom: 1.5rem;
+}
+
+.patient-profile-page > .card:has(> .card-header > .card-title:has(+ *) > .fa-calendar-check) {
+    width: 100%;
+}
+
+/* Timeline table improvements */
+.table-container table {
+    width: 100%;
+}
+
+.table-container table th {
+    background: #f5f5f5;
+    padding: 12px;
+    font-weight: 600;
+}
+
+.table-container table td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
 .timeline {
     position: relative;
     padding-left: 2rem;
