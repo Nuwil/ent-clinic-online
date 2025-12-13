@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ent_clinic
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: ent_clinic
+      DB_USER: root
+      DB_PASSWORD: root
+      APP_ENV: development
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+          tools: composer
+
+      - name: Install mysql-client
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+
+      - name: Wait for MySQL
+        run: |
+          echo "Waiting for MySQL..."
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              echo "MySQL is up"; break;
+            fi
+            sleep 2;
+          done
+
+      - name: Import initial schema
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS ent_clinic;" 
+          mysql -h 127.0.0.1 -uroot -proot ent_clinic < ent-app/database/schema.sql || true
+
+      - name: Run migrations
+        run: php ent-app/scripts/run_migrations.php
+
+      - name: Run tests
+        run: |
+          php -v
+          php ent-app/tests/test_rbac.php
+          php ent-app/tests/test_rbac_accept.php
+          php ent-app/tests/test_rbac_complete.php
+          php ent-app/tests/test_ui_role_flag.php "http://localhost/ent-clinic-online/ent-app/public"
+
+      - name: Run integration (optional)
+        run: |
+          php ent-app/tests/test_integration_chief_complaint.php "http://127.0.0.1/ent-clinic-online/ent-app/public" 1

@@ -51,10 +51,78 @@ body {
     flex-direction: column;
     height: 100vh;
     position: fixed;
+    transition: width .15s ease;
 }
 
 .sidebar.collapsed {
     width: 72px
+}
+
+/* Icon-only collapsed state: hide labels but keep icons and spacing */
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .user-details {
+    opacity: 0;
+    visibility: hidden;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar .nav-item span,
+.sidebar .logo-text,
+.sidebar .user-details {
+    transition: opacity .12s ease, visibility .12s ease, max-width .12s ease, height .12s ease, margin .12s ease, padding .12s ease;
+    display: inline-block;
+    vertical-align: middle;
+    max-width: 200px;
+    overflow: visible;
+    white-space: nowrap;
+}
+
+.sidebar.collapsed .logo-container {
+    justify-content: center;
+    gap: 0;
+}
+
+/* Fully hide textual elements and prevent any click/interaction */
+.sidebar.collapsed .nav-item span,
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .user-details {
+    max-width: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+}
+
+.sidebar.collapsed .nav-item {
+    justify-content: center;
+    gap: 0;
+    padding-left: 0;
+    padding-right: 0;
+    width: 72px;
+}
+
+.sidebar.collapsed .nav-item i,
+.sidebar.collapsed .sidebar-footer i,
+.sidebar.collapsed .sidebar-header i {
+    width: 24px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.sidebar.collapsed .sidebar-footer {
+    padding: 8px 0;
+}
+
+.sidebar.collapsed .user-info {
+    justify-content: center;
+}
+
+.sidebar.collapsed .user-avatar {
+    width: 40px;
+    height: 40px;
 }
 
 .sidebar .sidebar-header {
@@ -85,7 +153,6 @@ body {
 }
 
 .sidebar-nav {
-    padding: 12px 8px;
     display: flex;
     flex-direction: column;
     gap: 6px

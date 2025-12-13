@@ -1,15 +1,15 @@
 <?php
-// Secretary Appointments page - for scheduling and managing appointments
+// Redirect legacy secretary appointments page to unified appointments view
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../includes/helpers.php';
 
-// Verify user is secretary
-requireRole(['secretary']);
+// Ensure the user has access as staff/secretary before redirecting
+requireRole(['secretary','staff']);
 
-$userRole = getCurrentUserRole();
-$selected = $_GET['date'] ?? date('Y-m-d');
+// Redirect to the unified appointments page where staff can book/manage
+header('Location: ' . baseUrl() . '/?page=appointments');
+exit;
 ?>
-<div class="appointments-page" style="padding: 20px;">
     <div class="flex flex-between mb-3">
         <div>
             <h2>Appointments Management</h2>
@@ -83,13 +83,18 @@ $selected = $_GET['date'] ?? date('Y-m-d');
                         <input type="date" id="appointmentDate" class="form-control" required />
                     </div>
 
-                    <div class="form-group">
+                    <!-- Time slot removed: bookings are now date-only (default 09:00 server local) -->
+                    <div class="form-group" style="display:none;">
                         <label class="form-label">Time Slot (optional)</label>
-                        <select id="appointmentSlot" class="form-control">
+                        <select id="appointmentSlot" class="form-control" style="display:none;">
                             <option value="">Select a time slot</option>
                         </select>
                     </div>
 
+                    <div class="form-group">
+                        <label class="form-label">Chief Complaint</label>
+                        <textarea id="appointmentChiefComplaint" class="form-control" rows="2" placeholder="Short chief complaint or reason for visit"></textarea>
+                    </div>
                     <div class="form-group">
                         <label class="form-label">Reason/Notes</label>
                         <textarea id="appointmentNotes" class="form-control" rows="3" placeholder="Add relevant notes"></textarea>
@@ -224,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 <span style="background: ${statusColor}; padding: 4px 8px; border-radius: 3px; font-size: 0.85rem;">${statusText}</span>
                             </div>
+                            ${apt.chief_complaint ? '<div style="margin-top: 8px; font-size: 0.9rem; color: #333;">' + '<strong>Chief complaint:</strong> ' + apt.chief_complaint + '</div>' : ''}
                             ${apt.notes ? '<div style="margin-top: 8px; font-size: 0.9rem; color: #666;">' + apt.notes + '</div>' : ''}
                         </div>
                     `;
@@ -235,6 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
     window.openBookModal = function() {
         bookModal.classList.add('open');
         bookModal.removeAttribute('hidden');
+        // default appointment date to the currently selected day
+        const dp = document.getElementById('datePicker');
+        const apptDate = document.getElementById('appointmentDate');
+        if (dp && apptDate && !apptDate.value) {
+            apptDate.value = dp.value || new Date().toISOString().split('T')[0];
+        }
     };
 
     window.submitBookForm = function() {
@@ -248,12 +260,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create local datetime and convert to ISO to avoid date off-by-one errors
+        // Create local datetime and format as local SQL datetime to avoid timezone shifts
         const localStart = new Date(date + 'T09:00:00');
         const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
-        const start_at = localStart.toISOString();
-        const end_at = localEnd.toISOString();
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatLocalSQL = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        const start_at = formatLocalSQL(localStart);
+        const end_at = formatLocalSQL(localEnd);
 
+        const chiefComplaint = document.getElementById('appointmentChiefComplaint') ? document.getElementById('appointmentChiefComplaint').value : '';
         fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -262,7 +277,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 type: type,
                 start_at: start_at,
                 end_at: end_at,
-                notes: notes
+                notes: notes,
+                chief_complaint: chiefComplaint
             })
         })
         .then(r => r.json())
@@ -272,6 +288,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('bookForm').reset();
                 bookModal.classList.remove('open');
                 bookModal.setAttribute('hidden', '');
+                // update date picker to booked date (use start_at from request)
+                try {
+                    const d = start_at.split(' ')[0];
+                    if (d) {
+                        document.getElementById('datePicker').value = d;
+                        updateDateDisplay(d);
+                    }
+                } catch (e) {}
                 loadAppointmentsForDate(document.getElementById('datePicker').value);
             } else {
                 alert('Error scheduling appointment: ' + (data.error || 'Unknown error'));

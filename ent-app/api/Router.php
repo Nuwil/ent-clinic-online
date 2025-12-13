@@ -97,6 +97,8 @@ class Router
                     $params = $this->extractParams($route['path'], $this->path);
                     call_user_func_array($route['callback'], $params);
                 } catch (Exception $e) {
+                    // Write exception information to app logs for easier debugging
+                    @file_put_contents(__DIR__ . '/../logs/api_exception.log', "\n--- API Exception ---\nTime: " . date('c') . "\nPath: {$this->path}\nMethod: {$this->method}\nMessage: " . $e->getMessage() . "\nTrace: " . $e->getTraceAsString() . "\n", FILE_APPEND);
                     http_response_code(500);
                     echo json_encode([
                         'error' => 'Internal Server Error',

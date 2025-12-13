@@ -482,13 +482,18 @@ $currentRole = $currentUser['role'] ?? '';
                                 <input type="date" id="appointmentDate" class="form-control" required />
                             </div>
 
-                            <div class="form-group">
+                            <!-- Time slot removed: bookings are now date-only (default 09:00 server local) -->
+                            <div class="form-group" style="display:none;">
                                 <label class="form-label">Time Slot (optional)</label>
-                                <select id="appointmentSlot" class="form-control">
+                                <select id="appointmentSlot" class="form-control" style="display:none;">
                                     <option value="">Select a time slot</option>
                                 </select>
                             </div>
 
+                            <div class="form-group">
+                                <label class="form-label">Chief Complaint (optional)</label>
+                                <textarea id="appointmentChiefComplaint" class="form-control" rows="2" placeholder="Short chief complaint or reason for visit"></textarea>
+                            </div>
                             <div class="form-group">
                                 <label class="form-label">Reason/Notes (optional)</label>
                                 <textarea id="appointmentNotes" class="form-control" rows="3"
@@ -940,19 +945,19 @@ $currentRole = $currentUser['role'] ?? '';
             <div id="timelineModal" class="modal" hidden aria-hidden="true" role="dialog" aria-modal="true">
                 <div class="modal-backdrop" data-modal-dismiss="timelineModal"></div>
                 <div class="modal-dialog"
-                    style="max-width:98%; max-height:98vh; overflow:auto; border-radius: 8px; margin: 1vh auto;">
+                    style="max-width: 95vw; width: 95vw; max-height: 95vh; height: 95vh; overflow: hidden; border-radius: 8px; margin: 2.5vh auto;">
                     <div class="modal-header"
-                        style="position:sticky; top:0; background:#fff; z-index:10; padding: 20px 24px;">
-                        <h3 class="modal-title" style="margin:0;">
+                        style="position:sticky; top:0; background:#fff; z-index:10; padding: 20px 24px; border-bottom: 1px solid #e5e7eb;">
+                        <h3 class="modal-title" style="margin:0; font-size: 1.25rem; font-weight: 600;">
                             <i class="fas fa-calendar-check"></i>
-                            Patient Visit Timeline - Fullscreen
+                            Patient Visit Timeline
                         </h3>
                         <button type="button" class="modal-close" data-modal-dismiss="timelineModal" aria-label="Close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     <div class="modal-body" id="timelineModalBody"
-                        style="padding:24px;overflow-y:auto;max-height:calc(98vh - 100px);">
+                        style="padding:24px; overflow-y:auto; max-height:calc(95vh - 80px); flex: 1;">
                         <!-- Timeline table will be cloned here -->
                     </div>
                 </div>
@@ -1310,8 +1315,12 @@ $currentRole = $currentUser['role'] ?? '';
                         // Action buttons - with proper HTML
                         let actionBtns = '';
                         if (st === 'pending') {
-                            actionBtns = '<button class="btn btn-sm btn-success" onclick="acceptAppointmentAction(' + apt.id + ')" title="Accept appointment"><i class="fas fa-check"></i> Accept</button>' +
-                                ' <button class="btn btn-sm btn-warning" onclick="openRescheduleModal(' + apt.id + ')" title="Reschedule appointment"><i class="fas fa-calendar"></i> Resched</button>' +
+                            let acceptBtn = '';
+                            if (typeof window !== 'undefined' && window.isDoctorOrAdmin) {
+                                acceptBtn = '<button class="btn btn-sm btn-success" onclick="acceptAppointmentAction(' + apt.id + ')" title="Accept appointment"><i class="fas fa-check"></i> Accept</button> ';
+                            }
+                            actionBtns = acceptBtn +
+                                '<button class="btn btn-sm btn-warning" onclick="openRescheduleModal(' + apt.id + ')" title="Reschedule appointment"><i class="fas fa-calendar"></i> Resched</button>' +
                                 ' <button class="btn btn-sm btn-danger" onclick="cancelAppointmentAction(' + apt.id + ')" title="Cancel appointment"><i class="fas fa-times"></i> Cancel</button>';
                         } else if (st === 'accepted') {
                             actionBtns = '<button class="btn btn-sm btn-info" disabled title="Appointment accepted - pending visit creation"><i class="fas fa-clock"></i> Pending</button>';
@@ -1478,6 +1487,11 @@ $currentRole = $currentUser['role'] ?? '';
                     if (apt.pulse_rate) document.querySelector('input[name="pulse_rate"]').value = apt.pulse_rate;
                     if (apt.respiratory_rate) document.querySelector('input[name="respiratory_rate"]').value = apt.respiratory_rate;
                     if (apt.oxygen_saturation) document.querySelector('input[name="oxygen_saturation"]').value = apt.oxygen_saturation;
+                    // Prefill chief complaint into visit modal if present
+                    if (apt.chief_complaint) {
+                        const ccEl = document.querySelector('textarea[name="chief_complaint"]');
+                        if (ccEl) ccEl.value = apt.chief_complaint;
+                    }
 
                     openVisitModal();
                 })
@@ -1553,6 +1567,13 @@ $currentRole = $currentUser['role'] ?? '';
             const main = document.querySelector('.main-content');
             if (main) main.setAttribute('aria-hidden', 'true');
             setupFocusTrap(appointmentModal);
+            // default appointment date to today if empty
+            const dateInput = document.getElementById('appointmentDate');
+            if (dateInput && !dateInput.value) {
+                const d = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                dateInput.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            }
         }
 
         function closeAppointmentModal() {
@@ -1709,11 +1730,12 @@ $currentRole = $currentUser['role'] ?? '';
                     }
 
                     slots.filter(s => !s.booked).forEach(s => {
-                        const startTime = new Date(s.start);
-                        const endTime = new Date(s.end);
+                        const startTime = new Date(s.start.replace(' ', 'T'));
+                        const endTime = new Date(s.end.replace(' ', 'T'));
                         const label = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' +
                             endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' (' + s.type + ')';
                         const opt = document.createElement('option');
+                        // ensure value is the SQL-format string; display parsing uses T separator for Date parsing
                         opt.value = s.start + '|' + s.end;
                         opt.textContent = label;
                         slotSelect.appendChild(opt);
@@ -1767,14 +1789,19 @@ $currentRole = $currentUser['role'] ?? '';
             if (!start_at) {
                 const dateVal = document.getElementById('appointmentDate').value;
                 if (!dateVal) { alert('Please select a date'); return; }
-                // default to 09:00-10:00 on the selected date when no time slot is provided (timezone-aware)
+                // default to 09:00-10:00 on the selected date when no time slot is provided
                 const localStart = new Date(dateVal + 'T09:00:00');
                 const localEnd = new Date(localStart.getTime() + 60 * 60 * 1000);
-                start_at = localStart.toISOString();
-                end_at = localEnd.toISOString();
+                // Format as local server-style datetime (YYYY-MM-DD HH:MM:SS) to avoid timezone shifts
+                const pad = (n) => String(n).padStart(2, '0');
+                const formatLocalSQL = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                start_at = formatLocalSQL(localStart);
+                end_at = formatLocalSQL(localEnd);
             }
 
             try {
+                console.log('Submitting appointment', { patientId, appointmentType, start_at, end_at });
+                const cc = document.getElementById('appointmentChiefComplaint') ? document.getElementById('appointmentChiefComplaint').value : '';
                 const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1784,6 +1811,7 @@ $currentRole = $currentUser['role'] ?? '';
                         start_at,
                         end_at,
                         notes,
+                        chief_complaint: cc,
                         blood_pressure: bloodPressure || null,
                         temperature: temperature ? parseFloat(temperature) : null,
                         pulse_rate: pulseRate ? parseInt(pulseRate) : null,
@@ -1792,7 +1820,8 @@ $currentRole = $currentUser['role'] ?? '';
                     })
                 });
 
-                const j = await res.json();
+                let j = null; let text = null;
+                try { j = await res.json(); } catch (ex) { try { text = await res.text(); } catch (e2) { text = null; } }
                 if (j.success || res.ok) {
                     alert('Appointment booked successfully!');
                     document.getElementById('addAppointmentForm').reset();
@@ -1825,6 +1854,8 @@ $currentRole = $currentUser['role'] ?? '';
                             }
                         } else if (j.message) {
                             errMsg = String(j.message);
+                        } else if (text) {
+                            errMsg = text;
                         } else {
                             errMsg = JSON.stringify(j);
                         }

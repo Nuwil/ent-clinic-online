@@ -18,14 +18,14 @@ if ($env === 'production') {
         'charset' => 'utf8mb4'
     ];
 } else {
-    // Development configuration (XAMPP local)
+    // Development configuration (XAMPP local) — allow environment overrides for CI
     $db_config = [
-        'host' => 'localhost',
-        'port' => 3306,
-        'name' => 'ent_clinic',
-        'user' => 'root',
-        'password' => '',
-        'charset' => 'utf8mb4'
+        'host' => getenv('DB_HOST') ?: 'localhost',
+        'port' => getenv('DB_PORT') ?: 3306,
+        'name' => getenv('DB_NAME') ?: 'ent_clinic',
+        'user' => getenv('DB_USER') ?: 'root',
+        'password' => getenv('DB_PASSWORD') ?: '',
+        'charset' => getenv('DB_CHARSET') ?: 'utf8mb4'
     ];
 }
 

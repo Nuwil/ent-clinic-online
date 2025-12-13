@@ -12,6 +12,9 @@
         function toggleSidebar() {
             sidebar.classList.toggle('collapsed');
             appWrapper.classList.toggle('sidebar-collapsed');
+            // Persist collapsed state across reloads
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed') ? '1' : '0');
+            if (sidebarToggle) sidebarToggle.setAttribute('aria-expanded', sidebar.classList.contains('collapsed') ? 'false' : 'true');
         }
 
         function toggleMobileMenu() {
@@ -20,6 +23,15 @@
 
         if (sidebarToggle) {
             sidebarToggle.addEventListener('click', toggleSidebar);
+            // Reflect initial state
+            sidebarToggle.setAttribute('aria-expanded', sidebar.classList.contains('collapsed') ? 'false' : 'true');
+        }
+
+        // Apply persisted sidebar state on load
+        if (localStorage.getItem('sidebarCollapsed') === '1') {
+            sidebar.classList.add('collapsed');
+            appWrapper.classList.add('sidebar-collapsed');
+            if (sidebarToggle) sidebarToggle.setAttribute('aria-expanded', 'false');
         }
 
         if (mobileMenuToggle) {
@@ -29,7 +41,8 @@
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(event) {
             if (window.innerWidth <= 768) {
-                if (!sidebar.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+                // guard mobileMenuToggle in case it's not present
+                if (!sidebar.contains(event.target) && (!mobileMenuToggle || !mobileMenuToggle.contains(event.target))) {
                     sidebar.classList.remove('mobile-open');
                 }
             }

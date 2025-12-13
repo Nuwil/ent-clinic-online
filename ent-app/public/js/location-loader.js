@@ -53,7 +53,8 @@
         const url = apiBase + '?action=states&country=' + encodeURIComponent(country);
         return fetchJson(url).then(function(data){
             const states = (data && data.states) ? data.states : [];
-            setOptions(stateSelectEl, states, stateSelectEl.getAttribute('data-selected') || '-- Select State/Province --');
+            const selectedState = stateSelectEl.getAttribute('data-selected') || '';
+            setOptions(stateSelectEl, states, '-- Select State/Province --', selectedState);
         }).catch(function(){ setOptions(stateSelectEl, [], '-- Select State/Province --'); });
     }
 
@@ -63,7 +64,8 @@
         const url = apiBase + '?action=cities&country=' + encodeURIComponent(country) + (state ? '&state=' + encodeURIComponent(state) : '');
         return fetchJson(url).then(function(data){
             const cities = (data && data.cities) ? data.cities : [];
-            setOptions(citySelectEl, cities, citySelectEl.getAttribute('data-selected') || '-- Select City --');
+            const selectedCity = citySelectEl.getAttribute('data-selected') || '';
+            setOptions(citySelectEl, cities, '-- Select City --', selectedCity);
         }).catch(function(){ setOptions(citySelectEl, [], '-- Select City --'); });
     }
 

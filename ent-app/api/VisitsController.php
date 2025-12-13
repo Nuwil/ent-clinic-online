@@ -75,7 +75,8 @@ class VisitsController extends Controller
                     'patient_id' => 'required|numeric',
                     'visit_date' => 'required'
                 ];
-                $allowedFields = ['patient_id', 'appointment_id', 'visit_date', 'chief_complaint', 'height', 'weight', 'blood_pressure', 'temperature', 'vitals_notes'];
+                // Allow staff to add visit details including ENT, diagnosis, treatment, and prescription
+                $allowedFields = ['patient_id', 'appointment_id', 'visit_date', 'visit_type', 'ent_type', 'chief_complaint', 'diagnosis', 'treatment_plan', 'prescription', 'notes', 'height', 'weight', 'blood_pressure', 'temperature', 'vitals_notes'];
             } else {
                 $rules = [
                     'patient_id' => 'required|numeric',
@@ -84,6 +85,9 @@ class VisitsController extends Controller
                 ];
                 $allowedFields = ['patient_id','appointment_id','visit_date','visit_type','ent_type','chief_complaint','diagnosis','treatment_plan','prescription','notes','height','weight','blood_pressure','temperature','vitals_notes','doctor_id'];
             }
+
+            // Log incoming visit payload for debugging
+            @file_put_contents(__DIR__ . '/../logs/visit_store.log', "\n--- Visit Store ---\nTime: " . date('c') . "\nInput: " . var_export($input, true) . "\n", FILE_APPEND);
 
             $errors = $this->validate($input, $rules);
             if (!empty($errors)) {
@@ -128,6 +132,14 @@ class VisitsController extends Controller
                 }
             }
 
+            // Normalize some input keys: allow 'plan' as fallback for notes, and accept 'treatment' as 'treatment_plan'
+            if (isset($input['plan']) && !isset($input['notes'])) {
+                $input['notes'] = $input['plan'];
+            }
+            if (isset($input['treatment']) && !isset($input['treatment_plan'])) {
+                $input['treatment_plan'] = $input['treatment'];
+            }
+
             // Build data only from allowed fields (prevents staff from setting doctor-only fields)
             $data = [];
             foreach ($allowedFields as $f) {
@@ -145,7 +157,13 @@ class VisitsController extends Controller
             $sql = "INSERT INTO patient_visits ($columns) VALUES ($placeholders)";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->execute(array_values($data));
+            try {
+                @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Visit Data: " . var_export($data, true) . "\n", FILE_APPEND);
+                $stmt->execute(array_values($data));
+            } catch (PDOException $ex) {
+                @file_put_contents(__DIR__ . '/../logs/visit_store.log', "SQL Error: " . $ex->getMessage() . "\n", FILE_APPEND);
+                $this->error('Database error while creating visit', 500);
+            }
             $visitId = $this->db->lastInsertId();
 
             $this->success(['id' => $visitId], 'Visit created successfully', 201);
@@ -161,6 +179,14 @@ class VisitsController extends Controller
             // only doctors or admins can update visits
             $this->requireRole(['admin', 'doctor']);
             $input = $this->getInput();
+
+            // Normalize synonyms in update payload
+            if (isset($input['plan']) && !isset($input['notes'])) {
+                $input['notes'] = $input['plan'];
+            }
+            if (isset($input['treatment']) && !isset($input['treatment_plan'])) {
+                $input['treatment_plan'] = $input['treatment'];
+            }
 
             // Check if visit exists
             $stmt = $this->db->prepare("SELECT id FROM patient_visits WHERE id = ?");

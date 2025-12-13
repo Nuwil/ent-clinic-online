@@ -14,6 +14,11 @@ $currentUser = $_SESSION['user'] ?? null;
     
 </head>
 <body>
+    <script>
+        // Expose minimal role info to client-side for role-aware UI elements
+        window.currentUserRole = '<?php echo e($currentUser['role'] ?? ''); ?>';
+        window.isDoctorOrAdmin = <?php echo (getCurrentUserRole() === 'admin' || getCurrentUserRole() === 'doctor') ? 'true' : 'false'; ?>;
+    </script>
     <div class="app-wrapper">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -22,7 +27,7 @@ $currentUser = $_SESSION['user'] ?? null;
                     <i class="fas fa-hospital-alt"></i>
                     <h1 class="logo-text">ENT Clinic</h1>
                 </div>
-                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="true">
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
@@ -38,25 +43,18 @@ $currentUser = $_SESSION['user'] ?? null;
                 $dashboardLabel = getRoleDisplayName($userRole) . ' Dashboard';
                 $dashboardIcon = $userRole === 'admin' ? 'fa-tachometer-alt' : ($userRole === 'doctor' ? 'fa-user-md' : 'fa-clipboard-list');
                 ?>
-                <a href="<?php echo baseUrl(); ?>/?page=<?php echo $dashboardPage; ?>" class="nav-item <?php echo $currentPage === $dashboardPage ? 'active' : ''; ?>">
+                <a href="<?php echo baseUrl(); ?>/?page=<?php echo $dashboardPage; ?>" class="nav-item <?php echo $currentPage === $dashboardPage ? 'active' : ''; ?>" aria-label="<?php echo $dashboardLabel; ?>">
                     <i class="fas <?php echo $dashboardIcon; ?>"></i>
                     <span><?php echo $dashboardLabel; ?></span>
                 </a>
                 
-                <a href="<?php echo baseUrl(); ?>/?page=patients" class="nav-item <?php echo $currentPage === 'patients' ? 'active' : ''; ?>">
+                <a href="<?php echo baseUrl(); ?>/?page=patients" class="nav-item <?php echo $currentPage === 'patients' ? 'active' : ''; ?>" aria-label="Patients">
                     <i class="fas fa-users"></i>
                     <span>Patients</span>
                 </a>
 
-                <?php if (hasRole(['admin', 'doctor'])): ?>
-                <a href="<?php echo baseUrl(); ?>/?page=appointments" class="nav-item <?php echo $currentPage === 'appointments' ? 'active' : ''; ?>">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Appointments</span>
-                </a>
-                <?php endif; ?>
-
-                <?php if (hasRole(['secretary'])): ?>
-                <a href="<?php echo baseUrl(); ?>/?page=secretary-appointments" class="nav-item <?php echo $currentPage === 'secretary-appointments' ? 'active' : ''; ?>">
+                <?php if (canAccessPage('appointments')): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=appointments" class="nav-item <?php echo $currentPage === 'appointments' ? 'active' : ''; ?>" aria-label="Appointments">
                     <i class="fas fa-calendar-check"></i>
                     <span>Appointments</span>
                 </a>
@@ -70,8 +68,8 @@ $currentUser = $_SESSION['user'] ?? null;
                 </a>
                 */ ?>
                 
-                <?php if (hasRole('admin')): ?>
-                <a href="<?php echo baseUrl(); ?>/?page=settings" class="nav-item <?php echo $currentPage === 'settings' ? 'active' : ''; ?>">
+                <?php if (hasPermission('view_settings')): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=settings" class="nav-item <?php echo $currentPage === 'settings' ? 'active' : ''; ?>" aria-label="Settings">
                     <i class="fas fa-cog"></i>
                     <span>Settings</span>
                 </a>

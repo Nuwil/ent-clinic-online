@@ -44,6 +44,8 @@ class AppointmentsController extends Controller {
     // Create a new appointment (with validation, overlap and daily_max enforcement)
     public function create() {
         $input = $this->getInput();
+        // Log incoming input for debugging
+        @file_put_contents(__DIR__ . '/../logs/appointment_create.log', "\n--- Incoming Payload ---\nTime: " . date('c') . "\nInput: " . var_export($input, true) . "\n", FILE_APPEND);
 
         $patient_id = $input['patient_id'] ?? null;
         $doctor_id = $input['doctor_id'] ?? null;
@@ -51,6 +53,7 @@ class AppointmentsController extends Controller {
         $start_at = $input['start_at'] ?? null;
         $end_at = $input['end_at'] ?? null;
         $notes = $input['notes'] ?? null;
+        $chief_complaint = $input['chief_complaint'] ?? null;
         
         // Vitals
         $blood_pressure = $input['blood_pressure'] ?? null;
@@ -92,8 +95,14 @@ class AppointmentsController extends Controller {
 
         // Parse times
         try {
+            // Log raw incoming datetimes for debugging timezone/offset issues
+            // write to ent-app logs folder (ensure logs directory exists)
+            @file_put_contents(__DIR__ . '/../logs/appointment_create.log', "\n--- Appointment Create ---\nTime: " . date('c') . "\nRaw start_at: " . var_export($start_at, true) . "\nRaw end_at: " . var_export($end_at, true) . "\n", FILE_APPEND);
+
             $s = new DateTime($start_at);
             $e = new DateTime($end_at);
+            // Log parsed DateTime values (server timezone)
+            @file_put_contents(__DIR__ . '/../logs/appointment_create.log', "Parsed start: " . $s->format('Y-m-d H:i:s T') . "\nParsed end: " . $e->format('Y-m-d H:i:s T') . "\n", FILE_APPEND);
         } catch (Exception $ex) {
             return $this->error('Invalid start/end datetime', 400);
         }
@@ -140,21 +149,27 @@ class AppointmentsController extends Controller {
         // Insert appointment
         // Compute duration in minutes and insert into appointment_date/duration columns
         $duration = (int)(($e->getTimestamp() - $s->getTimestamp()) / 60);
-        $sql = "INSERT INTO appointments (patient_id, doctor_id, appointment_type, status, appointment_date, duration, notes, blood_pressure, temperature, pulse_rate, respiratory_rate, oxygen_saturation) VALUES (:patient_id, :doctor_id, :appointment_type, 'Pending', :appointment_date, :duration, :notes, :blood_pressure, :temperature, :pulse_rate, :respiratory_rate, :oxygen_saturation)";
+        $sql = "INSERT INTO appointments (patient_id, doctor_id, appointment_type, status, appointment_date, duration, notes, chief_complaint, blood_pressure, temperature, pulse_rate, respiratory_rate, oxygen_saturation) VALUES (:patient_id, :doctor_id, :appointment_type, 'Pending', :appointment_date, :duration, :notes, :chief_complaint, :blood_pressure, :temperature, :pulse_rate, :respiratory_rate, :oxygen_saturation)";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([
+        try {
+            $stmt->execute([
             'patient_id' => $patient_id,
             'doctor_id' => $doctor_id,
             'appointment_type' => $type,
             'appointment_date' => $start_at,
             'duration' => $duration,
             'notes' => $notes,
+            'chief_complaint' => $chief_complaint,
             'blood_pressure' => $blood_pressure,
             'temperature' => $temperature,
             'pulse_rate' => $pulse_rate,
             'respiratory_rate' => $respiratory_rate,
             'oxygen_saturation' => $oxygen_saturation
-        ]);
+            ]);
+        } catch (PDOException $ex) {
+            @file_put_contents(__DIR__ . '/../logs/appointment_create.log', "SQL Error: " . $ex->getMessage() . "\n", FILE_APPEND);
+            return $this->error('Database error while creating appointment', 500);
+        }
 
         $id = $this->db->lastInsertId();
         $this->success(['id' => $id], 'Appointment booked', 201);
@@ -168,6 +183,8 @@ class AppointmentsController extends Controller {
 
     // Accept an appointment (doctor confirms they will see patient)
     public function accept($id) {
+        // Only doctors and admins may accept appointments
+        $this->requireRole(['doctor', 'admin']);
         $stmt = $this->db->prepare("SELECT * FROM appointments WHERE id = :id LIMIT 1");
         $stmt->execute(['id' => $id]);
         $apt = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -175,11 +192,17 @@ class AppointmentsController extends Controller {
 
         $stmt = $this->db->prepare("UPDATE appointments SET status = 'Accepted' WHERE id = :id");
         $stmt->execute(['id' => $id]);
-        $this->success(['id' => $id], 'Appointment accepted');
+        // Return updated appointment row
+        $stmt = $this->db->prepare("SELECT * FROM appointments WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $id]);
+        $updated = $stmt->fetch(PDO::FETCH_ASSOC);
+        $this->success(['id' => $id, 'appointment' => $updated], 'Appointment accepted');
     }
 
     // Mark appointment as completed (when a visit is created from this appointment)
     public function complete($id) {
+        // Only doctors and admins may complete appointments (create visits from accepted appointments)
+        $this->requireRole(['doctor', 'admin']);
         try {
             $stmt = $this->db->prepare("SELECT * FROM appointments WHERE id = :id LIMIT 1");
             $stmt->execute(['id' => $id]);
@@ -187,6 +210,8 @@ class AppointmentsController extends Controller {
             if (!$apt) return $this->error('Appointment not found', 404);
 
             $input = $this->getInput();
+            // Log raw complete input & mapping for debugging
+            @file_put_contents(__DIR__ . '/../logs/appointment_complete.log', "\n--- Appointment Complete ---\nTime: " . date('c') . "\nInput: " . var_export($input, true) . "\n", FILE_APPEND);
             
             // Create a visit record from the appointment completion data
             // Only include columns that exist in the `patient_visits` table
@@ -212,7 +237,7 @@ class AppointmentsController extends Controller {
                 'diagnosis' => $input['diagnosis'] ?? '',
                 'treatment_plan' => $input['treatment'] ?? '',
                 'prescription' => $input['prescription'] ?? null,
-                'notes' => $input['notes'] ?? null,
+                'notes' => $input['notes'] ?? $input['plan'] ?? null,
                 // vitals (optional) - only include if provided
                 'blood_pressure' => isset($input['blood_pressure']) && $input['blood_pressure'] !== '' ? $input['blood_pressure'] : null,
                 'temperature' => isset($input['temperature']) && $input['temperature'] !== '' ? $input['temperature'] : null,
@@ -229,7 +254,13 @@ class AppointmentsController extends Controller {
             $sql = "INSERT INTO patient_visits ($columns) VALUES ($placeholders)";
             
             $stmt = $this->db->prepare($sql);
-            $stmt->execute(array_values($visitData));
+            try {
+                @file_put_contents(__DIR__ . '/../logs/appointment_complete.log', "Visit Data: " . var_export($visitData, true) . "\n", FILE_APPEND);
+                $stmt->execute(array_values($visitData));
+            } catch (PDOException $ex) {
+                @file_put_contents(__DIR__ . '/../logs/appointment_complete.log', "SQL Error: " . $ex->getMessage() . "\n", FILE_APPEND);
+                return $this->error('Database error while completing appointment', 500);
+            }
             $visitId = $this->db->lastInsertId();
 
             // Mark appointment as completed

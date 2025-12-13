@@ -197,7 +197,8 @@ class PatientsController extends Controller
                 'phone', 'occupation', 'address', 'city', 'state', 'postal_code', 'country',
                 'medical_history', 'current_medications', 'allergies',
                 'insurance_provider', 'insurance_id',
-                'height', 'weight', 'blood_pressure', 'temperature', 'bmi'
+                'height', 'weight', 'blood_pressure', 'temperature', 'bmi',
+                'vaccine_history', 'emergency_contact_name', 'emergency_contact_phone'
             ];
 
             $data = [];

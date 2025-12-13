@@ -1,9 +1,11 @@
 <?php
 /**
- * Settings Page - Access restricted to Admin role only
+ * Settings Page - Access restricted to Admin/Doctor roles
  */
-requireRole('admin');
 require_once __DIR__ . '/../includes/helpers.php';
+requireAuth();
+// Restrict Settings page to Admins only
+requireRole('admin');
 require_once __DIR__ . '/../../config/Database.php';
 
 $currentUser = getCurrentUser();
@@ -16,7 +18,7 @@ $currentUser = getCurrentUser();
         <p class="text-muted" style="margin-top: 0.5rem;">Manage data and application configuration</p>
     </div>
 
-    <?php if ($currentUser && $currentUser['role'] === 'admin'): ?>
+    <?php if (hasPermission('manage_users')): ?>
     <div class="card mb-3">
         <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
             <h3 class="card-title"><i class="fas fa-users-cog"></i> Account Management</h3>
@@ -136,6 +138,7 @@ $currentUser = getCurrentUser();
         </div>
         </div>
 
+    <?php if (hasPermission('export_data')): ?>
     <div class="grid grid-2" style="grid-template-columns: 1fr 1fr;">
         <div class="card">
             <div class="card-header">
@@ -165,6 +168,7 @@ $currentUser = getCurrentUser();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <script>
