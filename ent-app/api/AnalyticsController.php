@@ -55,7 +55,8 @@ class AnalyticsController extends Controller {
             } catch (Exception $ex) { $logDbException('appointments completed', $ex); $appointmentsCompleted = 0; }
 
             try {
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE status = 'Cancelled' AND DATE(appointment_date) BETWEEN :start AND :end");
+                // Count cancellations where either the original appointment date OR the updated_at (when it was canceled) falls in range
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end)");
                 $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
                 $cancellations = (int)$stmt->fetchColumn();
             } catch (Exception $ex) { $logDbException('appointments cancelled', $ex); $cancellations = 0; }
@@ -205,11 +206,15 @@ class AnalyticsController extends Controller {
                         $stmt->execute(['pat' => $patternHN, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
                         $res = $stmt->fetch(PDO::FETCH_ASSOC);
                         $matched = (int)($res['matched'] ?? 0);
+                        $total = (int)($res['total'] ?? 0);
+                        @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inference_check_head_neck] matched={$matched} total={$total} for range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
                         if ($matched > 0) {
                             $entMap['head_neck_tumor'] = ($entMap['head_neck_tumor'] ?? 0) + $matched;
                             // deduct from misc if it was previously counted there
                             if (!empty($entMap['misc'])) $entMap['misc'] = max(0, $entMap['misc'] - $matched);
                             @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inferred_head_neck] matched={$matched} for range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
+                            $inferredAny = true;
+                            $entMap['head_neck_tumor_inferred'] = ($entMap['head_neck_tumor_inferred'] ?? 0) + $matched;
                         }
                     }
 
@@ -219,10 +224,14 @@ class AnalyticsController extends Controller {
                         $stmt->execute(['pat' => $patternL, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
                         $res = $stmt->fetch(PDO::FETCH_ASSOC);
                         $matched = (int)($res['matched'] ?? 0);
+                        $total = (int)($res['total'] ?? 0);
+                        @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inference_check_lifestyle] matched={$matched} total={$total} for range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
                         if ($matched > 0) {
                             $entMap['lifestyle_medicine'] = ($entMap['lifestyle_medicine'] ?? 0) + $matched;
                             if (!empty($entMap['misc'])) $entMap['misc'] = max(0, $entMap['misc'] - $matched);
                             @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inferred_lifestyle] matched={$matched} for range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
+                            $inferredAny = true;
+                            $entMap['lifestyle_medicine_inferred'] = ($entMap['lifestyle_medicine_inferred'] ?? 0) + $matched;
                         }
                     }
                 } catch (Exception $ex) {
@@ -237,7 +246,7 @@ class AnalyticsController extends Controller {
                 $entData[] = $entMap[$key] ?? 0;
             }
             // Indicate whether we had to infer categories (for UI debug/help)
-            $entInferred = !empty($entMap['head_neck_tumor_inferred']) || !empty($entMap['lifestyle_medicine_inferred']);
+            $entInferred = (!empty($entMap['head_neck_tumor']) || !empty($entMap['lifestyle_medicine'])) || (isset($inferredAny) && $inferredAny) || !empty($entMap['head_neck_tumor_inferred']) || !empty($entMap['lifestyle_medicine_inferred']);
             // Forecast: simple moving average baseline computed from the last min(14, range) days, but extend to forecastDays
             $lookback = max(1, min(14, count($values)));
             $lastValues = array_slice($values, max(0, count($values) - $lookback));
@@ -263,7 +272,9 @@ class AnalyticsController extends Controller {
                 'visits_trend' => ['labels' => $labels, 'data' => $values],
                 'cancellations_by_reason' => ['labels' => $cLabels, 'data' => $cData],
                 'ent_distribution' => ['labels' => $entLabels, 'data' => $entData],
-                'ent_inferred' => !empty($entMap['head_neck_tumor']) || !empty($entMap['lifestyle_medicine']),
+                'ent_inferred' => !empty(
+                    $entInferred
+                ),
                 'forecast' => ['labels' => $forecastLabels, 'data' => $forecastData]
             ];
 
@@ -274,6 +285,13 @@ class AnalyticsController extends Controller {
                     $sampleStmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
                     $samples = $sampleStmt->fetchAll(PDO::FETCH_ASSOC);
                     $payload['ent_debug'] = ['raw_ent_rows' => $entRows, 'misc_samples' => $samples];
+                    // Also include cancellations rows and a small sample to aid diagnosis
+                    try {
+                        $payload['cancellations_debug'] = ['rows' => $cancellationsRows];
+                        $dbg = $pdo->prepare("SELECT id, cancellation_reason, appointment_date, updated_at FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end) LIMIT 100");
+                        $dbg->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $payload['cancellations_debug']['sample'] = $dbg->fetchAll(PDO::FETCH_ASSOC);
+                    } catch (Exception $ex3) { $logDbException('cancellations debug sample', $ex3); }
                 } catch (Exception $ex) {
                     $logDbException('ent debug sample', $ex);
                 }
