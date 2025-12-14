@@ -60,6 +60,13 @@ $currentUser = $_SESSION['user'] ?? null;
                 </a>
                 <?php endif; ?>
 
+                <?php if (canAccessPage('analytics')): ?>
+                <a href="<?php echo baseUrl(); ?>/?page=analytics" class="nav-item <?php echo $currentPage === 'analytics' ? 'active' : ''; ?>" aria-label="Analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <?php endif; ?>
+
                 <!-- Print Medical Certificate hidden until feature is implemented -->
                 <?php /*
                 <a href="<?php echo baseUrl(); ?>/?page=medical-certificate" class="nav-item <?php echo $currentPage === 'medical-certificate' ? 'active' : ''; ?>">

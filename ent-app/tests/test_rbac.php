@@ -32,6 +32,11 @@ setUser(1, 'admin');
 if (!canAccessPage('settings')) { echo "FAILED: Admin should access settings\n"; exit(1); }
 if (!hasPermission('view_settings')) { echo "FAILED: Admin should have view_settings permission\n"; exit(1); }
 
+// Admin and Doctor should be able to access Analytics
+if (!canAccessPage('analytics')) { echo "FAILED: Admin should access analytics\n"; exit(1); }
+setUser(201, 'doctor');
+if (!canAccessPage('analytics')) { echo "FAILED: Doctor should access analytics\n"; exit(1); }
+
 echo "RBAC tests PASSED\n";
 
 ?>

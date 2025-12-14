@@ -797,7 +797,20 @@ table tbody tr:hover {
 .stat-label { color:#6b7280; font-size:0.85rem; margin-bottom:4px; }
 .stat-value { color:#111827; font-weight:700; }
 .analytics-page .card { box-shadow: 0 6px 18px rgba(15,23,42,0.04); border-radius:8px; }
-.analytics-page canvas { width:100% !important; height:auto !important; }
+
+/* Chart wrapper - constrain size and keep responsive */
+.chart-canvas-wrapper { height: 320px; min-height: 220px; max-height: 560px; overflow: hidden; }
+.chart-canvas { width:100% !important; height:100% !important; display:block; }
+
+/* Reduce canvas height on small screens to avoid tall charts */
+@media (max-width: 640px) {
+    .chart-canvas-wrapper { height: 160px; }
+    .analytics-page .stat-card { padding: 10px; }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+    .chart-canvas-wrapper { height: 260px; }
+}
 .stat-header {
     display: flex;
     justify-content: space-between;

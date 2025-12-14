@@ -14,6 +14,7 @@ require_once __DIR__ . '/../api/MedicinesController.php';
 require_once __DIR__ . '/../api/PrescriptionController.php';
 require_once __DIR__ . '/../api/AppointmentsController.php';
 require_once __DIR__ . '/../api/WaitlistController.php';
+require_once __DIR__ . '/../api/AnalyticsController.php';
 
 $router = new Router();
 
@@ -155,6 +156,11 @@ $router->get('/api/doctors', function () {
 // Waitlist endpoints
 $router->get('/api/waitlist', function () {
     (new WaitlistController())->index();
+});
+
+// Analytics endpoints
+$router->get('/api/analytics', function () {
+    (new AnalyticsController())->index();
 });
 
 $router->post('/api/waitlist', function () {

@@ -1,30 +1,15 @@
-1. Role-Based Access Control (RBAC) Definition [COMPLETED]
-Admin: Access to all system features.
-Doctor: Access to Dashboard, Patient List → Patient Profile/Timeline, Appointments, and Settings (User Management & Data Backup).
-Secretary: Access to Dashboard, Patient List → Patient Profile/Timeline, and Appointments page.
+1. "On the Analytics page, please change the Visit Trends visualization to a bar graph instead of its current chart type."
 
-2. Add a Chief Complaint input field in the Add Appointment modal [COMPLETED]
-This field is connected and synchronized with the Visit Chief Complaint across:
-- Appointments page (Book modal)
-- Secretary Appointments page
-- Patient Profile Add Appointment modal
-- The Visit/Complete modal is prefilled from the appointment's chief_complaint on accept.
+2. "In the Predictive Analysis (7-day forecasting), please display the historical data as a bar graph, while keeping the forecasted data as a line graph."
 
-3. Follow-ups / Next Steps
-- Run DB migrations on your environment (backup DB first): execute `ent-app/database/migrations/*.sql` or apply via your tooling.
-- Verify `chief_complaint` persistence: run `ent-app/tests/test_appointments_and_visits.php` after migrations.
-- Verify RBAC behavior across roles (admin/doctor/secretary) and confirm `Settings` visibility for doctors.
-- Add server-side validation or length limit for `chief_complaint` if required.
-	- You can run the included migration runner: `php ent-app/scripts/run_migrations.php` (or `--dry-run`).
-	- Run the integration test with: `php ent-app/tests/test_integration_chief_complaint.php "http://localhost/ent-clinic-online/ent-app/public" 1` (adjust base URL and patient id as needed).
+3. "Please connect the historical bar graph and the 7-day forecast line graph into a single combined chart, ensuring a smooth and logical transition between historical data and forecasted values."
 
-4. Bugfixes Applied [COMPLETED]
-- Secretary could not access the Appointments page: added `secretary-appointments` to allowed pages and page access mappings; navigation now links to the secretary-specific page.
-- Doctor access to Settings removed: `view_settings/manage_users/export_data` permissions cleared for `doctor`, and the Settings page now requires `admin` role.
- - Added `ent-app/tests/test_rbac.php` to assert RBAC behavior for Secretary/Doctor/Admin on relevant pages.
- - Hidden the 'Accept' appointment button for Secretary/Staff users in the Appointments page UI; visible only to Admin/Doctor.
- - Updated `appointments.php` and `patient-profile.php` to display Accept only when `isDoctorOrAdmin` is true.
-	 - Manual verification: log in as a Secretary → Appointments page should not show 'Accept' buttons; log in as Doctor/Admin → 'Accept' available.
- - Hidden the 'Complete & Record' button for Secretary/Staff users in the Appointments page UI; visible only to Admin/Doctor.
- - Updated `appointments.php` to display 'Complete & Record' only when `isDoctorOrAdmin` true, and protected the `complete` API endpoint as `doctor/admin` only.
- 	 - Manual verification: log in as a Secretary → Appointments page should not show 'Complete & Record' button on accepted appointments; log in as Doctor/Admin → 'Complete & Record' available and functional.
+4. "There is an issue with the ENT Distribution data: the categories Head & Neck, Lifestyle, and Misc/Others are not being populated when visits are added. Please run a debugging session to identify why these categories are not fetching data and ensure all ENT types are correctly recorded and displayed."
+
+5. **"For the Analytics date filter logic, please apply the following behavior:
+- All Time: Start from the system’s first recorded date (November 25) and use a 30-day forecasting trend.
+- This Month: Use data from the start of the current month and apply a 30-day forecasting trend.
+- Today and This Week: Apply a 7-day forecasting trend.
+- Custom Range: Use a hybrid forecasting logic where the forecast duration adapts between 7 days and 30 days, depending on the selected start and end dates."**
+
+6. "Please remove the Average Wait Time metric from the Analytics page and replace it with an Average Visits metric."

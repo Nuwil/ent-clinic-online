@@ -106,12 +106,28 @@ class VisitsController extends Controller
             $tblCheck->execute();
             $tblExists = $tblCheck->fetch();
             if (!$tblExists) {
-                $migrationPath = __DIR__ . '/../database/patient_visits_table.sql';
-                if (file_exists($migrationPath)) {
-                    $sql = file_get_contents($migrationPath);
-                    // Execute all statements in the SQL file
-                    $this->db->exec($sql);
-                } else {
+                $migrationPaths = [
+                    __DIR__ . '/../database/patient_visits_table.sql',
+                    __DIR__ . '/../database/schema.sql'
+                ];
+                $applied = false;
+                foreach ($migrationPaths as $migrationPath) {
+                    if (file_exists($migrationPath)) {
+                        $sql = file_get_contents($migrationPath);
+                        if ($sql && trim($sql) !== '') {
+                            // Execute all statements in the SQL file
+                            try {
+                                $this->db->exec($sql);
+                                $applied = true;
+                                @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Applied migration file: $migrationPath\n", FILE_APPEND);
+                                break; // if schema.sql applied it will create all tables
+                            } catch (PDOException $ex) {
+                                @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Error applying migration $migrationPath: " . $ex->getMessage() . "\n", FILE_APPEND);
+                            }
+                        }
+                    }
+                }
+                if (!$applied) {
                     // Fallback: create a basic table structure
                     $createSql = "CREATE TABLE IF NOT EXISTS patient_visits (
                         id INT PRIMARY KEY AUTO_INCREMENT,

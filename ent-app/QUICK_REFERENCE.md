@@ -189,7 +189,7 @@ A: No, only doctor and admin can access the appointments page.
 - Modify options as needed
 
 **Adjust Appointment Types:**
-- Edit: `database/appointments_schema.sql`
+- Edit: `database/schema.sql`
 - Table: `appointment_types`
 - Modify duration, buffer, daily_max
 

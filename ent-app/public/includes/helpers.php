@@ -161,6 +161,7 @@ function getCurrentPage() {
         'secretary-appointments',
         'settings',
         'admin',    // admin dashboard
+        'analytics',
         'doctor',   // doctor dashboard
         'staff',    // secretary/staff dashboard
         'secretary'
@@ -229,7 +230,7 @@ function getRBACMatrix() {
                 'export_data' => true,
                 'view_admin_dashboard' => true,
             ],
-            'accessible_pages' => ['admin', 'patients', 'patient-profile', 'settings', 'appointments', 'medical-certificate']
+            'accessible_pages' => ['admin', 'patients', 'patient-profile', 'settings', 'appointments', 'medical-certificate', 'analytics'],
         ],
         'doctor' => [
             'display_name' => 'Doctor',
@@ -249,7 +250,7 @@ function getRBACMatrix() {
                 'export_data' => false,
                 'view_doctor_dashboard' => true,
             ],
-            'accessible_pages' => ['doctor', 'patients', 'patient-profile', 'appointments', 'medical-certificate']
+            'accessible_pages' => ['doctor', 'patients', 'patient-profile', 'appointments', 'medical-certificate', 'analytics'],
         ],
             'secretary' => [
                 'display_name' => 'Secretary',
@@ -432,9 +433,9 @@ function canAccessPage($page) {
     
     // Define page access rules
     $pageAccess = [
-        'admin' => ['admin', 'patients', 'patient-profile', 'appointments', 'settings', 'medical-certificate'],
+        'admin' => ['admin', 'patients', 'patient-profile', 'appointments', 'settings', 'medical-certificate', 'analytics'],
         // Doctors should not have Settings access (only Admins)
-        'doctor' => ['doctor', 'patients', 'patient-profile', 'appointments', 'medical-certificate'],
+        'doctor' => ['doctor', 'patients', 'patient-profile', 'appointments', 'medical-certificate', 'analytics'],
         // Staff/Secretaries can access staff dashboard and the secretary appointments page
         'staff' => ['staff', 'patients', 'patient-profile', 'appointments', 'secretary-appointments', 'medical-certificate'],
         'secretary' => ['staff', 'patients', 'patient-profile', 'appointments', 'secretary-appointments', 'medical-certificate']
@@ -451,8 +452,8 @@ function getAllowedPages() {
     if (!$role) return [];
     
     $pageAccess = [
-        'admin' => ['admin', 'patients', 'patient-profile', 'appointments', 'settings'],
-        'doctor' => ['doctor', 'patients', 'patient-profile', 'appointments'],
+        'admin' => ['admin', 'patients', 'patient-profile', 'appointments', 'settings', 'analytics'],
+        'doctor' => ['doctor', 'patients', 'patient-profile', 'appointments', 'analytics'],
         'staff' => ['staff', 'patients', 'patient-profile', 'appointments', 'secretary-appointments'],
         'secretary' => ['staff', 'patients', 'patient-profile', 'appointments', 'secretary-appointments']
     ];
