@@ -94,6 +94,18 @@ class AnalyticsController extends Controller {
                 $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
                 $cancellationsRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[cancellationsRows] start={$sdt->format('Y-m-d')} end={$edt->format('Y-m-d')} count=" . count($cancellationsRows) . " rows=" . var_export($cancellationsRows, true) . "\n", FILE_APPEND);
+
+                // If there are cancellations but no breakdown rows, log a sample of canceled appointments for diagnosis
+                if ($cancellations > 0 && empty($cancellationsRows)) {
+                    try {
+                        $dbg = $pdo->prepare("SELECT id, cancellation_reason, appointment_date, updated_at FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end) LIMIT 100");
+                        $dbg->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $sample = $dbg->fetchAll(PDO::FETCH_ASSOC);
+                        @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[cancellations_sample] " . var_export($sample, true) . "\n", FILE_APPEND);
+                    } catch (Exception $ex2) { $logDbException('cancellations sample', $ex2); }
+                    // As a fallback, report Unknown reason bucket so UI shows something
+                    $cancellationsRows = [['reason' => 'Unknown', 'c' => $cancellations]];
+                }
             } catch (Exception $ex) { $logDbException('cancellations by reason', $ex); $cancellationsRows = []; }
             $cLabels = [];
             $cData = [];
@@ -148,7 +160,9 @@ class AnalyticsController extends Controller {
             $entMap = [];
             foreach ($entRows as $r) {
                 $raw = strtolower(trim((string)$r['ent_type']));
-                // treat empty / null ent_type as misc
+                $key = null;
+
+                // treat empty / null ent_type as misc for now
                 if ($raw === '' || $raw === null) {
                     $key = 'misc';
                 } else {
@@ -156,7 +170,6 @@ class AnalyticsController extends Controller {
                     $normalized = preg_replace('/[^a-z0-9\s]/', ' ', $raw);
                     $normalized = preg_replace('/\s+/', ' ', trim($normalized));
 
-                    $key = null;
                     // Pattern-based matching for common phrases
                     if (preg_match('/head\s*.*\s*neck/', $normalized)) {
                         $key = 'head_neck_tumor';
@@ -175,6 +188,47 @@ class AnalyticsController extends Controller {
                     $entMap[$key] = (isset($entMap[$key]) ? $entMap[$key] : 0) + (int)$r['c'];
                 }
             }
+
+            // If important categories are missing (e.g., Head & Neck, Lifestyle), try to infer them
+            // by scanning visits that have blank/misc ent_type and matching textual keywords.
+            $needHeadNeck = empty($entMap['head_neck_tumor']);
+            $needLifestyle = empty($entMap['lifestyle_medicine']);
+            if ($needHeadNeck || $needLifestyle) {
+                try {
+                    $patternHN = "(head[[:space:][:punct:]]*neck|lump|mass|tumor|swelling|tumour|thyroid|tonsil)";
+                    $patternL = "(lifestyle|diet|smoking|exercise|obesity|weight|alcohol|exercise|sedentary|dietary)";
+                    $baseSql = "SELECT SUM(CASE WHEN (LOWER(COALESCE(chief_complaint,'')) RLIKE :pat OR LOWER(COALESCE(diagnosis,'')) RLIKE :pat OR LOWER(COALESCE(notes,'')) RLIKE :pat) THEN 1 ELSE 0 END) as matched, COUNT(*) as total FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end AND (ent_type IS NULL OR TRIM(ent_type) = '' OR LOWER(ent_type) IN ('misc','other','misc/others'))";
+
+                    // Head & Neck inference
+                    if ($needHeadNeck) {
+                        $stmt = $pdo->prepare($baseSql);
+                        $stmt->execute(['pat' => $patternHN, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $matched = (int)($res['matched'] ?? 0);
+                        if ($matched > 0) {
+                            $entMap['head_neck_tumor'] = ($entMap['head_neck_tumor'] ?? 0) + $matched;
+                            // deduct from misc if it was previously counted there
+                            if (!empty($entMap['misc'])) $entMap['misc'] = max(0, $entMap['misc'] - $matched);
+                            @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inferred_head_neck] matched={$matched} for range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
+                        }
+                    }
+
+                    // Lifestyle inference
+                    if ($needLifestyle) {
+                        $stmt = $pdo->prepare($baseSql);
+                        $stmt->execute(['pat' => $patternL, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $matched = (int)($res['matched'] ?? 0);
+                        if ($matched > 0) {
+                            $entMap['lifestyle_medicine'] = ($entMap['lifestyle_medicine'] ?? 0) + $matched;
+                            if (!empty($entMap['misc'])) $entMap['misc'] = max(0, $entMap['misc'] - $matched);
+                            @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inferred_lifestyle] matched={$matched} for range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
+                        }
+                    }
+                } catch (Exception $ex) {
+                    $logDbException('ent inference', $ex);
+                }
+            }
             @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[entMapComputed] " . var_export($entMap, true) . "\n", FILE_APPEND);
             $entLabels = [];
             $entData = [];
@@ -182,6 +236,8 @@ class AnalyticsController extends Controller {
                 $entLabels[] = $label;
                 $entData[] = $entMap[$key] ?? 0;
             }
+            // Indicate whether we had to infer categories (for UI debug/help)
+            $entInferred = !empty($entMap['head_neck_tumor_inferred']) || !empty($entMap['lifestyle_medicine_inferred']);
             // Forecast: simple moving average baseline computed from the last min(14, range) days, but extend to forecastDays
             $lookback = max(1, min(14, count($values)));
             $lastValues = array_slice($values, max(0, count($values) - $lookback));
@@ -207,9 +263,21 @@ class AnalyticsController extends Controller {
                 'visits_trend' => ['labels' => $labels, 'data' => $values],
                 'cancellations_by_reason' => ['labels' => $cLabels, 'data' => $cData],
                 'ent_distribution' => ['labels' => $entLabels, 'data' => $entData],
+                'ent_inferred' => !empty($entMap['head_neck_tumor']) || !empty($entMap['lifestyle_medicine']),
                 'forecast' => ['labels' => $forecastLabels, 'data' => $forecastData]
             ];
 
+            // If debugging requested, include raw ent rows and a misc sample to aid diagnosis
+            if (!empty($_GET['debug'])) {
+                try {
+                    $sampleStmt = $pdo->prepare("SELECT id, ent_type, chief_complaint, diagnosis, notes, visit_date FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end AND (ent_type IS NULL OR TRIM(ent_type) = '' OR LOWER(ent_type) IN ('misc','other','misc/others')) ORDER BY visit_date DESC LIMIT 50");
+                    $sampleStmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                    $samples = $sampleStmt->fetchAll(PDO::FETCH_ASSOC);
+                    $payload['ent_debug'] = ['raw_ent_rows' => $entRows, 'misc_samples' => $samples];
+                } catch (Exception $ex) {
+                    $logDbException('ent debug sample', $ex);
+                }
+            }
             // Add a few prescriptive suggestions based on forecast
             $maxPred = max($forecastData);
             $suggestions = [];

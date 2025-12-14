@@ -214,6 +214,13 @@ $end = $_GET['end'] ?? date('Y-m-d');
                 span.innerText = lab + ': ' + cnt + ' (' + pct + '%)';
                 entSummaryEl.appendChild(span);
             });
+            // Show small note when the server inferred categories
+            if (data.ent_inferred) {
+                const note = document.createElement('div');
+                note.style.fontSize = '0.8rem'; note.style.color = '#666'; note.style.marginTop = '6px';
+                note.innerText = 'Some categories were inferred from visit text for the selected range';
+                entSummaryEl.appendChild(note);
+            }
         }
 
         // Cancellation pie (handle missing arrays gracefully)
