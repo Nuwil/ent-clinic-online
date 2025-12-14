@@ -106,28 +106,12 @@ class VisitsController extends Controller
             $tblCheck->execute();
             $tblExists = $tblCheck->fetch();
             if (!$tblExists) {
-                $migrationPaths = [
-                    __DIR__ . '/../database/patient_visits_table.sql',
-                    __DIR__ . '/../database/schema.sql'
-                ];
-                $applied = false;
-                foreach ($migrationPaths as $migrationPath) {
-                    if (file_exists($migrationPath)) {
-                        $sql = file_get_contents($migrationPath);
-                        if ($sql && trim($sql) !== '') {
-                            // Execute all statements in the SQL file
-                            try {
-                                $this->db->exec($sql);
-                                $applied = true;
-                                @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Applied migration file: $migrationPath\n", FILE_APPEND);
-                                break; // if schema.sql applied it will create all tables
-                            } catch (PDOException $ex) {
-                                @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Error applying migration $migrationPath: " . $ex->getMessage() . "\n", FILE_APPEND);
-                            }
-                        }
-                    }
-                }
-                if (!$applied) {
+                $migrationPath = __DIR__ . '/../database/patient_visits_table.sql';
+                if (file_exists($migrationPath)) {
+                    $sql = file_get_contents($migrationPath);
+                    // Execute all statements in the SQL file
+                    $this->db->exec($sql);
+                } else {
                     // Fallback: create a basic table structure
                     $createSql = "CREATE TABLE IF NOT EXISTS patient_visits (
                         id INT PRIMARY KEY AUTO_INCREMENT,
@@ -161,15 +145,61 @@ class VisitsController extends Controller
             foreach ($allowedFields as $f) {
                 if (isset($input[$f])) {
                     $data[$f] = $input[$f];
-                } else {
-                    // For ent_type default to 'ear' if not provided and allowed
-                    if ($f === 'ent_type') $data['ent_type'] = 'ear';
-                    if ($f === 'doctor_id' && !$isStaff) $data['doctor_id'] = $input['doctor_id'] ?? 1;
                 }
+            }
+            // Normalize ent_type when present; otherwise use a safe default of 'misc' to avoid over-attributing to 'ear'
+            if (isset($data['ent_type'])) {
+                $norm = $this->normalizeEntType($data['ent_type']);
+                $data['ent_type'] = $norm ?? 'misc';
+            } else {
+                $data['ent_type'] = 'misc';
+            }
+            if (!$isStaff && !isset($data['doctor_id'])) {
+                $data['doctor_id'] = $input['doctor_id'] ?? 1;
             }
 
             $columns = implode(',', array_keys($data));
             $placeholders = implode(',', array_fill(0, count($data), '?'));
+            // Deduplication: if appointment_id is present, ensure we don't create a second visit for the same appointment
+            $appointmentId = isset($data['appointment_id']) ? $data['appointment_id'] : null;
+            if ($appointmentId) {
+                try {
+                    $dupStmt = $this->db->prepare("SELECT id FROM patient_visits WHERE appointment_id = :apt LIMIT 1");
+                    $dupStmt->execute(['apt' => $appointmentId]);
+                    $existing = $dupStmt->fetch(PDO::FETCH_ASSOC);
+                    if ($existing) {
+                        @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Duplicate detected: visit already exists for appointment {$appointmentId}, visit_id={$existing['id']}\n", FILE_APPEND);
+                        $this->success(['id' => $existing['id']], 'Visit already exists for appointment', 200);
+                        return;
+                    }
+                } catch (Exception $e) {
+                    // continue to attempt insert; log but don't block
+                    @file_put_contents(__DIR__ . '/../logs/visit_store.log', "DupCheck SQL Error: " . $e->getMessage() . "\n", FILE_APPEND);
+                }
+            } else {
+                // For walk-in visits without appointment_id, attempt a heuristic dedupe
+                try {
+                    $lookStmt = $this->db->prepare("SELECT id, visit_date FROM patient_visits WHERE patient_id = :pid AND ent_type = :ent ORDER BY id DESC LIMIT 5");
+                    $lookStmt->execute(['pid' => $data['patient_id'], 'ent' => $data['ent_type']]);
+                    $cands = $lookStmt->fetchAll(PDO::FETCH_ASSOC);
+                    foreach ($cands as $cand) {
+                        if (empty($cand['visit_date'])) continue;
+                        $t1 = strtotime($cand['visit_date']);
+                        $t2 = strtotime($data['visit_date']);
+                        if ($t1 === false || $t2 === false) continue;
+                        $diff = abs($t1 - $t2);
+                        // If another visit for same patient/ent_type occurred within 5 minutes, treat as duplicate
+                        if ($diff <= 300) {
+                            @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Heuristic duplicate detected for patient {$data['patient_id']} ent={$data['ent_type']} (diff={$diff}s) -> existing visit_id={$cand['id']}\n", FILE_APPEND);
+                            $this->success(['id' => $cand['id']], 'Duplicate visit detected (heuristic)', 200);
+                            return;
+                        }
+                    }
+                } catch (Exception $e) {
+                    @file_put_contents(__DIR__ . '/../logs/visit_store.log', "Heuristic dup check error: " . $e->getMessage() . "\n", FILE_APPEND);
+                }
+            }
+
             $sql = "INSERT INTO patient_visits ($columns) VALUES ($placeholders)";
 
             $stmt = $this->db->prepare($sql);
@@ -222,6 +252,11 @@ class VisitsController extends Controller
                 if (isset($input[$field])) {
                     $data[$field] = $input[$field];
                 }
+            }
+
+            // Normalize ent_type if present in update payload
+            if (isset($data['ent_type'])) {
+                $data['ent_type'] = $this->normalizeEntType($data['ent_type']) ?? 'misc';
             }
 
             if (empty($data)) {

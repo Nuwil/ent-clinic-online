@@ -1,6 +1,115 @@
 name: CI
 
 on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ent_clinic
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: ent_clinic
+      DB_USER: root
+      DB_PASSWORD: root
+      APP_ENV: development
+      ALLOW_HEADER_AUTH: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.1
+          extensions: mbstring, pdo, pdo_mysql
+
+      - name: Install mysql-client
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+
+      - name: Wait for MySQL
+        run: |
+          echo "Waiting for MySQL..."
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+              echo "MySQL is up"; break;
+            fi
+            sleep 2;
+          done
+
+      - name: Import initial schema
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS ent_clinic;"
+          mysql -h 127.0.0.1 -uroot -proot ent_clinic < ent-app/database/schema.sql || true
+
+      - name: Run migrations
+        run: php ent-app/scripts/run_migrations.php
+
+      - name: Reconcile ent_type values (reconciliation + inference)
+        run: |
+          php ent-app/scripts/reconcile_ent_types.php || true
+          php ent-app/scripts/infer_ent_types.php || true
+
+      - name: Start PHP built-in server
+        run: |
+          php -S 127.0.0.1:8080 -t ent-app/public > /tmp/php-server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -sSf http://127.0.0.1:8080 >/dev/null 2>&1; then
+              echo "Server ready"; break;
+            else
+              sleep 1;
+            fi
+          done
+
+      - name: Run PHP tests
+        env:
+          BASE_URL: http://127.0.0.1:8080
+        run: |
+          set -e
+          for f in ent-app/tests/*.php; do
+            echo "Running $f";
+            php "$f" "$BASE_URL" || (cat /tmp/php-server.log && exit 1);
+          done
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Playwright and deps
+        working-directory: ent-app
+        run: |
+          npm install
+          npx playwright install --with-deps
+
+      - name: Run Playwright E2E
+        working-directory: ent-app
+        env:
+          BASE_URL: http://127.0.0.1:8080
+        run: |
+          npm run test:e2e --silent
+name: CI
+
+on:
   push:
   pull_request:
 

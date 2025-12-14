@@ -53,20 +53,9 @@ if ($LASTEXITCODE -ne 0) { Write-Host "Dry-run migrations failed" -ForegroundCol
 & $php .\run_migrations.php
 if ($LASTEXITCODE -ne 0) { Write-Host "Migrations failed" -ForegroundColor Red; exit $LASTEXITCODE }
 
-# Run PHP unit-ish tests (simple CLI scripts)
-$tests = @(
-    '.\\tests\\test_rbac.php',
-    '.\\tests\\test_rbac_accept.php',
-    '.\\tests\\test_rbac_complete.php',
-    '.\\tests\\test_ui_role_flag.php',
-    '.\\tests\\test_integration_chief_complaint.php',
-    '.\\tests\\test_appointments_and_visits.php',
-    '.\\tests\\test_analytics_api.php',
-    '.\\tests\\test_analytics_ui_access.php',
-    '.\\tests\\test_analytics_trend_db.php'
-)
-
-foreach ($t in $tests) {
+# Run all PHP tests found in tests directory
+Get-ChildItem -Path .\tests -Filter "*.php" | ForEach-Object {
+    $t = $_.FullName
     Write-Host "Running $t"
     & $php $t "$BaseUrl"
     if ($LASTEXITCODE -ne 0) {

@@ -176,8 +176,11 @@ class AppointmentsController extends Controller {
     }
 
     public function cancel($id) {
-        $stmt = $this->db->prepare("UPDATE appointments SET status = 'Cancelled' WHERE id = :id");
-        $stmt->execute(['id' => $id]);
+        // Allow optional cancellation reason in request body
+        $input = $this->getInput();
+        $reason = isset($input['reason']) ? trim($input['reason']) : null;
+        $stmt = $this->db->prepare("UPDATE appointments SET status = 'Cancelled', cancellation_reason = :reason WHERE id = :id");
+        $stmt->execute(['id' => $id, 'reason' => $reason]);
         $this->success(true);
     }
 
@@ -227,12 +230,31 @@ class AppointmentsController extends Controller {
             $doctorId = $currentUser['id'] ?? null;
             $doctorName = isset($currentUser['full_name']) ? $currentUser['full_name'] : ($currentUser['username'] ?? null);
 
+            // If a visit already exists for this appointment, avoid creating a duplicate.
+            $existingStmt = $this->db->prepare("SELECT id FROM patient_visits WHERE appointment_id = :id LIMIT 1");
+            $existingStmt->execute(['id' => $id]);
+            $existingVisit = $existingStmt->fetch(PDO::FETCH_ASSOC);
+            if ($existingVisit) {
+                // There is already a visit created for this appointment - mark appointment completed and return existing visit id
+                @file_put_contents(__DIR__ . '/../logs/appointment_complete.log', "Visit already exists for appointment $id, visit_id: " . ($existingVisit['id'] ?? '(unknown)') . "\n", FILE_APPEND);
+                $visitId = $existingVisit['id'];
+
+                $stmt = $this->db->prepare("UPDATE appointments SET status = 'Completed' WHERE id = :id");
+                $stmt->execute(['id' => $id]);
+
+                $this->success(['id' => $id, 'visit_id' => $visitId], 'Appointment already had visit; marked Completed');
+                return;
+            }
+
+            // Normalize ent_type provided by client; default to 'misc'
+            $entType = isset($input['ent_type']) ? ($this->normalizeEntType($input['ent_type']) ?? 'misc') : 'misc';
+
             $visitData = [
                 'patient_id' => $apt['patient_id'],
                 'appointment_id' => $id,
                 'visit_date' => $visitDate,
                 'visit_type' => $input['visit_type'] ?? 'Consultation',
-                'ent_type' => $input['ent_type'] ?? 'misc',
+                'ent_type' => $entType,
                 'chief_complaint' => $input['chief_complaint'] ?? '',
                 'diagnosis' => $input['diagnosis'] ?? '',
                 'treatment_plan' => $input['treatment'] ?? '',
@@ -306,10 +328,34 @@ class AppointmentsController extends Controller {
 
         // Update appointment
         $notes = $input['notes'] ?? $apt['notes'];
-        // Update appointment_date and duration
+        // Update appointment_date and duration and record reschedule metadata
         $newDuration = (int)( (strtotime($start_at) === false || strtotime($end_at) === false) ? 0 : ( (strtotime($end_at) - strtotime($start_at)) / 60 ) );
-        $stmt = $this->db->prepare("UPDATE appointments SET appointment_date = :start, duration = :duration, notes = :notes WHERE id = :id");
-        $stmt->execute(['start' => $start_at, 'duration' => $newDuration, 'notes' => $notes, 'id' => $id]);
+
+        // Only attempt to set rescheduled_from/rescheduled_to if those columns exist (DB may not have migrations applied)
+        $hasResFrom = false; $hasResTo = false;
+        try {
+            $c = $this->db->prepare("SHOW COLUMNS FROM appointments LIKE 'rescheduled_from'"); $c->execute(); if ($c->fetch()) $hasResFrom = true;
+            $c = $this->db->prepare("SHOW COLUMNS FROM appointments LIKE 'rescheduled_to'"); $c->execute(); if ($c->fetch()) $hasResTo = true;
+        } catch (Exception $e) {
+            // ignore - keep flags false
+        }
+
+        if ($hasResFrom && $hasResTo) {
+            $stmt = $this->db->prepare("UPDATE appointments SET appointment_date = :start, duration = :duration, notes = :notes, rescheduled_from = :res_from, rescheduled_to = :res_to WHERE id = :id");
+            $params = ['start' => $start_at, 'duration' => $newDuration, 'notes' => $notes, 'res_from' => $apt['appointment_date'], 'res_to' => $start_at, 'id' => $id];
+        } else {
+            // Fallback: don't attempt to write rescheduled columns to avoid SQL errors on older DBs
+            $stmt = $this->db->prepare("UPDATE appointments SET appointment_date = :start, duration = :duration, notes = :notes WHERE id = :id");
+            $params = ['start' => $start_at, 'duration' => $newDuration, 'notes' => $notes, 'id' => $id];
+            @file_put_contents(__DIR__ . '/../logs/appointment_reschedule.log', "Reschedule columns missing; skipping rescheduled_* update for appointment {$id}\n", FILE_APPEND);
+        }
+
+        try {
+            $stmt->execute($params);
+        } catch (PDOException $ex) {
+            @file_put_contents(__DIR__ . '/../logs/appointment_reschedule.log', "SQL Error: " . $ex->getMessage() . "\nParams: " . var_export($params, true) . "\n", FILE_APPEND);
+            return $this->error('Database error while rescheduling appointment', 500);
+        }
 
         $this->success(['id' => $id], 'Appointment rescheduled');
     }

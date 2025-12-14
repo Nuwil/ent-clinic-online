@@ -74,7 +74,7 @@ exit;
                             <option value="new_patient">New Patient</option>
                             <option value="follow_up">Follow-up</option>
                             <option value="procedure">Procedure</option>
-                            <option value="emergency">Emergency</option>
+
                         </select>
                     </div>
 

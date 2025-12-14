@@ -57,7 +57,8 @@ class PrescriptionController extends Controller
 
                 // If no visit_id provided, create a minimal visit to attach prescription items
                 if (empty($visitId)) {
-                    $insertVisit = $this->db->prepare("INSERT INTO patient_visits (patient_id, visit_date, visit_type, created_at) VALUES (?, ?, ?, NOW())");
+                    // Create a minimal visit for prescription export. Set ent_type to 'misc' to avoid defaulting to 'ear'.
+                    $insertVisit = $this->db->prepare("INSERT INTO patient_visits (patient_id, visit_date, visit_type, ent_type, created_at) VALUES (?, ?, ?, 'misc', NOW())");
                     $insertVisit->execute([$patientId, date('Y-m-d H:i:s'), 'prescription_export']);
                     $visitId = $this->db->lastInsertId();
                 }

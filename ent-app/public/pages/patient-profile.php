@@ -277,8 +277,7 @@ $currentRole = $currentUser['role'] ?? '';
                                 <div class="form-group">
                                     <label class="form-label">Date of Birth</label>
                                     <input type="date" name="date_of_birth" class="form-control"
-                                        value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>"
-                                        required />
+                                        value="<?php echo e(isset($patient['date_of_birth']) ? $patient['date_of_birth'] : ''); ?>" />
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label">Gender *</label>
@@ -473,7 +472,7 @@ $currentRole = $currentUser['role'] ?? '';
                                     <option value="new_patient">New Patient</option>
                                     <option value="follow_up">Follow-up</option>
                                     <option value="procedure">Procedure</option>
-                                    <option value="emergency">Emergency</option>
+
                                 </select>
                             </div>
 
@@ -564,7 +563,7 @@ $currentRole = $currentUser['role'] ?? '';
                                         <option value="Consultation" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Consultation') ? 'selected' : ''; ?>>Consultation
                                         </option>
                                         <option value="Follow-up" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Follow-up') ? 'selected' : ''; ?>>Follow-up</option>
-                                        <option value="Emergency" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Emergency') ? 'selected' : ''; ?>>Emergency</option>
+
                                         <option value="Routine Check" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Routine Check') ? 'selected' : ''; ?>>Routine Check
                                         </option>
                                         <option value="Procedure" <?php echo ($editVisitData && $editVisitData['visit_type'] === 'Procedure') ? 'selected' : ''; ?>>Procedure</option>
@@ -1425,7 +1424,7 @@ $currentRole = $currentUser['role'] ?? '';
         };
 
         window.openRescheduleModal = function (aptId) {
-            // Fetch appointment details and show reschedule form
+            // Fetch appointment details and show reschedule form (date-only)
             fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&patient_id=' + patientId)
                 .then(r => r.json())
                 .then(data => {
@@ -1433,22 +1432,25 @@ $currentRole = $currentUser['role'] ?? '';
                     const apt = apts.find(a => a.id == aptId);
                     if (!apt) return;
 
-                    // Show reschedule modal/form
-                    const newDate = prompt('Enter new date (YYYY-MM-DD):', apt.appointment_date.split('T')[0]);
+                    // Ask for a new date only (time-of-day preserved)
+                    const origParts = (apt.appointment_date || '').split(' ');
+                    const suggestedDate = origParts[0] || '';
+                    const suggestedTime = (origParts[1] || '').slice(0,5) || '09:00';
+                    const newDate = prompt('Enter new date (YYYY-MM-DD):', suggestedDate);
                     if (!newDate) return;
-                    const newTime = prompt('Enter new time (HH:MM):', apt.appointment_date.split('T')[1]?.slice(0, 5) || '09:00');
-                    if (!newTime) return;
 
-                    const newStart = newDate + 'T' + newTime;
-                    const [h, m] = newTime.split(':');
-                    const endDate = new Date(newDate + 'T' + newTime);
-                    endDate.setHours(parseInt(h) + 1); // Assume 1-hour appointments
-                    const newEnd = endDate.toISOString().slice(0, 16);
+                    const start_at = newDate + ' ' + suggestedTime + ':00';
+                    // compute end using original duration if available, else default 60 minutes
+                    const duration = parseInt(apt.duration || 60, 10);
+                    const s = new Date(newDate + 'T' + suggestedTime + ':00');
+                    s.setMinutes(s.getMinutes() + duration);
+                    const pad = (n) => String(n).padStart(2, '0');
+                    const end_at = `${s.getFullYear()}-${pad(s.getMonth()+1)}-${pad(s.getDate())} ${pad(s.getHours())}:${pad(s.getMinutes())}:${pad(s.getSeconds())}`;
 
                     fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/reschedule', {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ start_at: newStart, end_at: newEnd })
+                        body: JSON.stringify({ start_at: start_at, end_at: end_at })
                     })
                         .then(r => r.json())
                         .then(data => {

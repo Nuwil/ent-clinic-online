@@ -137,4 +137,37 @@ class Controller
 
         return $errors;
     }
+
+    // Normalize various forms of ent_type into canonical enum keys used by patient_visits.ent_type
+    protected function normalizeEntType($value)
+    {
+        if ($value === null) return null;
+        $raw = strtolower(trim((string)$value));
+        // collapse punctuation and excess whitespace
+        $normalized = preg_replace('/[^a-z0-9\s]/', ' ', $raw);
+        $normalized = preg_replace('/\s+/', ' ', trim($normalized));
+
+        $synonyms = [
+            'head & neck' => 'head_neck_tumor', 'head/neck' => 'head_neck_tumor', 'head_neck' => 'head_neck_tumor', 'headneck' => 'head_neck_tumor', 'head_neck_tumor' => 'head_neck_tumor',
+            'lifestyle medicine' => 'lifestyle_medicine', 'lifestyle_medicine' => 'lifestyle_medicine', 'lifestyle' => 'lifestyle_medicine',
+            'misc' => 'misc', 'other' => 'misc', 'misc/others' => 'misc', 'misc / others' => 'misc'
+        ];
+
+        $allowed = ['ear','nose','throat','head_neck_tumor','lifestyle_medicine','misc'];
+
+        // Direct match to allowed keys
+        if (in_array($raw, $allowed, true)) return $raw;
+        if (in_array($normalized, $allowed, true)) return $normalized;
+
+        // Synonym exact match
+        if (isset($synonyms[$raw])) return $synonyms[$raw];
+        if (isset($synonyms[$normalized])) return $synonyms[$normalized];
+
+        // Pattern based
+        if (preg_match('/head\s*.*\s*neck/', $normalized)) return 'head_neck_tumor';
+        if (strpos($normalized, 'lifestyle') !== false) return 'lifestyle_medicine';
+        if (preg_match('/^misc|\bother\b|\bothers\b/', $normalized)) return 'misc';
+
+        return null;
+    }
 }

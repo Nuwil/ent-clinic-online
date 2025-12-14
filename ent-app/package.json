@@ -1,0 +1,12 @@
+{
+  "name": "ent-app-tests",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:php": "for f in ../ent-app/tests/*.php; do php \"$f\" http://127.0.0.1:8080 || exit 1; done"
+  }
+}

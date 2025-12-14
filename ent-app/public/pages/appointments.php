@@ -70,7 +70,7 @@ $selected = $_GET['date'] ?? date('Y-m-d');
                         <option value="new_patient">New Patient</option>
                         <option value="follow_up">Follow-up</option>
                         <option value="procedure">Procedure</option>
-                        <option value="emergency">Emergency</option>
+
                     </select>
                 </div>
                 <!-- Time slot removed: bookings are date-only now. Keep hidden elements for compatibility. -->
@@ -108,7 +108,11 @@ $selected = $_GET['date'] ?? date('Y-m-d');
                 <input type="hidden" id="rescheduleId" />
                 <div class="form-group">
                     <label>Select New Slot</label>
-                    <select id="rescheduleSlot" class="form-control" required></select>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <input type="date" id="rescheduleDate" class="form-control" required />
+                                <input type="hidden" id="rescheduleOrigTime" />
+                                <input type="hidden" id="rescheduleDuration" />
+                            </div>
                 </div>
                 <div class="form-group">
                     <label>Notes (optional)</label>
@@ -324,6 +328,27 @@ function renderMonthView(date) {
         dayNum.style.marginBottom = '6px';
         dayNum.style.fontWeight = '600';
         dayNum.textContent = iter.getDate();
+
+        // Highlight cells for current month vs adjacent months
+        const cellMonth = iter.getMonth();
+        if (cellMonth === month) {
+            // Current month: stronger blue accent
+            cell.style.background = '#f2f5ff';
+            dayNum.style.background = '#929CF7';
+            dayNum.style.color = '#fff';
+            dayNum.style.display = 'inline-block';
+            dayNum.style.padding = '4px 8px';
+            dayNum.style.borderRadius = '6px';
+        } else {
+            // Previous/next month: lighter (now plain white)
+            cell.style.background = '#fff';
+            dayNum.style.background = '#fff';
+            dayNum.style.color = '#000';
+            dayNum.style.display = 'inline-block';
+            dayNum.style.padding = '4px 8px';
+            dayNum.style.borderRadius = '6px';
+        }
+
         cell.appendChild(dayNum);
         const list = document.createElement('div');
         list.className = 'day-appointments';
@@ -431,6 +456,14 @@ function renderListView(date) {
             const end = apt.end_at ? new Date((apt.end_at||'').replace(' ', 'T')) : new Date(start.getTime() + 60*60*1000);
             const timeStr = start.toLocaleDateString() + ' ' + start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
                             end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            // If appointment was rescheduled, prefer displaying the rescheduled target date
+            let displayDate = timeStr;
+            if (apt.rescheduled_to) {
+                try {
+                    const rt = new Date((apt.rescheduled_to || '').replace(' ', 'T'));
+                    displayDate = 'Rescheduled: ' + rt.toLocaleDateString() + ' ' + rt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                } catch (e) { /* ignore parsing issues and fallback to timeStr */ }
+            }
 
             let statusBgColor = '#e0e0e0';
             let statusTextColor = '#333';
@@ -479,7 +512,7 @@ function renderListView(date) {
             container.innerHTML += `
                 <div style="padding:12px; background:#f5f5f5; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <strong>Patient #${apt.patient_id}</strong> | ${apt.type} | <strong>${timeStr}</strong>
+                        <strong>Patient #${apt.patient_id}</strong> | ${apt.type} | <strong>${displayDate}</strong>
                         ${apt.chief_complaint ? '<br><small style="color:#444;">' + apt.chief_complaint + '</small>' : ''}
                         <span style="background:${statusBgColor}; color:${statusTextColor}; padding:2px 8px; border-radius:3px; font-size:0.85rem; margin-left:8px;">${apt.status}</span>
                         ${apt.notes ? '<br><small>' + apt.notes + '</small>' : ''}
@@ -513,20 +546,29 @@ function closeBookModal() {
 
 function openRescheduleModal(aptId) {
     document.getElementById('rescheduleId').value = aptId;
-    loadSlots(currentDate).then(slots => {
-        const select = document.getElementById('rescheduleSlot');
-        select.innerHTML = '';
-        slots.filter(s => !s.booked).forEach(s => {
-            const start = new Date(s.start.replace(' ', 'T'));
-            const end = new Date(s.end.replace(' ', 'T'));
-            const label = start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' - ' + 
-                          end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' (' + s.type + ')';
-            const opt = document.createElement('option');
-            opt.value = JSON.stringify({start: s.start, end: s.end});
-            opt.textContent = label;
-            select.appendChild(opt);
-        });
-    });
+    // Prefill date picker with the appointment's current date and store original time/duration
+    try {
+        fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments&start=' + currentDate + '&end=' + currentDate)
+            .then(r => r.json())
+            .then(data => {
+                const apts = data.appointments || [];
+                const apt = apts.find(a => a.id == aptId);
+                const dateInput = document.getElementById('rescheduleDate');
+                const timeInput = document.getElementById('rescheduleOrigTime');
+                const durInput = document.getElementById('rescheduleDuration');
+                if (apt && dateInput) {
+                    // appointment_date may be 'YYYY-MM-DD HH:MM:SS' or ISO-like
+                    const parts = (apt.appointment_date || '').split(' ');
+                    const datePart = parts[0] || '';
+                    const timePart = (parts[1] || '').slice(0,5); // HH:MM
+                    dateInput.value = datePart;
+                    if (timeInput) timeInput.value = timePart;
+                    if (durInput) durInput.value = apt.duration || 60;
+                }
+            })
+            .catch(err => { console.warn('Failed to prefill reschedule date:', err); });
+    } catch (e) { console.warn('Error opening reschedule modal:', e); }
+
     document.getElementById('rescheduleModal').style.display = 'flex';
 }
 
@@ -645,16 +687,28 @@ function formatApiError(resp) {
 document.getElementById('rescheduleForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const aptId = document.getElementById('rescheduleId').value;
-    const newSlot = JSON.parse(document.getElementById('rescheduleSlot').value);
+    const date = document.getElementById('rescheduleDate').value;
+    const origTime = document.getElementById('rescheduleOrigTime').value || '09:00';
+    const duration = parseInt(document.getElementById('rescheduleDuration').value || '60', 10) || 60;
     const notes = document.getElementById('rescheduleNotes').value;
+
+    if (!date) { alert('Please select a date'); return; }
+
+    // Build start/end datetimes preserving original time-of-day
+    const start_at = date + ' ' + origTime + ':00';
+    // Compute end by adding duration minutes to start
+    const s = new Date(date + 'T' + (origTime + ':00'));
+    s.setMinutes(s.getMinutes() + duration);
+    const pad = (n) => String(n).padStart(2, '0');
+    const end_at = `${s.getFullYear()}-${pad(s.getMonth()+1)}-${pad(s.getDate())} ${pad(s.getHours())}:${pad(s.getMinutes())}:${pad(s.getSeconds())}`;
 
     const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/reschedule', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start_at: newSlot.start, end_at: newSlot.end, notes })
+        body: JSON.stringify({ start_at: start_at, end_at: end_at, notes })
     });
-    const j = await res.json();
-    if (j.success || res.ok) {
+    let j = null; try { j = await res.json(); } catch (ex) { j = null; }
+    if (j && (j.success || res.ok)) {
         alert('Appointment rescheduled!');
         closeRescheduleModal();
         renderMonthView(currentDate);
@@ -762,12 +816,15 @@ document.getElementById('completeForm').addEventListener('submit', async functio
 
 async function cancelAppt(aptId) {
     if (!confirm('Cancel this appointment?')) return;
-    const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/cancel', { method: 'POST' });
+    const reason = prompt('Optional cancellation reason (short):', '');
+    const res = await fetch('<?php echo baseUrl(); ?>/api.php?route=/api/appointments/' + aptId + '/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: reason }) });
     const j = await res.json();
     if (j.success || res.ok) {
         alert('Appointment cancelled');
         renderMonthView(currentDate);
         renderListView(currentDate);
+    } else {
+        alert(formatApiError(j) || 'Cancellation failed');
     }
 }
 

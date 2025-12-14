@@ -199,22 +199,34 @@ $end = $_GET['end'] ?? date('Y-m-d');
         const entSummaryEl = document.getElementById('entDistributionSummary');
         entSummaryEl.innerHTML = '';
         const entTotal = entData.reduce((a,b) => a + b, 0) || 0;
-        entLabels.forEach((lab, i) => {
-            const cnt = entData[i] || 0;
-            const pct = entTotal ? Math.round((cnt / entTotal) * 100) : 0;
+        // If there's no meaningful ENT data, show a friendly placeholder
+        if (entTotal === 0) {
             const span = document.createElement('span');
             span.style.display = 'inline-block'; span.style.padding = '6px 10px'; span.style.border = '1px solid #eee'; span.style.borderRadius = '6px'; span.style.background = '#fafafa'; span.style.fontSize = '0.9rem';
-            span.innerText = lab + ': ' + cnt + ' (' + pct + '%)';
+            span.innerText = 'No ENT visit data for the selected range';
             entSummaryEl.appendChild(span);
-        });
+        } else {
+            entLabels.forEach((lab, i) => {
+                const cnt = entData[i] || 0;
+                const pct = entTotal ? Math.round((cnt / entTotal) * 100) : 0;
+                const span = document.createElement('span');
+                span.style.display = 'inline-block'; span.style.padding = '6px 10px'; span.style.border = '1px solid #eee'; span.style.borderRadius = '6px'; span.style.background = '#fafafa'; span.style.fontSize = '0.9rem';
+                span.innerText = lab + ': ' + cnt + ' (' + pct + '%)';
+                entSummaryEl.appendChild(span);
+            });
+        }
 
-        // Cancellation pie (unchanged)
+        // Cancellation pie (handle missing arrays gracefully)
         if (pieChart) pieChart.destroy();
+            const cLabelsRaw = (data.cancellations_by_reason && Array.isArray(data.cancellations_by_reason.labels)) ? data.cancellations_by_reason.labels : [];
+            const cDataRaw = (data.cancellations_by_reason && Array.isArray(data.cancellations_by_reason.data)) ? data.cancellations_by_reason.data : [];
+            const cLabels = (cLabelsRaw.length === 0) ? ['No cancellations'] : cLabelsRaw;
+            const cData = (cDataRaw.length === 0) ? [0] : cDataRaw;
         pieChart = new Chart(pieCtx, {
             type: 'pie',
             data: {
-                labels: data.cancellations_by_reason.labels,
-                datasets: [{ data: data.cancellations_by_reason.data, backgroundColor: ['#f43','rgba(88,103,242,0.85)','rgba(79,195,247,0.6)','rgba(111,111,111,0.5)'] }]
+                labels: cLabels,
+                datasets: [{ data: cData, backgroundColor: ['#f43','rgba(88,103,242,0.85)','rgba(79,195,247,0.6)','rgba(111,111,111,0.5)'] }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });

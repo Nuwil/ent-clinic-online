@@ -289,7 +289,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $id = isset($_POST['id']) ? $_POST['id'] : '';
         $result = apiCall('PUT', '/api/patients/' . $id, $data);
-        $_SESSION['message'] = $result ? 'Patient information updated successfully' : 'Failed to update patient information';
+        if ($result) {
+            $_SESSION['message'] = 'Patient information updated successfully';
+        } else {
+            // Include any API error details in the UI message for easier debugging
+            $apiErr = $_SESSION['api_last_error'] ?? null;
+            $detail = '';
+            if (!empty($apiErr)) {
+                $resp = $apiErr['response'] ?? null;
+                if (is_array($resp) && isset($resp['error'])) {
+                    $detail = ' - ' . (is_array($resp['error']) ? json_encode($resp['error']) : (string)$resp['error']);
+                } elseif (is_array($resp) && isset($resp['message'])) {
+                    $detail = ' - ' . (string)$resp['message'];
+                } elseif (is_string($resp)) {
+                    $detail = ' - ' . $resp;
+                }
+            }
+            $_SESSION['message'] = 'Failed to update patient information' . $detail;
+        }
         redirect('/?page=patient-profile&id=' . $id);
     }
 

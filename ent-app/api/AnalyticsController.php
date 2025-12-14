@@ -38,27 +38,42 @@ class AnalyticsController extends Controller {
         try {
             $pdo = $this->db;
 
+            // A small helper to log DB exceptions for diagnostics
+            $logDbException = function($msg, $ex) {
+                @file_put_contents(__DIR__ . '/../logs/api_exception.log', "[Analytics] " . $msg . " - " . $ex->getMessage() . "\n" . $ex->getTraceAsString() . "\n", FILE_APPEND);
+            };
+
             // Summary
-            $totalPatients = (int)$pdo->query('SELECT COUNT(*) FROM patients')->fetchColumn();
+            try {
+                $totalPatients = (int)$pdo->query('SELECT COUNT(*) FROM patients')->fetchColumn();
+            } catch (Exception $ex) { $logDbException('count patients', $ex); $totalPatients = 0; }
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE status = 'Completed' AND DATE(appointment_date) BETWEEN :start AND :end");
-            $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-            $appointmentsCompleted = (int)$stmt->fetchColumn();
+            try {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE status = 'Completed' AND DATE(appointment_date) BETWEEN :start AND :end");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $appointmentsCompleted = (int)$stmt->fetchColumn();
+            } catch (Exception $ex) { $logDbException('appointments completed', $ex); $appointmentsCompleted = 0; }
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE status = 'Cancelled' AND DATE(appointment_date) BETWEEN :start AND :end");
-            $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-            $cancellations = (int)$stmt->fetchColumn();
+            try {
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM appointments WHERE status = 'Cancelled' AND DATE(appointment_date) BETWEEN :start AND :end");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $cancellations = (int)$stmt->fetchColumn();
+            } catch (Exception $ex) { $logDbException('appointments cancelled', $ex); $cancellations = 0; }
 
             // Avg wait minutes: diff between appointment_date and visit_date where appointment_id exists
-            $stmt = $pdo->prepare("SELECT AVG(TIMESTAMPDIFF(MINUTE, a.appointment_date, v.visit_date)) as avg_wait FROM patient_visits v JOIN appointments a ON v.appointment_id = a.id WHERE DATE(a.appointment_date) BETWEEN :start AND :end");
-            $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-            $avgWait = (float)$stmt->fetchColumn();
-            if ($avgWait === null) $avgWait = 0;
+            try {
+                $stmt = $pdo->prepare("SELECT AVG(TIMESTAMPDIFF(MINUTE, a.appointment_date, v.visit_date)) as avg_wait FROM patient_visits v JOIN appointments a ON v.appointment_id = a.id WHERE DATE(a.appointment_date) BETWEEN :start AND :end");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $avgWait = (float)$stmt->fetchColumn();
+                if ($avgWait === null) $avgWait = 0;
+            } catch (Exception $ex) { $logDbException('avg wait', $ex); $avgWait = 0; }
 
             // Trend: visits per day (use patient_visits)
-            $stmt = $pdo->prepare("SELECT DATE(visit_date) as day, COUNT(*) as c FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end GROUP BY DATE(visit_date) ORDER BY DATE(visit_date)");
-            $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            try {
+                $stmt = $pdo->prepare("SELECT DATE(visit_date) as day, COUNT(*) as c FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end GROUP BY DATE(visit_date) ORDER BY DATE(visit_date)");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $ex) { $logDbException('visits trend', $ex); $rows = []; }
             $labels = [];
             $values = [];
             // Build full date range
@@ -72,12 +87,17 @@ class AnalyticsController extends Controller {
             }
 
             // Cancellation breakdown by appointment_type
-            $stmt = $pdo->prepare("SELECT appointment_type, COUNT(*) as c FROM appointments WHERE status = 'Cancelled' AND DATE(appointment_date) BETWEEN :start AND :end GROUP BY appointment_type");
-            $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-            $cancellationsRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // Cancellation reasons breakdown (use cancellation_reason when available)
+            try {
+                // Include appointments canceled where either the appointment_date OR the updated_at falls in range
+                $stmt = $pdo->prepare("SELECT COALESCE(NULLIF(TRIM(cancellation_reason), ''), 'Unknown') as reason, COUNT(*) as c FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end) GROUP BY reason");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $cancellationsRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[cancellationsRows] start={$sdt->format('Y-m-d')} end={$edt->format('Y-m-d')} count=" . count($cancellationsRows) . " rows=" . var_export($cancellationsRows, true) . "\n", FILE_APPEND);
+            } catch (Exception $ex) { $logDbException('cancellations by reason', $ex); $cancellationsRows = []; }
             $cLabels = [];
             $cData = [];
-            foreach ($cancellationsRows as $r) { $cLabels[] = $r['appointment_type'] ?? 'Unspecified'; $cData[] = (int)$r['c']; }
+            foreach ($cancellationsRows as $r) { $cLabels[] = $r['reason'] ?? 'Unknown'; $cData[] = (int)$r['c']; }
 
             // Determine the forecast horizon based on selected range
             $rangeDays = max(1, (int)$edt->diff($sdt)->days + 1);
@@ -119,22 +139,43 @@ class AnalyticsController extends Controller {
                 'misc/others' => 'misc'
             ];
 
-            $stmt = $pdo->prepare("SELECT ent_type, COUNT(*) as c FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end GROUP BY ent_type");
-            $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-            $entRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            try {
+                $stmt = $pdo->prepare("SELECT ent_type, COUNT(*) as c FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end GROUP BY ent_type");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $entRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[entRows] start={$sdt->format('Y-m-d')} end={$edt->format('Y-m-d')} rows=" . var_export($entRows, true) . "\n", FILE_APPEND);
+            } catch (Exception $ex) { $logDbException('ent distribution', $ex); $entRows = []; }
             $entMap = [];
             foreach ($entRows as $r) {
                 $raw = strtolower(trim((string)$r['ent_type']));
-                if (isset($synonyms[$raw])) {
-                    $key = $synonyms[$raw];
+                // treat empty / null ent_type as misc
+                if ($raw === '' || $raw === null) {
+                    $key = 'misc';
                 } else {
-                    // fallback: if exact key exists, keep it; otherwise skip
-                    $key = array_key_exists($raw, $entCategories) ? $raw : null;
+                    // Normalize by removing punctuation and excess whitespace for robust matching
+                    $normalized = preg_replace('/[^a-z0-9\s]/', ' ', $raw);
+                    $normalized = preg_replace('/\s+/', ' ', trim($normalized));
+
+                    $key = null;
+                    // Pattern-based matching for common phrases
+                    if (preg_match('/head\s*.*\s*neck/', $normalized)) {
+                        $key = 'head_neck_tumor';
+                    } elseif (strpos($normalized, 'lifestyle') !== false) {
+                        $key = 'lifestyle_medicine';
+                    } elseif (preg_match('/^misc|\bother\b|\bothers\b/', $normalized)) {
+                        $key = 'misc';
+                    } elseif (isset($synonyms[$raw]) || isset($synonyms[$normalized])) {
+                        $key = $synonyms[$raw] ?? $synonyms[$normalized];
+                    } elseif (array_key_exists($raw, $entCategories) || array_key_exists($normalized, $entCategories)) {
+                        $key = array_key_exists($raw, $entCategories) ? $raw : $normalized;
+                    }
                 }
+
                 if ($key) {
                     $entMap[$key] = (isset($entMap[$key]) ? $entMap[$key] : 0) + (int)$r['c'];
                 }
             }
+            @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[entMapComputed] " . var_export($entMap, true) . "\n", FILE_APPEND);
             $entLabels = [];
             $entData = [];
             foreach ($entCategories as $key => $label) {
@@ -150,8 +191,8 @@ class AnalyticsController extends Controller {
             for ($i=1; $i<=$forecastDays; $i++) {
                 $future = (new DateTime($edt->format('Y-m-d')))->modify("+$i days");
                 $forecastLabels[] = $future->format('Y-m-d');
-                // Add a small random noise for demo but keep smoothing
-                $forecastData[] = max(0, (int)round($avgLast + rand(-2, 3)));
+                // Deterministic forecast: use smoothed average (no random noise)
+                $forecastData[] = max(0, (int)round($avgLast));
             }
 
             $summary = [
@@ -195,37 +236,38 @@ class AnalyticsController extends Controller {
             $this->success($payload);
 
         } catch (Exception $e) {
-            // When DB not available, fall back to mock
+            // Log exception, but return a deterministic fallback rather than random values
+            @file_put_contents(__DIR__ . '/../logs/api_exception.log', "[Analytics] Exception: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n", FILE_APPEND);
             $labels = [];
             $values = [];
             $period = new DatePeriod($sdt, new DateInterval('P1D'), $edt->modify('+1 day'));
             foreach ($period as $d) {
                 $labels[] = $d->format('Y-m-d');
-                $values[] = rand(8, 32);
+                // deterministic pseudo-random based on date range
+                $values[] = (int)(10 + (crc32($d->format('Y-m-d') . $sdt->format('Y-m-d') . $edt->format('Y-m-d')) % 23));
             }
             $summary = [
-                'total_patients' => rand(200, 500),
-                'appointments_completed' => rand(180, 470),
-                'cancellations' => rand(10, 60),
+                'total_patients' => 250,
+                'appointments_completed' => 200,
+                'cancellations' => 12,
                 'avg_visits_per_day' => round((array_sum($values) / max(1, count($values))), 2)
             ];
             $cancellationReasons = [
-                'No-show' => rand(5, 20),
-                'Scheduling conflict' => rand(1, 10),
-                'Clinician unavailable' => rand(0, 5),
-                'Other' => rand(0, 5)
+                'No-show' => 8,
+                'Scheduling conflict' => 3,
+                'Clinician unavailable' => 1,
+                'Other' => 0
             ];
             $forecastLabels = [];
             $forecastValues = [];
             for ($i = 1; $i <= 7; $i++) {
                 $future = (new DateTime($end))->modify("+$i days");
                 $forecastLabels[] = $future->format('Y-m-d');
-                $forecastValues[] = max(0, (int)($values[count($values)-1] ?? 10) + rand(-2, 4));
+                $forecastValues[] = (int)round(array_sum($values) / max(1, count($values)));
             }
             $entCategories = ['Ears','Nose','Throat','Head & Neck','Lifestyle','Misc / Others'];
             $entValues = [];
-            $entTotal = 0;
-            foreach ($entCategories as $i => $k) { $v = rand(5, 40); $entValues[] = $v; $entTotal += $v; }
+            foreach ($entCategories as $i => $k) { $entValues[] = (int)(5 + (crc32($k . $sdt->format('Y-m-d') . $edt->format('Y-m-d')) % 25)); }
 
             $payload = [
                 'summary' => $summary,
@@ -233,7 +275,7 @@ class AnalyticsController extends Controller {
                 'cancellations_by_reason' => ['labels' => array_keys($cancellationReasons), 'data' => array_values($cancellationReasons)],
                 'ent_distribution' => ['labels' => $entCategories, 'data' => $entValues],
                 'forecast' => ['labels' => $forecastLabels, 'data' => $forecastValues],
-                'suggestions' => ['No DB connection - showing sample suggestions']
+                'suggestions' => ['Database error - showing deterministic fallback data']
             ];
             header('Cache-Control: public, max-age=5');
             $this->success($payload);

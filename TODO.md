@@ -1,15 +1,12 @@
-1. "On the Analytics page, please change the Visit Trends visualization to a bar graph instead of its current chart type."
+1. "On the Appointments page, in the Appointment List, remove the time slot display and replace it with the rescheduled date from the Reschedule modal."
 
-2. "In the Predictive Analysis (7-day forecasting), please display the historical data as a bar graph, while keeping the forecasted data as a line graph."
+2. "In both the Add New Visit modal and the Add Appointment modal, please remove the 'Emergency' option from the Visit Type selection."
 
-3. "Please connect the historical bar graph and the 7-day forecast line graph into a single combined chart, ensuring a smooth and logical transition between historical data and forecasted values."
+3. "On the Analytics page, the ENT Distribution chart is not fetching data for the following categories: Head & Neck, Lifestyle, and Misc/Others. Please debug and ensure these categories are properly recorded and displayed."
 
-4. "There is an issue with the ENT Distribution data: the categories Head & Neck, Lifestyle, and Misc/Others are not being populated when visits are added. Please run a debugging session to identify why these categories are not fetching data and ensure all ENT types are correctly recorded and displayed."
+4. "On the Analytics page, the Cancellation Reasons chart is not working or is not retrieving data from canceled appointments. Please debug the data source and ensure cancellation reasons are correctly fetched and visualized."
+**"On the Appointments page calendar, add color highlighting for different months:
 
-5. **"For the Analytics date filter logic, please apply the following behavior:
-- All Time: Start from the system’s first recorded date (November 25) and use a 30-day forecasting trend.
-- This Month: Use data from the start of the current month and apply a 30-day forecasting trend.
-- Today and This Week: Apply a 7-day forecasting trend.
-- Custom Range: Use a hybrid forecasting logic where the forecast duration adapts between 7 days and 30 days, depending on the selected start and end dates."**
-
-6. "Please remove the Average Wait Time metric from the Analytics page and replace it with an Average Visits metric."
+5. Previous and Next Months: use plain white (#fff)
+Current Month: use a stronger blue color (#929CF7)
+This should visually distinguish the current month from adjacent months."**

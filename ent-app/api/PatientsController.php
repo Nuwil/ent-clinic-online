@@ -217,6 +217,25 @@ class PatientsController extends Controller
             }
             $data = array_intersect_key($data, array_flip($existingCols));
 
+            // Normalize certain empty strings to NULL to avoid SQL/DB strict mode errors
+            $nullableNumericOrDate = ['date_of_birth', 'height', 'weight', 'temperature', 'bmi'];
+            foreach ($nullableNumericOrDate as $nf) {
+                if (array_key_exists($nf, $data) && $data[$nf] === '') {
+                    $data[$nf] = null;
+                }
+            }
+
+            // If a date_of_birth was provided and not null, try to normalize to Y-m-d format
+            if (array_key_exists('date_of_birth', $data) && !empty($data['date_of_birth'])) {
+                try {
+                    $dt = new DateTime($data['date_of_birth']);
+                    $data['date_of_birth'] = $dt->format('Y-m-d');
+                } catch (Exception $e) {
+                    // Invalid date string — set to null to avoid SQL error and let caller know
+                    $data['date_of_birth'] = null;
+                }
+            }
+
             // If height and weight provided compute BMI; also set vitals_updated_at if any vitals provided
             if ((isset($input['height']) && $input['height'] !== '') || (isset($input['weight']) && $input['weight'] !== '') ) {
                 $height = isset($input['height']) && $input['height'] !== '' ? floatval($input['height']) : null;
@@ -248,6 +267,18 @@ class PatientsController extends Controller
 
             $this->success([], 'Patient updated successfully');
         } catch (Exception $e) {
+            // Log error for debugging
+            $logDir = __DIR__ . '/../logs';
+            if (is_dir($logDir) && is_writable($logDir)) {
+                $entry = [
+                    'time' => date('c'),
+                    'action' => 'update_patient',
+                    'patient_id' => $id,
+                    'input' => isset($input) ? $input : null,
+                    'error' => $e->getMessage()
+                ];
+                @file_put_contents($logDir . '/patient_update.log', json_encode($entry) . PHP_EOL, FILE_APPEND | LOCK_EX);
+            }
             $this->error($e->getMessage(), 500);
         }
     }

@@ -95,7 +95,6 @@ CREATE TABLE IF NOT EXISTS appointments (
     duration INT,
     status ENUM('Pending', 'Accepted', 'Completed', 'Cancelled', 'No-Show') DEFAULT 'Pending',
     notes TEXT,
-        chief_complaint TEXT,
     blood_pressure VARCHAR(20),
     temperature DECIMAL(4,1),
     pulse_rate INT,
@@ -264,9 +263,17 @@ INSERT IGNORE INTO `appointment_types` (`key`,`label`,`duration_minutes`,`buffer
 -- ============================================================================
 -- NOTES ON MIGRATIONS
 -- ============================================================================
+-- The following migrations have been integrated into the main schema above:
 --
--- NOTE: The following migrations and helper SQL files were consolidated into
--- this schema.sql so a fresh database can be created by running this single
--- file. The separate migration files and legacy `appointments_schema.sql`
--- have been removed from the repository to avoid divergence. This file
--- contains the complete schema and common seed values.
+-- 1. add_vitals_to_appointments.sql
+--    The vitals columns (blood_pressure, temperature, pulse_rate, respiratory_rate,
+--    oxygen_saturation) are already included in the appointments and patient_visits
+--    table definitions.
+--
+-- 2. migrations_add_accepted_status.sql
+--    The appointments status ENUM already includes 'Accepted' status.
+--    Schema: ENUM('Pending', 'Accepted', 'Completed', 'Cancelled', 'No-Show')
+--
+-- 3. migrations/add_appointment_id_to_visits.sql
+--    The appointment_id foreign key is already included in the patient_visits
+--    table definition, linking visits to their originating appointments.
