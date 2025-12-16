@@ -318,7 +318,7 @@ $end = $_GET['end'] ?? date('Y-m-d');
         document.getElementById('downloadEnt').onclick = function() { downloadChart(entChart, 'ent-distribution.png'); };
 
         // Ensure charts resize when container changes
-        window.addEventListener('resize', function() { [trendChart, forecastChart, entChart, pieChart].forEach(c => { if (c) c.resize(); }); });
+        window.addEventListener('resize', function() { [trendChart, forecastChart, entChart, hnlmoChart].forEach(c => { if (c) c.resize(); }); });
     }
 
     function applyFilter(start, end) {
