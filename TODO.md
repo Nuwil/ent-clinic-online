@@ -1,12 +1,19 @@
-1. "On the Appointments page, in the Appointment List, remove the time slot display and replace it with the rescheduled date from the Reschedule modal."
+1. "On the Analytics page, please remove the existing Cancellation Reason chart and replace it with a new chart titled HNLM/O Distribution (Head & Neck, Lifestyle, Misc/Others)." ✅ Completed — replaced the Cancellation Reasons chart with a HNLM/O pie (see `public/pages/analytics.php`)
 
-2. "In both the Add New Visit modal and the Add Appointment modal, please remove the 'Emergency' option from the Visit Type selection."
+2. "Move the categories Head & Neck, Lifestyle, and Misc/Others out of the main ENT Distribution chart and display them exclusively under the new HNLM/O Distribution chart." ✅ Completed — backend now splits HNLM/O out of `ent_distribution` into `hnlmo_distribution` (`api/AnalyticsController.php`)
 
-3. "On the Analytics page, the ENT Distribution chart is not fetching data for the following categories: Head & Neck, Lifestyle, and Misc/Others. Please debug and ensure these categories are properly recorded and displayed."
+3. "Set the HNLM/O Distribution chart type to a Pie Chart to visually differentiate it from the ENT Distribution chart." ✅ Completed — HNLM/O uses a pie chart in the UI (`public/pages/analytics.php`)
 
-4. "On the Analytics page, the Cancellation Reasons chart is not working or is not retrieving data from canceled appointments. Please debug the data source and ensure cancellation reasons are correctly fetched and visualized."
-**"On the Appointments page calendar, add color highlighting for different months:
+4. "Update the ENT Distribution chart so it only displays its remaining applicable categories and no longer includes Head & Neck, Lifestyle, or Misc/Others." ✅ Completed — ENT chart now excludes HNLM/O categories (backend + frontend)
 
-5. Previous and Next Months: use plain white (#fff)
-Current Month: use a stronger blue color (#929CF7)
-This should visually distinguish the current month from adjacent months."**
+5. **"Add a short descriptive summary below each chart:
+ - Visit Trends: Display a brief insight such as the date or day with the highest number of visits.
+ - Predictive / Forecasting Analysis: Provide a concise but more refined explanation of the trend and forecast behavior (e.g., expected increase or decrease in visits over the forecast period).
+ - ENT Distribution / HNLM/O Distribution: Include a short summary highlighting the most dominant category."** ✅ Completed — summaries added; backend computes `visits_summary`, `forecast_summary`, `ent_summary`, `hnlmo_summary` and the frontend displays them.
+
+Files changed (high level):
+- `ent-app/api/AnalyticsController.php` (hnlmo split + summaries + debug)
+- `ent-app/public/pages/analytics.php` (UI: HNLM/O pie, summaries, chart logic)
+- `ent-app/tests/*` (updated tests and Playwright spec to assert new UI/API shape)
+
+Next: Run CI to validate tests and E2E; if you want I can trigger the workflow or you can run it from Actions UI. (I can run it if you provide a token with `repo`/`workflow` scope.)
