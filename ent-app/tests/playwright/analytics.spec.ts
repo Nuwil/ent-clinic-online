@@ -12,7 +12,9 @@ test('Analytics page renders charts and suggestions', async ({ page }) => {
   await expect(page.locator('#visitsTrendChart')).toBeVisible();
   await expect(page.locator('#forecastChartSmall')).toBeVisible();
   await expect(page.locator('#entDonutChart')).toBeVisible();
-  await expect(page.locator('#cancellationsPie')).toBeVisible();
+  await expect(page.locator('#hnlmoPie')).toBeVisible();
+  await expect(page.locator('#visitsTrendSummary')).toBeVisible();
+  await expect(page.locator('#forecastSummary')).toBeVisible();
   await expect(page.locator('#downloadTrend')).toBeVisible();
   await expect(page.locator('#analyticsSuggestions')).toBeVisible();
 

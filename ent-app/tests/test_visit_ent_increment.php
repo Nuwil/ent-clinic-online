@@ -28,9 +28,9 @@ $headers = ['X-User-Id: 2', 'X-User-Role: doctor'];
 $today = date('Y-m-d');
 list($res1,) = http_req('GET', $baseUrl . '/api.php?route=/api/analytics&start=' . $today . '&end=' . $today, null, $headers);
 $d1 = json_decode($res1, true);
-$ent = $d1['data']['ent_distribution'] ?? $d1['ent_distribution'] ?? null;
-if (!$ent) { echo "FAILED: Cannot read ent_distribution\n"; exit(1); }
-$labels = $ent['labels']; $data = $ent['data'];
+$hnl = $d1['data']['hnlmo_distribution'] ?? $d1['hnlmo_distribution'] ?? null;
+if (!$hnl) { echo "FAILED: Cannot read hnlmo_distribution\n"; exit(1); }
+$labels = $hnl['labels']; $data = $hnl['data'];
 $idx = array_search('Head & Neck', $labels);
 $before = ($idx !== false) ? $data[$idx] : 0;
 

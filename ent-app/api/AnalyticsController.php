@@ -239,14 +239,23 @@ class AnalyticsController extends Controller {
                 }
             }
             @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[entMapComputed] " . var_export($entMap, true) . "\n", FILE_APPEND);
+            // Split HNLM/O distribution (Head & Neck, Lifestyle, Misc) out from the main ENT distribution
+            $hnlmoKeys = ['head_neck_tumor', 'lifestyle_medicine', 'misc'];
+            $hnlmoLabels = [];
+            $hnlmoData = [];
             $entLabels = [];
             $entData = [];
             foreach ($entCategories as $key => $label) {
-                $entLabels[] = $label;
-                $entData[] = $entMap[$key] ?? 0;
+                if (in_array($key, $hnlmoKeys)) {
+                    $hnlmoLabels[] = $label;
+                    $hnlmoData[] = $entMap[$key] ?? 0;
+                } else {
+                    $entLabels[] = $label;
+                    $entData[] = $entMap[$key] ?? 0;
+                }
             }
             // Indicate whether we had to infer categories (for UI debug/help)
-            $entInferred = (!empty($entMap['head_neck_tumor']) || !empty($entMap['lifestyle_medicine'])) || (isset($inferredAny) && $inferredAny) || !empty($entMap['head_neck_tumor_inferred']) || !empty($entMap['lifestyle_medicine_inferred']);
+            $entInferred = (isset($inferredAny) && $inferredAny) || !empty($entMap['head_neck_tumor_inferred']) || !empty($entMap['lifestyle_medicine_inferred']);
             // Forecast: simple moving average baseline computed from the last min(14, range) days, but extend to forecastDays
             $lookback = max(1, min(14, count($values)));
             $lastValues = array_slice($values, max(0, count($values) - $lookback));
@@ -260,6 +269,31 @@ class AnalyticsController extends Controller {
                 $forecastData[] = max(0, (int)round($avgLast));
             }
 
+            // Visits summary: find the date/day with the highest number of visits
+            $topDay = null; $topCount = 0;
+            foreach ($values as $i => $v) {
+                if ($v > $topCount) { $topCount = $v; $topDay = $labels[$i] ?? null; }
+            }
+            $visitsSummary = ['top_day' => $topDay, 'top_day_count' => $topCount];
+
+            // Forecast summary (compare first half vs second half of forecast window)
+            $forecastSummary = '';
+            if (count($forecastData) >= 2) {
+                $n = count($forecastData);
+                $first = array_sum(array_slice($forecastData, 0, (int)floor($n/2))) / max(1, (int)floor($n/2));
+                $last = array_sum(array_slice($forecastData, (int)ceil($n/2))) / max(1, (int)ceil($n/2));
+                $pct = ($first > 0) ? (($last - $first) / max(1, $first) * 100) : ($last - $first) * 100;
+                if ($pct > 5) $forecastSummary = 'Forecast indicates a likely increase in visits over the forecast period.';
+                elseif ($pct < -5) $forecastSummary = 'Forecast indicates a likely decrease in visits over the forecast period.';
+                else $forecastSummary = 'Forecast is relatively stable for the forecast period.';
+            }
+
+            // ENT / HNLM/O summaries: most dominant category
+            $entDominant = null; $entDominantCount = 0;
+            foreach ($entData as $i => $v) { if ($v > $entDominantCount) { $entDominantCount = $v; $entDominant = $entLabels[$i] ?? null; } }
+            $hnlmoDominant = null; $hnlmoDominantCount = 0;
+            foreach ($hnlmoData as $i => $v) { if ($v > $hnlmoDominantCount) { $hnlmoDominantCount = $v; $hnlmoDominant = $hnlmoLabels[$i] ?? null; } }
+
             $summary = [
                 'total_patients' => $totalPatients,
                 'appointments_completed' => $appointmentsCompleted,
@@ -270,12 +304,17 @@ class AnalyticsController extends Controller {
             $payload = [
                 'summary' => $summary,
                 'visits_trend' => ['labels' => $labels, 'data' => $values],
+                'visits_summary' => $visitsSummary,
                 'cancellations_by_reason' => ['labels' => $cLabels, 'data' => $cData],
                 'ent_distribution' => ['labels' => $entLabels, 'data' => $entData],
+                'hnlmo_distribution' => ['labels' => $hnlmoLabels, 'data' => $hnlmoData],
                 'ent_inferred' => !empty(
                     $entInferred
                 ),
-                'forecast' => ['labels' => $forecastLabels, 'data' => $forecastData]
+                'ent_summary' => ['dominant' => $entDominant, 'count' => $entDominantCount],
+                'hnlmo_summary' => ['dominant' => $hnlmoDominant, 'count' => $hnlmoDominantCount],
+                'forecast' => ['labels' => $forecastLabels, 'data' => $forecastData],
+                'forecast_summary' => $forecastSummary
             ];
 
             // If debugging requested, include raw ent rows and a misc sample to aid diagnosis

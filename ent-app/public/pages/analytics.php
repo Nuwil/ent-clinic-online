@@ -45,10 +45,12 @@ $end = $_GET['end'] ?? date('Y-m-d');
             <div class="card">
                 <h3>Visit Trends <button class="btn btn-sm btn-outline" id="downloadTrend" style="float:right;margin-top:-6px;">Download</button></h3>
                 <div class="chart-canvas-wrapper"><canvas id="visitsTrendChart" class="chart-canvas"></canvas></div>
+                <div id="visitsTrendSummary" style="margin-top:8px;font-size:0.9rem;color:#333;"></div>
             </div>
             <div class="card">
                 <h3 id="forecastHeader">Predictive Analysis — <span id="forecastDaysLabel">7-Day Forecast</span> <button class="btn btn-sm btn-outline" id="downloadForecastSmall" style="float:right;margin-top:-6px;">Download</button></h3>
                 <div class="chart-canvas-wrapper"><canvas id="forecastChartSmall" class="chart-canvas"></canvas></div>
+                <div id="forecastSummary" style="margin-top:8px;font-size:0.9rem;color:#333;"></div>
             </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:16px;">
@@ -58,8 +60,9 @@ $end = $_GET['end'] ?? date('Y-m-d');
                 <div id="entDistributionSummary" style="margin-top:8px;font-size:0.9rem;color:#333;display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
             <div class="card">
-                <h3>Cancellation Reasons <button class="btn btn-sm btn-outline" id="downloadPie" style="float:right;margin-top:-6px;">Download</button></h3>
-                <div class="chart-canvas-wrapper"><canvas id="cancellationsPie" class="chart-canvas"></canvas></div>
+                <h3>HNLM/O Distribution <button class="btn btn-sm btn-outline" id="downloadHNLMOPie" style="float:right;margin-top:-6px;">Download</button></h3>
+                <div class="chart-canvas-wrapper"><canvas id="hnlmoPie" class="chart-canvas"></canvas></div>
+                <div id="hnlmoDistributionSummary" style="margin-top:8px;font-size:0.9rem;color:#333;display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
             <div class="card">
                 <h4>Recommendations</h4>
@@ -73,9 +76,9 @@ $end = $_GET['end'] ?? date('Y-m-d');
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const trendCtx = document.getElementById('visitsTrendChart').getContext('2d');
-    const pieCtx = document.getElementById('cancellationsPie').getContext('2d');
+    const hnlmoCtx = document.getElementById('hnlmoPie').getContext('2d');
     const forecastSmallCtx = document.getElementById('forecastChartSmall').getContext('2d');
-    let trendChart = null, forecastChart = null, pieChart = null, entChart = null;
+    let trendChart = null, forecastChart = null, hnlmoChart = null, entChart = null;
 
     function fetchAnalytics(start, end) {
         const params = new URLSearchParams({ start: start, end: end });
@@ -124,6 +127,23 @@ $end = $_GET['end'] ?? date('Y-m-d');
                 scales: { x: { display: true }, y: { beginAtZero: true, max: trendYMax, ticks: { stepSize: 5 } } }
             }
         });
+        // Visit Trends summary (top day)
+        const trendSummaryEl = document.getElementById('visitsTrendSummary');
+        if (trendSummaryEl) {
+            const vs = data.visits_summary || {};
+            if (vs.top_day) {
+                trendSummaryEl.innerText = 'Top day: ' + vs.top_day + ' (' + vs.top_day_count + ' visits)';
+            } else {
+                // fallback compute from history values
+                const hv = historyValues || [];
+                const hl = historyLabels || [];
+                if (hv.length) {
+                    let max = -1, idx = 0;
+                    hv.forEach((v,i)=>{ if (v > max) { max = v; idx = i; } });
+                    if (max > 0) trendSummaryEl.innerText = 'Top day: ' + hl[idx] + ' (' + max + ' visits)'; else trendSummaryEl.innerText = 'No visits in selected range';
+                } else trendSummaryEl.innerText = 'No visits in selected range';
+            }
+        }
 
         // Hybrid Forecast chart: history bars + forecast line in the same chart (predictive)
         const combinedLabels = historyLabels.concat(forecastLabels);
@@ -154,6 +174,36 @@ $end = $_GET['end'] ?? date('Y-m-d');
                 scales: { x: { display: true }, y: { beginAtZero: true, max: forecastYMax, ticks: { stepSize: 5 } } }
             }
         });
+        // Forecast summary (text)
+        const forecastSummaryEl = document.getElementById('forecastSummary');
+        if (forecastSummaryEl) {
+            if (data.forecast_summary && data.forecast_summary.length) {
+                forecastSummaryEl.innerText = data.forecast_summary;
+            } else if (data.forecast_summary && typeof data.forecast_summary === 'string' && data.forecast_summary.length) {
+                forecastSummaryEl.innerText = data.forecast_summary;
+            } else if (data.forecast_summary && typeof data.forecast_summary === 'object' && data.forecast_summary.text) {
+                forecastSummaryEl.innerText = data.forecast_summary.text;
+            } else if (data.forecast_summary && typeof data.forecast_summary === 'string') {
+                forecastSummaryEl.innerText = data.forecast_summary;
+            } else if (data.forecast_summary && data.forecast_summary === '') {
+                forecastSummaryEl.innerText = '';
+            } else if (data.forecast_summary && typeof data.forecast_summary === 'object' && data.forecast_summary.length === 0) {
+                forecastSummaryEl.innerText = '';
+            } else {
+                // Fallback: compute simple trend
+                const fv = forecastValues || [];
+                if (fv.length >= 2) {
+                    const n = fv.length; const first = fv.slice(0, Math.floor(n/2)).reduce((a,b)=>a+b,0)/(Math.max(1, Math.floor(n/2)));
+                    const last = fv.slice(Math.ceil(n/2)).reduce((a,b)=>a+b,0)/(Math.max(1, Math.ceil(n/2)));
+                    const pct = (first>0) ? ((last-first)/first*100) : ((last-first)*100);
+                    if (pct > 5) forecastSummaryEl.innerText = 'Forecast indicates a likely increase in visits over the forecast period.';
+                    else if (pct < -5) forecastSummaryEl.innerText = 'Forecast indicates a likely decrease in visits over the forecast period.';
+                    else forecastSummaryEl.innerText = 'Forecast is relatively stable for the forecast period.';
+                } else {
+                    forecastSummaryEl.innerText = '';
+                }
+            }
+        }
 
         // Update forecast days label dynamically
         const forecastDaysCount = forecastLabels.length || 0;
@@ -223,20 +273,31 @@ $end = $_GET['end'] ?? date('Y-m-d');
             }
         }
 
-        // Cancellation pie (handle missing arrays gracefully)
-        if (pieChart) pieChart.destroy();
-            const cLabelsRaw = (data.cancellations_by_reason && Array.isArray(data.cancellations_by_reason.labels)) ? data.cancellations_by_reason.labels : [];
-            const cDataRaw = (data.cancellations_by_reason && Array.isArray(data.cancellations_by_reason.data)) ? data.cancellations_by_reason.data : [];
-            const cLabels = (cLabelsRaw.length === 0) ? ['No cancellations'] : cLabelsRaw;
-            const cData = (cDataRaw.length === 0) ? [0] : cDataRaw;
-        pieChart = new Chart(pieCtx, {
+        // HNLM/O Distribution pie (Head & Neck, Lifestyle, Misc/Others)
+        if (hnlmoChart) hnlmoChart.destroy();
+            const hLabels = (data.hnlmo_distribution && Array.isArray(data.hnlmo_distribution.labels)) ? data.hnlmo_distribution.labels : [];
+            const hData = (data.hnlmo_distribution && Array.isArray(data.hnlmo_distribution.data)) ? data.hnlmo_distribution.data : [];
+            const hLabelsFinal = (hLabels.length === 0) ? ['No data'] : hLabels;
+            const hDataFinal = (hData.length === 0) ? [0] : hData;
+        hnlmoChart = new Chart(hnlmoCtx, {
             type: 'pie',
             data: {
-                labels: cLabels,
-                datasets: [{ data: cData, backgroundColor: ['#f43','rgba(88,103,242,0.85)','rgba(79,195,247,0.6)','rgba(111,111,111,0.5)'] }]
+                labels: hLabelsFinal,
+                datasets: [{ data: hDataFinal, backgroundColor: ['#e17055','#00b894','#b2bec3'] }]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
+        // HNLM/O summary: dominant category
+        const hnlmoSummaryEl = document.getElementById('hnlmoDistributionSummary');
+        hnlmoSummaryEl.innerHTML = '';
+        const hTotal = hDataFinal.reduce((a,b)=>a+(b||0),0) || 0;
+        if (hTotal === 0) {
+            const sp = document.createElement('div'); sp.innerText = 'No HNLM/O visit data for the selected range'; sp.style.color = '#666'; hnlmoSummaryEl.appendChild(sp);
+        } else {
+            const dom = data.hnlmo_summary && data.hnlmo_summary.dominant ? data.hnlmo_summary.dominant : hLabelsFinal[0];
+            const cnt = data.hnlmo_summary && data.hnlmo_summary.count ? data.hnlmo_summary.count : hDataFinal[0];
+            const sp = document.createElement('div'); sp.style.fontSize='0.9rem'; sp.style.color='#333'; sp.innerText = dom + ': ' + cnt + ' visits (dominant)'; hnlmoSummaryEl.appendChild(sp);
+        }
 
         // Suggestions (prescriptive)
         const suggestionsEl = document.getElementById('analyticsSuggestions');
@@ -251,7 +312,7 @@ $end = $_GET['end'] ?? date('Y-m-d');
 
         // Attach download handlers
         document.getElementById('downloadTrend').onclick = function() { downloadChart(trendChart, 'visits-trend.png'); };
-        document.getElementById('downloadPie').onclick = function() { downloadChart(pieChart, 'cancellations.png'); };
+        const dlHN = document.getElementById('downloadHNLMOPie'); if (dlHN) dlHN.onclick = function() { downloadChart(hnlmoChart, 'hnlmo-distribution.png'); };
         const df = document.getElementById('downloadForecastSmall');
         if (df) df.onclick = function() { downloadChart(forecastChart, 'forecast-hybrid.png'); };
         document.getElementById('downloadEnt').onclick = function() { downloadChart(entChart, 'ent-distribution.png'); };

@@ -39,9 +39,9 @@ foreach ($cases as $c) {
 // Query analytics for today
 list($ares,) = http_req('GET', $base . '/api.php?route=/api/analytics&start=' . $today . '&end=' . $today, null, $headers);
 $aj = json_decode($ares, true);
-$ent = $aj['data']['ent_distribution'] ?? $aj['ent_distribution'] ?? null;
-if (!$ent) { echo "FAILED: Cannot read ent_distribution\n"; exit(1); }
-$labels = $ent['labels']; $data = $ent['data'];
+$hnl = $aj['data']['hnlmo_distribution'] ?? $aj['hnlmo_distribution'] ?? null;
+if (!$hnl) { echo "FAILED: Cannot read hnlmo_distribution\n"; exit(1); }
+$labels = $hnl['labels']; $data = $hnl['data'];
 
 foreach ($cases as $c) {
     $idx = array_search($c['label'], $labels);
