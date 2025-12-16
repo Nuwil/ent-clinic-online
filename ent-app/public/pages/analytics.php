@@ -60,7 +60,7 @@ $end = $_GET['end'] ?? date('Y-m-d');
                 <div id="entDistributionSummary" style="margin-top:8px;font-size:0.9rem;color:#333;display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
             <div class="card">
-                <h3>HNLM/O Distribution <button class="btn btn-sm btn-outline" id="downloadHNLMOPie" style="float:right;margin-top:-6px;">Download</button></h3>
+                <h3>HNLM/O Distribution <button class="btn btn-sm btn-outline" id="downloadHNLMOPie" style="float:right;margin-top:-6px;">Download</button> <button class="btn btn-sm btn-outline" id="inferHnlmo" style="float:right;margin-top:-6px;margin-right:6px;">Infer (dry-run)</button> <button class="btn btn-sm btn-danger" id="applyInferHnlmo" style="float:right;margin-top:-6px;margin-right:6px;">Apply Inference</button></h3>
                 <div class="chart-canvas-wrapper"><canvas id="hnlmoPie" class="chart-canvas"></canvas></div>
                 <div id="hnlmoDistributionSummary" style="margin-top:8px;font-size:0.9rem;color:#333;display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
@@ -316,6 +316,33 @@ $end = $_GET['end'] ?? date('Y-m-d');
         const df = document.getElementById('downloadForecastSmall');
         if (df) df.onclick = function() { downloadChart(forecastChart, 'forecast-hybrid.png'); };
         document.getElementById('downloadEnt').onclick = function() { downloadChart(entChart, 'ent-distribution.png'); };
+
+        // Inference buttons
+        const inferBtn = document.getElementById('inferHnlmo');
+        const applyBtn = document.getElementById('applyInferHnlmo');
+        if (inferBtn) inferBtn.onclick = function() {
+            const s = document.getElementById('analyticsStart').value || '';
+            const e = document.getElementById('analyticsEnd').value || '';
+            if (!confirm('Run inference (dry-run) for the selected range? This will not modify data.')) return;
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/analytics&start=' + s + '&end=' + e + '&apply_inference=0', { method: 'GET' }).then(r => r.json()).then(j => {
+                if (j && j.data) {
+                    const m = j.data.matched || {};
+                    alert('Inference dry-run results:\nHead & Neck: ' + (m.head_neck_tumor ? m.head_neck_tumor.length : 0) + '\nLifestyle: ' + (m.lifestyle_medicine ? m.lifestyle_medicine.length : 0));
+                } else alert('Unexpected response');
+            }).catch(err => { console.error(err); alert('Inference dry-run failed: ' + err.message); });
+        };
+        if (applyBtn) applyBtn.onclick = function() {
+            const s = document.getElementById('analyticsStart').value || '';
+            const e = document.getElementById('analyticsEnd').value || '';
+            if (!confirm('Apply inference and update matching visits for the selected range? This will modify the database. Proceed only if you understand the changes.')) return;
+            fetch('<?php echo baseUrl(); ?>/api.php?route=/api/analytics&start=' + s + '&end=' + e + '&apply_inference=1', { method: 'GET' }).then(r => r.json()).then(j => {
+                if (j && j.data) {
+                    const applied = j.data.applied || [];
+                    alert('Inference applied: ' + applied.length + ' rows updated. The analytics will be refreshed.');
+                    applyFilter(s,e);
+                } else alert('Unexpected response from apply');
+            }).catch(err => { console.error(err); alert('Apply inference failed: ' + err.message); });
+        };
 
         // Ensure charts resize when container changes
         window.addEventListener('resize', function() { [trendChart, forecastChart, entChart, hnlmoChart].forEach(c => { if (c) c.resize(); }); });

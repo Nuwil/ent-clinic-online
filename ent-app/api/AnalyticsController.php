@@ -38,6 +38,40 @@ class AnalyticsController extends Controller {
         try {
             $pdo = $this->db;
 
+            // Allow a manual inference run via query param (dry-run by default; set apply_inference=1 to apply changes). Admin-only.
+            if (isset($_GET['apply_inference'])) {
+                // Dry-run allowed for doctor+admin; applying changes requires admin
+                if ((string)$_GET['apply_inference'] === '1') {
+                    if (!$this->isAuthorized(['admin'])) $this->error('Unauthorized', 403);
+                } else {
+                    if (!$this->isAuthorized(['admin','doctor'])) $this->error('Unauthorized', 403);
+                }
+                $apply = (string)$_GET['apply_inference'] === '1';
+                $stmt = $pdo->prepare("SELECT id, ent_type, chief_complaint, diagnosis, notes FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end AND (ent_type IS NULL OR TRIM(ent_type) = '' OR LOWER(ent_type) IN ('misc','other','misc/others')) LIMIT 2000");
+                $stmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $toUpdate = ['head_neck_tumor' => [], 'lifestyle_medicine' => []];
+                foreach ($rows as $r) {
+                    $txt = strtolower(trim(($r['chief_complaint'] ?? '') . ' ' . ($r['diagnosis'] ?? '') . ' ' . ($r['notes'] ?? '')));
+                    if (preg_match('/\b(head|neck|lump|mass|tumor|tumour|swelling|thyroid|tonsil)s?\b/i', $txt)) {
+                        $toUpdate['head_neck_tumor'][] = (int)$r['id'];
+                    } elseif (preg_match('/\b(lifestyle|diet|smoking|exercise|obesity|weight|alcohol|sedentary|dietary)\b/i', $txt)) {
+                        $toUpdate['lifestyle_medicine'][] = (int)$r['id'];
+                    }
+                }
+                $applied = [];
+                if ($apply) {
+                    $upd = $pdo->prepare('UPDATE patient_visits SET ent_type = :ent WHERE id = :id');
+                    foreach ($toUpdate as $ent => $ids) {
+                        foreach ($ids as $id) {
+                            try { $upd->execute(['ent' => $ent, 'id' => $id]); $applied[] = ['id' => $id, 'ent' => $ent]; } catch (Exception $e) { @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inference_apply_error] id={$id} ent={$ent} msg=" . $e->getMessage() . "\n", FILE_APPEND); }
+                        }
+                    }
+                }
+                @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[infer_run] range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')} matched_head_neck=" . count($toUpdate['head_neck_tumor']) . " matched_lifestyle=" . count($toUpdate['lifestyle_medicine']) . " applied=" . count($applied) . "\n", FILE_APPEND);
+                $this->success(['dry_run' => !$apply, 'matched' => $toUpdate, 'applied' => $applied]);
+            }
+
             // A small helper to log DB exceptions for diagnostics
             $logDbException = function($msg, $ex) {
                 @file_put_contents(__DIR__ . '/../logs/api_exception.log', "[Analytics] " . $msg . " - " . $ex->getMessage() . "\n" . $ex->getTraceAsString() . "\n", FILE_APPEND);
@@ -107,7 +141,16 @@ class AnalyticsController extends Controller {
                     // As a fallback, report Unknown reason bucket so UI shows something
                     $cancellationsRows = [['reason' => 'Unknown', 'c' => $cancellations]];
                 }
-            } catch (Exception $ex) { $logDbException('cancellations by reason', $ex); $cancellationsRows = []; }
+            } catch (Exception $ex) { 
+                $logDbException('cancellations by reason', $ex);
+                // Fallback: if the cancellations breakdown query failed (missing column e.g. cancellation_reason), provide an Unknown bucket
+                try {
+                    $safe = $pdo->prepare("SELECT COUNT(*) as c FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end)");
+                    $safe->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                    $cN = (int)($safe->fetchColumn() ?? 0);
+                } catch (Exception $ex2) { $logDbException('cancellations safe count', $ex2); $cN = 0; }
+                $cancellationsRows = [['reason' => 'Unknown', 'c' => $cN]];
+            }
             $cLabels = [];
             $cData = [];
             foreach ($cancellationsRows as $r) { $cLabels[] = $r['reason'] ?? 'Unknown'; $cData[] = (int)$r['c']; }
@@ -234,6 +277,54 @@ class AnalyticsController extends Controller {
                             $entMap['lifestyle_medicine_inferred'] = ($entMap['lifestyle_medicine_inferred'] ?? 0) + $matched;
                         }
                     }
+
+                    // If SQL-based inference found nothing, fallback to PHP-side pattern scanning for misc rows
+                    if (($needHeadNeck && empty($entMap['head_neck_tumor'])) || ($needLifestyle && empty($entMap['lifestyle_medicine']))) {
+                        try {
+                            $fallbackStmt = $pdo->prepare("SELECT id, chief_complaint, diagnosis, notes FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end AND (ent_type IS NULL OR TRIM(ent_type) = '' OR LOWER(ent_type) IN ('misc','other','misc/others')) ORDER BY visit_date DESC LIMIT 1000");
+                            $fallbackStmt->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                            $rows = $fallbackStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                            $hn_matched = 0; $hn_examples = [];
+                            $l_matched = 0; $l_examples = [];
+
+                            foreach ($rows as $r) {
+                                $txt = strtolower(trim(($r['chief_complaint'] ?? '') . ' ' . ($r['diagnosis'] ?? '') . ' ' . ($r['notes'] ?? '')));
+                                // head & neck keywords (broad)
+                                if (($needHeadNeck && preg_match('/\b(head|neck|lump|mass|tumor|tumour|swelling|thyroid|tonsil)s?\b/i', $txt))) {
+                                    $hn_matched++;
+                                    if (count($hn_examples) < 10) $hn_examples[] = $r;
+                                }
+                                // lifestyle keywords (broad)
+                                if (($needLifestyle && preg_match('/\b(lifestyle|diet|smoking|exercise|obesity|weight|alcohol|sedentary|dietary)\b/i', $txt))) {
+                                    $l_matched++;
+                                    if (count($l_examples) < 10) $l_examples[] = $r;
+                                }
+                            }
+
+                            if ($hn_matched > 0) {
+                                $entMap['head_neck_tumor'] = ($entMap['head_neck_tumor'] ?? 0) + $hn_matched;
+                                if (!empty($entMap['misc'])) $entMap['misc'] = max(0, $entMap['misc'] - $hn_matched);
+                                @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inferred_head_neck_php] matched={$hn_matched} samples=" . json_encode(array_slice($hn_examples,0,3)) . " range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
+                                $inferredAny = true;
+                                $entMap['head_neck_tumor_inferred'] = ($entMap['head_neck_tumor_inferred'] ?? 0) + $hn_matched;
+                                // store for later inclusion in debug payload
+                                $phpInferenceFallback['head_neck'] = ['matched' => $hn_matched, 'examples' => $hn_examples];
+                            }
+
+                            if ($l_matched > 0) {
+                                $entMap['lifestyle_medicine'] = ($entMap['lifestyle_medicine'] ?? 0) + $l_matched;
+                                if (!empty($entMap['misc'])) $entMap['misc'] = max(0, $entMap['misc'] - $l_matched);
+                                @file_put_contents(__DIR__ . '/../logs/analytics_debug.log', "[inferred_lifestyle_php] matched={$l_matched} samples=" . json_encode(array_slice($l_examples,0,3)) . " range={$sdt->format('Y-m-d')}:{$edt->format('Y-m-d')}\n", FILE_APPEND);
+                                $inferredAny = true;
+                                $entMap['lifestyle_medicine_inferred'] = ($entMap['lifestyle_medicine_inferred'] ?? 0) + $l_matched;
+                                $phpInferenceFallback['lifestyle'] = ['matched' => $l_matched, 'examples' => $l_examples];
+                            }
+
+                        } catch (Exception $expf) {
+                            $logDbException('ent inference php fallback', $expf);
+                        }
+                    }
                 } catch (Exception $ex) {
                     $logDbException('ent inference', $ex);
                 }
@@ -327,10 +418,52 @@ class AnalyticsController extends Controller {
                     // Also include cancellations rows and a small sample to aid diagnosis
                     try {
                         $payload['cancellations_debug'] = ['rows' => $cancellationsRows];
-                        $dbg = $pdo->prepare("SELECT id, cancellation_reason, appointment_date, updated_at FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end) LIMIT 100");
-                        $dbg->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
-                        $payload['cancellations_debug']['sample'] = $dbg->fetchAll(PDO::FETCH_ASSOC);
+                        try {
+                            $dbg = $pdo->prepare("SELECT id, cancellation_reason, appointment_date, updated_at FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end) LIMIT 100");
+                            $dbg->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                            $payload['cancellations_debug']['sample'] = $dbg->fetchAll(PDO::FETCH_ASSOC);
+                        } catch (Exception $ex3) {
+                            // Fallback when cancellation_reason doesn't exist
+                            $logDbException('cancellations debug sample (fallback)', $ex3);
+                            try {
+                                $dbg = $pdo->prepare("SELECT id, appointment_date, updated_at FROM appointments WHERE status = 'Cancelled' AND (DATE(appointment_date) BETWEEN :start AND :end OR DATE(updated_at) BETWEEN :start AND :end) LIMIT 100");
+                                $dbg->execute(['start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                                $payload['cancellations_debug']['sample'] = $dbg->fetchAll(PDO::FETCH_ASSOC);
+                            } catch (Exception $ex4) { $logDbException('cancellations debug sample final fallback', $ex4); }
+                        }
                     } catch (Exception $ex3) { $logDbException('cancellations debug sample', $ex3); }
+
+                    // Add inference debug: counts and example rows for Head & Neck and Lifestyle patterns
+                    try {
+                        $patternHN = "(head[[:space:][:punct:]]*neck|lump|mass|tumor|swelling|tumour|thyroid|tonsil)";
+                        $patternL = "(lifestyle|diet|smoking|exercise|obesity|weight|alcohol|exercise|sedentary|dietary)";
+                        $stmt = $pdo->prepare($baseSql);
+                        $stmt->execute(['pat' => $patternHN, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $payload['ent_debug']['inference_debug']['head_neck'] = ['matched' => (int)($res['matched'] ?? 0), 'total' => (int)($res['total'] ?? 0)];
+                        $exStmt = $pdo->prepare("SELECT id, chief_complaint, diagnosis, notes FROM patient_visits WHERE DATE(visit_date) BETWEEN :start AND :end AND (ent_type IS NULL OR TRIM(ent_type) = '' OR LOWER(ent_type) IN ('misc','other','misc/others')) AND (LOWER(COALESCE(chief_complaint,'')) RLIKE :pat OR LOWER(COALESCE(diagnosis,'')) RLIKE :pat OR LOWER(COALESCE(notes,'')) RLIKE :pat) LIMIT 10");
+                        $exStmt->execute(['pat' => $patternHN, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $payload['ent_debug']['inference_debug']['head_neck']['examples'] = $exStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        $stmt = $pdo->prepare($baseSql);
+                        $stmt->execute(['pat' => $patternL, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $res = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $payload['ent_debug']['inference_debug']['lifestyle'] = ['matched' => (int)($res['matched'] ?? 0), 'total' => (int)($res['total'] ?? 0)];
+                        $exStmt->execute(['pat' => $patternL, 'start' => $sdt->format('Y-m-d'), 'end' => $edt->format('Y-m-d')]);
+                        $payload['ent_debug']['inference_debug']['lifestyle']['examples'] = $exStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                        // If we captured PHP-side fallback inference earlier, merge those results into the debug payload
+                        if (!empty($phpInferenceFallback) && is_array($phpInferenceFallback)) {
+                            if (!empty($phpInferenceFallback['head_neck'])) {
+                                $payload['ent_debug']['inference_debug']['head_neck']['matched'] = ($payload['ent_debug']['inference_debug']['head_neck']['matched'] ?? 0) + $phpInferenceFallback['head_neck']['matched'];
+                                $payload['ent_debug']['inference_debug']['head_neck']['examples'] = array_merge($payload['ent_debug']['inference_debug']['head_neck']['examples'] ?? [], array_slice($phpInferenceFallback['head_neck']['examples'],0,10));
+                            }
+                            if (!empty($phpInferenceFallback['lifestyle'])) {
+                                $payload['ent_debug']['inference_debug']['lifestyle']['matched'] = ($payload['ent_debug']['inference_debug']['lifestyle']['matched'] ?? 0) + $phpInferenceFallback['lifestyle']['matched'];
+                                $payload['ent_debug']['inference_debug']['lifestyle']['examples'] = array_merge($payload['ent_debug']['inference_debug']['lifestyle']['examples'] ?? [], array_slice($phpInferenceFallback['lifestyle']['examples'],0,10));
+                            }
+                        }
+                    } catch (Exception $ex4) { $logDbException('inference debug', $ex4); }
                 } catch (Exception $ex) {
                     $logDbException('ent debug sample', $ex);
                 }

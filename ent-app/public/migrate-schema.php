@@ -140,6 +140,27 @@ try {
         }
     }
 
+    // Apply any standalone SQL migration files in the database/migrations folder
+    $migrationsDir = __DIR__ . '/../database/migrations';
+    if (is_dir($migrationsDir)) {
+        $files = glob($migrationsDir . '/*.sql');
+        foreach ($files as $f) {
+            try {
+                $sql = file_get_contents($f);
+                if (!trim($sql)) continue;
+                // Use Database->query() to execute migration SQL (handles prepared execution)
+                try {
+                    $db->query($sql);
+                    $results[] = ['success' => true, 'message' => 'Applied migration: ' . basename($f)];
+                } catch (Exception $e) {
+                    $results[] = ['success' => false, 'message' => 'Failed to apply migration ' . basename($f) . ': ' . $e->getMessage()];
+                }
+            } catch (Exception $e) {
+                $results[] = ['success' => false, 'message' => 'Failed migration ' . basename($f) . ': ' . $e->getMessage()];
+            }
+        }
+    }
+
     ?>
     <!DOCTYPE html>
     <html>
